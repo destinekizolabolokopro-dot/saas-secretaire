@@ -57,6 +57,7 @@
     view: function () {
       var S = store.state;
       var p = store.profile();
+      var D = store.data();
       var script = store.script();
       var canListen = voice.canListen();
       var blocked = voice.listenBlockedReason();
@@ -74,7 +75,7 @@
             '</div>' +
           '</div>' +
           '<div class="line-stats">' +
-            '<div><strong>' + p.quota.calls[0] + '</strong><span>appels traités</span></div>' +
+            '<div><strong>' + (p.quota.calls[0] + D.sent.length) + '</strong><span>appels traités</span></div>' +
             '<div><strong>' + p.stats.avoided + '</strong><span>appels sauvés</span></div>' +
             '<div><strong>' + p.stats.saved + '</strong><span>gagnées cette semaine</span></div>' +
           '</div>' +

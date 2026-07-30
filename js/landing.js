@@ -46,6 +46,14 @@
         email.focus();
         return;
       }
+      // L'inscription est conservée : le compteur de la page le reflète.
+      var store = window.ALLY_STORE;
+      if (store && store.state.waitlist.indexOf(email.value) === -1) {
+        store.state.waitlist.push(email.value);
+        store.save();
+      }
+      done.textContent = 'Merci ! Vous êtes sur la liste d\'attente'
+        + (store ? ', place n° ' + store.state.waitlist.length : '') + '.';
       form.hidden = true;
       done.hidden = false;
     });

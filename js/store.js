@@ -38,6 +38,9 @@
       chatSpeaks: true,
       /* Voix d'Ally : identifiant de la voix du navigateur, débit, hauteur. */
       voice: { uri: '', rate: 1, pitch: 1 },
+      plan: '',
+      waitlist: [],
+      data: null,
       /* Script d'appel : null tant que le pro ne l'a pas personnalisé, on
          retombe alors sur celui généré pour son métier. */
       script: null
@@ -88,6 +91,26 @@
     return base;
   }
 
+  function clone(value) { return JSON.parse(JSON.stringify(value)); }
+
+  /* Jeu de données vivant du compte, initialisé depuis le profil métier.
+     C'est lui que l'interface modifie : envoyer un brouillon, annuler un
+     rendez-vous ou ajouter une fiche agit vraiment, et survit au rechargement. */
+  function seed(trade) {
+    var p = window.ALLY_PROFILES[trade];
+    return {
+      trade: trade,
+      calls: clone(p.calls),
+      drafts: clone(p.drafts),
+      sent: clone(p.sent),
+      rdv: clone(p.rdv),
+      faq: clone(p.faq),
+      contacts: clone(p.contacts),
+      voiceLog: clone(p.voiceLog),
+      blocked: []
+    };
+  }
+
   var state = defaults();
   try {
     var raw = window.localStorage.getItem(KEY);
@@ -100,6 +123,27 @@
 
     profile: function () {
       return window.ALLY_PROFILES[state.trade] || window.ALLY_PROFILES.avocat;
+    },
+
+    /* Données du compte, réensemencées si le métier a changé. */
+    data: function () {
+      if (!state.data || state.data.trade !== state.trade) {
+        state.data = seed(state.trade);
+        this.save();
+      }
+      return state.data;
+    },
+
+    /* Formule d'abonnement : celle choisie, sinon celle du métier. */
+    plan: function () { return state.plan || this.profile().plan; },
+
+    /* Journalise un ordre vocal ou une action d'Ally. */
+    log: function (order, result, done) {
+      this.data().voiceLog.unshift({
+        id: Date.now(), order: order, when: 'À l\'instant',
+        result: result, state: done === false ? 'wait' : 'done'
+      });
+      this.save();
     },
 
     /* Nom d'usage : « Maître Dubois », « Docteur Lambert », « M. Morel »… */

@@ -126,12 +126,13 @@
     suggestions: function () {
       var store = window.ALLY_STORE;
       var p = store.profile();
-      var first = p.rdv[0];
+      var D = store.data();
+      var first = D.rdv[0];
       return [
         'Quel est mon prochain rendez-vous ?',
         first ? 'Déplace le rendez-vous de ' + first.time + ' à demain' : 'Bloque mon agenda vendredi après-midi',
         'Combien de brouillons attendent ma validation ?',
-        p.faq[1] ? p.faq[1].q + ' ?' : 'Quels sont mes horaires ?',
+        D.faq[1] ? D.faq[1].q + ' ?' : 'Quels sont mes horaires ?',
         'Y a-t-il eu des urgences aujourd\'hui ?'
       ];
     },
@@ -144,6 +145,7 @@
       var store = window.ALLY_STORE;
       var S = store.state;
       var p = store.profile();
+      var D = store.data();
       var t = norm(input);
 
       if (!t) {
@@ -162,7 +164,7 @@
       /* ---------- Urgences et appels ---------- */
       if (hasAny(t, ['urgence', 'urgent'])
           && !hasAny(t, ['transfere', 'transferer', 'bascule', 'renvoie'])) {
-        var urgent = p.calls.filter(function (c) { return c.kind === 'urgent'; });
+        var urgent = D.calls.filter(function (c) { return c.kind === 'urgent'; });
         if (!urgent.length) {
           return { kind: 'answer', reply: 'Aucune urgence aujourd\'hui.' };
         }
@@ -175,11 +177,11 @@
       }
 
       if (hasAny(t, ['qui a appele', 'appels', 'appel recu', 'appele aujourd hui'])) {
-        var names = p.calls.map(function (c) { return c.caller; });
+        var names = D.calls.map(function (c) { return c.caller; });
         return {
           kind: 'answer',
-          reply: p.calls.length + ' appels aujourd\'hui : ' + names.join(', ') + '.',
-          detail: p.calls.filter(function (c) { return c.kind === 'pending'; }).length
+          reply: D.calls.length + ' appels aujourd\'hui : ' + names.join(', ') + '.',
+          detail: D.calls.filter(function (c) { return c.kind === 'pending'; }).length
             + ' en attente de rappel'
         };
       }
@@ -187,12 +189,12 @@
       /* ---------- Brouillons et emails ---------- */
       if (hasAny(t, ['brouillon', 'a valider', 'validation'])
           && !hasAny(t, ['envoie', 'envoyer', 'envoi'])) {
-        var n = p.drafts.length;
+        var n = D.drafts.length;
         if (!n) return { kind: 'answer', reply: 'Aucun brouillon en attente.' };
         return {
           kind: 'answer',
           reply: n + ' brouillon' + (n > 1 ? 's attendent' : ' attend') + ' votre validation : '
-            + p.drafts.map(function (d) { return d.subject; }).join(', ') + '.',
+            + D.drafts.map(function (d) { return d.subject; }).join(', ') + '.',
           detail: 'Onglet Conversations, filtre « À valider »'
         };
       }
@@ -218,7 +220,7 @@
 
       /* ---------- Agenda : consultation ---------- */
       if (hasAny(t, ['prochain rendez vous', 'prochain rdv', 'prochain rendez'])) {
-        var next = p.rdv[0];
+        var next = D.rdv[0];
         if (!next) return { kind: 'answer', reply: 'Aucun rendez-vous à venir.' };
         return {
           kind: 'answer',
@@ -230,12 +232,12 @@
       if (hasAny(t, ['agenda', 'rendez vous', 'rdv', 'planning'])
           && hasAny(t, ['combien', 'quoi', 'journee', 'aujourd hui', 'demain', 'programme', 'ai je'])
           && !hasAny(t, ['deplace', 'decale', 'bouge', 'bloque', 'annule', 'ajoute', 'cale'])) {
-        var today = p.rdv.filter(function (r) { return r.day === 'Auj.'; });
+        var today = D.rdv.filter(function (r) { return r.day === 'Auj.'; });
         return {
           kind: 'answer',
           reply: today.length + ' rendez-vous aujourd\'hui : '
             + today.map(function (r) { return r.client + ' à ' + r.time; }).join(', ') + '.',
-          detail: p.rdv.length - today.length + ' autres cette semaine'
+          detail: D.rdv.length - today.length + ' autres cette semaine'
         };
       }
 
@@ -244,8 +246,8 @@
         var time = findTime(t);
         var day = findDay(t);
         var target = time
-          ? p.rdv.filter(function (r) { return r.time === time; })[0]
-          : p.rdv[0];
+          ? D.rdv.filter(function (r) { return r.time === time; })[0]
+          : D.rdv[0];
         var who = target ? target.client : 'ce rendez-vous';
         return {
           kind: 'action', sensitive: true,
@@ -325,7 +327,7 @@
       }
 
       /* ---------- Base de connaissances du cabinet ---------- */
-      var found = faqMatch(input, p.faq);
+      var found = faqMatch(input, D.faq);
       if (found) {
         return {
           kind: 'answer',
@@ -353,6 +355,7 @@
     answerCaller: function (input) {
       var store = window.ALLY_STORE;
       var p = store.profile();
+      var D = store.data();
       var t = norm(input);
 
       if (hasAny(t, ['urgence', 'urgent', 'grave', 'tout de suite', 'immediatement'])) {
@@ -363,7 +366,7 @@
         };
       }
 
-      var known = faqMatch(input, p.faq);
+      var known = faqMatch(input, D.faq);
 
       /* Une question de renseignement passe avant la prise de rendez-vous :
          « vos tarifs pour une première consultation ? » demande un prix, pas
@@ -378,7 +381,7 @@
             && hasAny(t, ['souhaite', 'voudrais', 'cherche', 'prendre', 'avoir', 'possible']));
 
       if (wantsBooking) {
-        var slot = p.rdv.filter(function (r) { return r.day !== 'Auj.'; })[0];
+        var slot = D.rdv.filter(function (r) { return r.day !== 'Auj.'; })[0];
         return {
           kind: 'booking',
           reply: 'Je peux vous proposer un créneau'

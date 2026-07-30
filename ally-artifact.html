@@ -1,11 +1,9 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Ally — démonstration</title>
-<link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMiAzMiI+CiAgPGRlZnM+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImciIHgxPSIwIiB5MT0iMCIgeDI9IjEiIHkyPSIxIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSJva2xjaCgwLjcyIDAuMTkgMjk2KSIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9Im9rbGNoKDAuNzUgMC4xNSAyMDApIi8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogIDwvZGVmcz4KICA8cmVjdCB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHJ4PSI5IiBmaWxsPSJ1cmwoI2cpIi8+Cjwvc3ZnPgo=" type="image/svg+xml">
+<title>Ally — secrétaire IA pour professionnels solo</title>
 <style>
+:root { color-scheme: dark; }
+/* La page assume une identité sombre unique, celle du produit : on neutralise
+   le thème clair de l'hôte plutôt que de livrer deux identités. */
+html, body { background: oklch(0.15 0.02 264); margin: 0; }
 /* Ally — design tokens extraits du handoff design */
 :root {
   /* Surfaces (7 niveaux relevés dans les maquettes) */
@@ -1303,12 +1301,9 @@ input[type="range"] {
   .block-form { flex-direction: column; align-items: stretch; }
 }
 
-/* Un seul écran visible à la fois. */
 .screen { display: none; }
 .screen[data-active] { display: block; }
 </style>
-</head>
-<body>
 <div class="screen" id="screen-landing" data-active="true">
 <a class="skip-link" href="#main">Aller au contenu</a>
 
@@ -5059,5 +5054,3 @@ window.ALLY_DISPLAY_NAME = function (identity, profile) {
 })();
 
 </script>
-</body>
-</html>

@@ -57,6 +57,7 @@
   }
 
   function P() { return store.profile(); }
+  function D() { return store.data(); }
   function name() { return store.displayName(); }
 
   var AUTONOMY = ['Toujours valider', 'Semi-autonome', 'IA autonome'];
@@ -65,9 +66,9 @@
   var DATE_LABEL = 'Mardi 28 juillet 2026';
 
   /* ---------- Dérivés du profil ---------- */
-  function drafts()   { return P().drafts; }
-  function calls()    { return P().calls; }
-  function todayRdv() { return P().rdv.filter(function (r) { return r.day === 'Auj.'; }); }
+  function drafts()   { return D().drafts; }
+  function calls()    { return D().calls; }
+  function todayRdv() { return D().rdv.filter(function (r) { return r.day === 'Auj.'; }); }
   function urgentCall() {
     return calls().filter(function (c) { return c.kind === 'urgent'; })[0] || null;
   }
@@ -86,7 +87,7 @@
     el.profileName.textContent = name();
     el.profileOrg.textContent = S.identity.org || p.orgLabel;
     el.avatar.textContent = ((S.identity.firstName || '?')[0] + (S.identity.lastName || '?')[0]).toUpperCase();
-    el.badgePlan.textContent = p.plan;
+    el.badgePlan.textContent = store.plan();
     el.notifBadge.hidden = !urgentCall();
     el.fab.hidden = !S.voiceEnabled;
     document.title = 'Espace pro — ' + name() + ' — Ally';
@@ -179,10 +180,110 @@
     el.searchToggle.setAttribute('aria-expanded', String(open));
     if (open) el.search.focus();
   });
-  document.getElementById('notif-btn').addEventListener('click', function () {
-    setTab(urgentCall() ? 'conversations' : 'account');
-    if (!urgentCall()) ui.account = 'alerts';
-    renderPanel();
+  /* ---------- Recherche transversale ---------- */
+  /* Cherche dans les appels, les emails, les rendez-vous et la base de
+     connaissances, et emmène directement sur le bon onglet. */
+  function search(query) {
+    var q = query.trim().toLowerCase();
+    if (q.length < 2) return [];
+    var hits = [];
+    function match(text) { return String(text).toLowerCase().indexOf(q) !== -1; }
+
+    calls().forEach(function (c) {
+      if (match(c.caller) || match(c.subject) || match(c.transcript)) {
+        hits.push({ tab: 'conversations', filter: 'calls', label: c.caller, sub: c.subject, kind: 'Appel' });
+      }
+    });
+    drafts().forEach(function (m) {
+      if (match(m.subject) || match(m.to) || match(m.preview)) {
+        hits.push({ tab: 'conversations', filter: 'validate', label: m.subject, sub: 'À : ' + m.to, kind: 'Brouillon' });
+      }
+    });
+    D().sent.forEach(function (m) {
+      if (match(m.subject) || match(m.to)) {
+        hits.push({ tab: 'conversations', filter: 'emails', label: m.subject, sub: m.time, kind: 'Envoyé' });
+      }
+    });
+    D().rdv.forEach(function (r) {
+      if (match(r.client) || match(r.type)) {
+        hits.push({ tab: 'agenda', filter: 'all', label: r.client, sub: r.day + ' · ' + r.time, kind: 'RDV' });
+      }
+    });
+    D().faq.forEach(function (f) {
+      if (match(f.q) || match(f.a)) {
+        hits.push({ tab: 'ally', filter: 'all', label: f.q, sub: f.a, kind: 'Connaissance' });
+      }
+    });
+    return hits.slice(0, 8);
+  }
+
+  var results = document.getElementById('search-results');
+
+  function renderResults(hits, query) {
+    if (!query || query.trim().length < 2) { results.hidden = true; return; }
+    results.hidden = false;
+    if (!hits.length) {
+      results.innerHTML = '<p class="search-empty">Aucun résultat pour « ' + esc(query) + ' ».</p>';
+      return;
+    }
+    results.innerHTML = hits.map(function (hit, index) {
+      return '<button type="button" class="search-hit" data-hit="' + index + '">' +
+        '<span class="search-kind">' + esc(hit.kind) + '</span>' +
+        '<span class="search-main"><strong>' + esc(hit.label) + '</strong>' +
+        '<span>' + esc(hit.sub) + '</span></span></button>';
+    }).join('');
+    results.querySelectorAll('[data-hit]').forEach(function (button) {
+      button.addEventListener('click', function () {
+        var hit = hits[Number(button.getAttribute('data-hit'))];
+        ui.filter = hit.filter;
+        results.hidden = true;
+        el.search.value = '';
+        setTab(hit.tab);
+      });
+    });
+  }
+
+  el.search.addEventListener('input', function () {
+    renderResults(search(el.search.value), el.search.value);
+  });
+  el.search.addEventListener('blur', function () {
+    window.setTimeout(function () { results.hidden = true; }, 180);
+  });
+  el.search.addEventListener('focus', function () {
+    if (el.search.value.trim().length >= 2) renderResults(search(el.search.value), el.search.value);
+  });
+
+  /* ---------- Notifications ---------- */
+  var notifPanel = document.getElementById('notif-panel');
+
+  function renderNotifications() {
+    var items = todoItems();
+    notifPanel.innerHTML = '<p class="notif-title">Notifications</p>' +
+      (items.length
+        ? items.map(function (item, index) {
+            return '<button type="button" class="notif-item" data-notif="' + index + '">' +
+              '<span class="todo-dot ' + item.kind + '" aria-hidden="true"></span>' +
+              '<span>' + esc(item.text) + '</span></button>';
+          }).join('')
+        : '<p class="notif-empty">Rien à signaler. Ally a tout traité.</p>');
+
+    notifPanel.querySelectorAll('[data-notif]').forEach(function (button) {
+      button.addEventListener('click', function () {
+        var item = items[Number(button.getAttribute('data-notif'))];
+        notifPanel.hidden = true;
+        ui.filter = item.filter;
+        setTab(item.tab);
+      });
+    });
+  }
+
+  document.getElementById('notif-btn').addEventListener('click', function (event) {
+    event.stopPropagation();
+    if (notifPanel.hidden) { renderNotifications(); notifPanel.hidden = false; }
+    else notifPanel.hidden = true;
+  });
+  document.addEventListener('click', function (event) {
+    if (!notifPanel.hidden && !notifPanel.contains(event.target)) notifPanel.hidden = true;
   });
 
   /* ---------- Fragments ---------- */
@@ -322,8 +423,9 @@
           '<p class="transcript-label">Transcription automatique · ' + esc(c.duration) + '</p>' +
           '<p class="transcript-text">' + esc(c.transcript) + '</p>' +
           '<div class="transcript-actions">' +
-            '<button type="button" class="btn-play"><span aria-hidden="true">▶</span> Écouter l\'enregistrement</button>' +
-            '<button type="button" class="btn-link">Corriger la transcription</button>' +
+            '<button type="button" class="btn-play" data-play="' + c.id + '">' +
+              '<span aria-hidden="true">▶</span> Écouter l\'enregistrement</button>' +
+            '<button type="button" class="btn-link" data-fix="' + c.id + '">Corriger la transcription</button>' +
           '</div>' +
           '<p class="legal">Enregistré avec le consentement de l\'appelant, conformément à la réglementation.</p>' +
         '</div>' +
@@ -350,8 +452,8 @@
           '<p class="transcript-text">' + esc(mail.preview) + '</p>' +
           '<p class="mail-sign">' + esc(signature()) + '</p>' +
           '<div class="transcript-actions">' +
-            '<button type="button" class="btn btn-primary btn-sm">Envoyer</button>' +
-            '<button type="button" class="btn btn-ghost btn-sm">Modifier</button>' +
+            '<button type="button" class="btn btn-primary btn-sm" data-send="' + mail.id + '">Envoyer</button>' +
+            '<button type="button" class="btn btn-ghost btn-sm" data-edit="' + mail.id + '">Modifier</button>' +
           '</div>' +
         '</div>' +
       '</div></div>';
@@ -367,8 +469,8 @@
       FILTERS.map(function (f) {
         var count = f.id === 'validate' ? drafts().length
           : f.id === 'calls' ? calls().length
-          : f.id === 'emails' ? drafts().length + p.sent.length
-          : calls().length + drafts().length + p.sent.length;
+          : f.id === 'emails' ? drafts().length + D().sent.length
+          : calls().length + drafts().length + D().sent.length;
         return '<button type="button" class="choice" data-filter="' + f.id + '"' +
           ' aria-pressed="' + (ui.filter === f.id) + '">' + esc(f.label) +
           ' <span class="choice-count">' + count + '</span></button>';
@@ -389,7 +491,7 @@
 
     if (showSent) {
       out += '<p class="section-label">Envoyés automatiquement par Ally</p>' +
-        '<div class="conv-list flat">' + p.sent.map(function (mail) {
+        '<div class="conv-list flat">' + D().sent.map(function (mail) {
           return '<div class="row"><div><p class="row-name">' + esc(mail.subject) + '</p>' +
             '<p class="row-meta">À : ' + esc(mail.to) + '</p></div>' +
             '<p class="row-meta">' + esc(mail.time) + '</p></div>';
@@ -403,13 +505,15 @@
   function viewAgenda() {
     var p = P();
     var today = todayRdv();
-    var later = p.rdv.filter(function (r) { return r.day !== 'Auj.'; });
+    var later = D().rdv.filter(function (r) { return r.day !== 'Auj.'; });
 
     function rdvRow(r, withDay) {
       return '<div class="rdv">' +
-        (withDay ? '<span class="rdv-day">' + esc(r.day) + '</span>' : '<span class="rdv-day">' + esc(r.time) + '</span>') +
-        '<div><p class="row-name">' + esc(r.client) + '</p>' +
-        '<p class="row-meta">' + esc(r.type) + (withDay ? ' · ' + esc(r.time) : '') + '</p></div></div>';
+        '<span class="rdv-day">' + esc(withDay ? r.day : r.time) + '</span>' +
+        '<div class="rdv-main"><p class="row-name">' + esc(r.client) + '</p>' +
+        '<p class="row-meta">' + esc(r.type) + (withDay ? ' · ' + esc(r.time) : '') + '</p></div>' +
+        '<button type="button" class="btn-link danger" data-rdv-cancel="' + r.id + '">Annuler</button>' +
+        '</div>';
     }
 
     return '<div class="cols cols-14">' +
@@ -427,9 +531,29 @@
           '<div class="sync-row"><span>Google Calendar</span><span class="sync-dot" aria-hidden="true"></span></div>' +
           '<p class="note" style="margin-top:14px">' + esc(P().agendaRules) + '</p>' +
         '</div>' +
+        '<div class="card"><p class="card-title">Bloquer un créneau</p>' +
+          '<p class="note" style="margin-bottom:14px">Ally n\'y proposera aucun rendez-vous.</p>' +
+          '<form class="block-form" id="block-form">' +
+            '<label class="sr-only" for="block-day">Jour</label>' +
+            '<select class="field" id="block-day">' +
+              ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'].map(function (d) {
+                return '<option>' + d + '</option>';
+              }).join('') + '</select>' +
+            '<label class="sr-only" for="block-half">Demi-journée</label>' +
+            '<select class="field" id="block-half">' +
+              '<option>matin</option><option>après-midi</option><option>toute la journée</option>' +
+            '</select>' +
+            '<button type="submit" class="btn btn-primary btn-sm">Bloquer</button>' +
+          '</form>' +
+          (D().blocked.length
+            ? '<div class="blocked-list">' + D().blocked.map(function (b) {
+                return '<div class="row"><span style="font-size:14px">' + esc(b.label) + '</span>' +
+                  '<button type="button" class="btn-link" data-unblock="' + b.id + '">Débloquer</button></div>';
+              }).join('') + '</div>'
+            : '') +
+        '</div>' +
         '<div class="card"><p class="card-title">Modifications faites par Ally</p>' +
           '<p class="note">' + esc(P().agendaLast) + '</p>' +
-          '<p class="note note-sep" style="margin-top:12px">Les déplacements restent tracés : vous pouvez les annuler depuis l\'historique.</p>' +
         '</div>' +
       '</div></div>';
   }
@@ -468,7 +592,7 @@
       '</div>' +
 
       '<div class="card"><p class="card-title">Derniers ordres vocaux</p>' +
-        '<div class="voice-log">' + p.voiceLog.map(function (entry) {
+        '<div class="voice-log">' + D().voiceLog.map(function (entry) {
           return '<div class="row"><div><p class="row-name">« ' + esc(entry.order) + ' »</p>' +
             '<p class="row-meta">' + esc(entry.when) + ' · ' + esc(entry.result) + '</p></div>' +
             '<span class="voice-status ' + entry.state + '">' +
@@ -478,7 +602,7 @@
 
       '<div class="card"><p class="card-title">Contacts prioritaires</p>' +
         '<p class="note" style="margin-bottom:14px">Ally vous transfère ces appels immédiatement.</p>' +
-        p.contacts.map(function (c) {
+        D().contacts.map(function (c) {
           var label = c.name === 'Votre portable' && S.identity.phone
             ? 'Votre portable (' + S.identity.phone + ')' : c.name;
           return '<div class="row"><span style="font-size:14px">' + esc(label) + '</span>' +
@@ -488,10 +612,22 @@
 
       '<div class="card"><p class="card-title">Base de connaissances</p>' +
         '<p class="note" style="margin-bottom:14px">Ce qu\'Ally peut répondre seule, sans vous solliciter.</p>' +
-        '<div class="faq-list">' + p.faq.map(function (item) {
-          return '<div class="faq"><strong>' + esc(item.q) + '</strong><p>' + esc(item.a) + '</p></div>';
+        '<div class="faq-list">' + D().faq.map(function (item) {
+          return '<div class="faq"><div class="faq-top"><strong>' + esc(item.q) + '</strong>' +
+            '<button type="button" class="btn-link danger" data-faq-del="' + item.id + '">Supprimer</button></div>' +
+            '<p>' + esc(item.a) + '</p></div>';
         }).join('') + '</div>' +
-        '<button type="button" class="add-row" style="margin-top:14px">+ Ajouter une entrée</button>' +
+        '<form class="faq-form" id="faq-form" hidden>' +
+          '<label class="sr-only" for="faq-q">Question</label>' +
+          '<input class="field" id="faq-q" placeholder="Question — ex. : Acceptez-vous la carte bancaire ?">' +
+          '<label class="sr-only" for="faq-a">Réponse d\'Ally</label>' +
+          '<textarea class="field" id="faq-a" rows="2" placeholder="Ce qu\'Ally répondra, mot pour mot"></textarea>' +
+          '<div class="faq-form-actions">' +
+            '<button type="submit" class="btn btn-primary btn-sm">Ajouter</button>' +
+            '<button type="button" class="btn btn-ghost btn-sm" id="faq-cancel">Annuler</button>' +
+          '</div>' +
+        '</form>' +
+        '<button type="button" class="add-row" id="faq-open" style="margin-top:14px">+ Ajouter une entrée</button>' +
       '</div></div>';
   }
 
@@ -503,14 +639,20 @@
     return '<div class="cols cols-11">' +
       '<div class="plan-card">' +
         '<p class="plan-kicker">Formule actuelle</p>' +
-        '<p class="plan-name">' + esc(p.plan) + '</p>' +
+        '<p class="plan-name">' + esc(store.plan()) + '</p>' +
         '<div class="meter"><div class="meter-head"><span>Appels traités</span><span>' +
           q.calls[0] + ' / ' + q.calls[1] + '</span></div>' +
           '<div class="meter-track"><div class="meter-fill accent" style="width:' + pct(q.calls) + '%"></div></div></div>' +
         '<div class="meter"><div class="meter-head"><span>Emails traités</span><span>' +
           q.emails[0] + ' / ' + q.emails[1] + '</span></div>' +
           '<div class="meter-track"><div class="meter-fill cyan" style="width:' + pct(q.emails) + '%"></div></div></div>' +
-        '<button type="button" class="btn btn-ghost btn-md">Changer de formule</button>' +
+        '<button type="button" class="btn btn-ghost btn-md" id="plan-open">Changer de formule</button>' +
+        '<div class="plan-choices" id="plan-choices" hidden>' +
+          ['Essai gratuit', p.plan, 'Cabinet illimité'].map(function (label) {
+            return '<button type="button" class="choice" data-plan="' + esc(label) + '"' +
+              ' aria-pressed="' + (store.plan() === label) + '">' + esc(label) + '</button>';
+          }).join('') +
+        '</div>' +
       '</div>' +
       '<div class="card"><p class="card-title">Historique de facturation</p>' +
         [['01/07/2026', '149 €'], ['01/06/2026', '149 €'], ['01/05/2026', '149 €']].map(function (row) {
@@ -539,8 +681,8 @@
           '<output id="out-retention" for="retention">' + S.retentionDays + ' jours</output></div>' +
         '<input type="range" id="retention" min="7" max="365" value="' + S.retentionDays + '">' +
         '<div class="danger-actions">' +
-          '<button type="button" class="btn btn-ghost btn-md">Exporter mes données</button>' +
-          '<button type="button" class="btn btn-danger btn-md">Demander la suppression</button>' +
+          '<button type="button" class="btn btn-ghost btn-md" id="export-data">Exporter mes données</button>' +
+          '<button type="button" class="btn btn-danger btn-md" id="wipe-data">Supprimer toutes mes données</button>' +
         '</div>' +
       '</div>' +
       '<div class="card"><p class="card-title">Ce compte</p>' +
@@ -570,13 +712,26 @@
       '</div></div>';
   }
 
+  var TUTORIALS = [
+    { title: 'Choisir la voix d\'Ally',
+      body: 'Onglet Téléphonie → La voix d\'Ally. Cliquez une voix, elle se présente aussitôt. '
+        + 'Réglez le débit et la hauteur, puis « Essayer cette voix ». Le choix vaut pour le '
+        + 'téléphone comme pour l\'application.' },
+    { title: 'Écrire votre script d\'appel',
+      body: 'Onglet Téléphonie → Votre script d\'appel. Six étapes, de l\'accueil à la clôture. '
+        + 'Modifiez le texte : Ally dira exactement vos phrases. « Écouter » vous les fait entendre '
+        + 'avec sa voix avant de valider.' },
+    { title: 'Comprendre le mode brouillon à valider',
+      body: 'Pour les métiers à secret professionnel, aucun email métier ne part sans vous. Ally '
+        + 'prépare, vous relisez, vous envoyez. Le curseur Emails de l\'onglet Ally reste alors '
+        + 'sur « Toujours valider ».' },
+    { title: 'Donner des ordres à Ally à la voix',
+      body: 'Bouton « Parler à Ally » en bas à droite. Dites par exemple « déplace mon rendez-vous '
+        + 'de 14h à demain ». Ally répète l\'ordre avant d\'exécuter les actions sensibles, selon '
+        + 'le niveau de confirmation que vous avez choisi.' }
+  ];
+
   function accountHelp() {
-    var tutorials = [
-      'Choisir la voix d\'Ally',
-      'Écrire votre script d\'appel',
-      'Comprendre le mode brouillon à valider',
-      'Donner des ordres à Ally à la voix'
-    ];
     return '<div class="cols cols-12 limit-1000">' +
       '<div class="card chat">' +
         '<div class="chat-head">' +
@@ -604,7 +759,13 @@
         '</form>' +
       '</div>' +
       '<div class="card"><p class="card-title">Tutoriels</p>' +
-        tutorials.map(function (t) { return '<button type="button" class="tuto">' + esc(t) + '</button>'; }).join('') +
+        TUTORIALS.map(function (t, i) {
+          return '<div class="tuto-item">' +
+            '<button type="button" class="tuto" data-tuto="' + i + '" aria-expanded="false">' +
+              esc(t.title) + '</button>' +
+            '<p class="tuto-body" id="tuto-' + i + '" hidden>' + esc(t.body) + '</p>' +
+          '</div>';
+        }).join('') +
       '</div></div>';
   }
 
@@ -630,6 +791,218 @@
     var panel = el.panel;
 
     if (ui.tab === 'telephony') window.ALLY_TELEPHONY.bind(panel, renderPanel);
+
+    /* ---------- Actions réelles sur les données du compte ---------- */
+
+    // Envoyer un brouillon : il quitte la file et rejoint les envois.
+    panel.querySelectorAll('[data-send]').forEach(function (button) {
+      button.addEventListener('click', function () {
+        var id = Number(button.getAttribute('data-send'));
+        var mail = drafts().filter(function (m) { return m.id === id; })[0];
+        if (!mail) return;
+        D().drafts = drafts().filter(function (m) { return m.id !== id; });
+        D().sent.unshift({ id: Date.now(), subject: mail.subject, to: mail.to, time: 'À l\'instant' });
+        store.log('Validation de « ' + mail.subject + ' »', 'Email envoyé à ' + mail.to);
+        store.save();
+        ui.expanded = null;
+        renderNav(); renderPanel(); renderChrome();
+        el.sub.textContent = SUBS[ui.tab]();
+      });
+    });
+
+    // Modifier un brouillon avant envoi.
+    panel.querySelectorAll('[data-edit]').forEach(function (button) {
+      button.addEventListener('click', function () {
+        if (button.getAttribute('data-editing') === '1') return;
+        var id = Number(button.getAttribute('data-edit'));
+        var mail = drafts().filter(function (m) { return m.id === id; })[0];
+        if (!mail) return;
+        var box = button.closest('.mail-preview');
+        var text = box.querySelector('.transcript-text');
+        var area = document.createElement('textarea');
+        area.className = 'field';
+        area.rows = 4;
+        area.value = mail.preview;
+        text.replaceWith(area);
+        area.focus();
+        button.textContent = 'Enregistrer';
+        button.setAttribute('data-editing', '1');
+        button.addEventListener('click', function save() {
+          mail.preview = area.value;
+          store.save();
+          renderPanel();
+        }, { once: true });
+      });
+    });
+
+    // Écouter la transcription avec la voix d'Ally.
+    panel.querySelectorAll('[data-play]').forEach(function (button) {
+      button.addEventListener('click', function () {
+        var id = Number(button.getAttribute('data-play'));
+        var c = calls().filter(function (x) { return x.id === id; })[0];
+        if (c) window.ALLY_VOICE.speak(c.transcript, store.voiceOptions());
+      });
+    });
+
+    // Corriger une transcription mal comprise.
+    panel.querySelectorAll('[data-fix]').forEach(function (button) {
+      button.addEventListener('click', function () {
+        if (button.getAttribute('data-editing') === '1') return;
+        var id = Number(button.getAttribute('data-fix'));
+        var c = calls().filter(function (x) { return x.id === id; })[0];
+        if (!c) return;
+        button.setAttribute('data-editing', '1');
+        var box = button.closest('.transcript');
+        var text = box.querySelector('.transcript-text');
+        var area = document.createElement('textarea');
+        area.className = 'field';
+        area.rows = 4;
+        area.value = c.transcript;
+        text.replaceWith(area);
+        area.focus();
+        button.textContent = 'Enregistrer la correction';
+        button.addEventListener('click', function () {
+          c.transcript = area.value;
+          store.log('Correction de la transcription — ' + c.caller, 'Transcription mise à jour');
+          store.save();
+          renderPanel();
+        }, { once: true });
+      });
+    });
+
+    // Base de connaissances : ajout et suppression, connus aussitôt par Ally.
+    var faqOpen = panel.querySelector('#faq-open');
+    var faqForm = panel.querySelector('#faq-form');
+    if (faqOpen && faqForm) {
+      faqOpen.addEventListener('click', function () {
+        faqForm.hidden = false;
+        faqOpen.hidden = true;
+        document.getElementById('faq-q').focus();
+      });
+      panel.querySelector('#faq-cancel').addEventListener('click', function () {
+        faqForm.hidden = true;
+        faqOpen.hidden = false;
+      });
+      faqForm.addEventListener('submit', function (event) {
+        event.preventDefault();
+        var q = document.getElementById('faq-q').value.trim();
+        var a = document.getElementById('faq-a').value.trim();
+        if (!q || !a) return;
+        D().faq.push({ id: Date.now(), q: q, a: a });
+        store.log('Ajout à la base de connaissances', q);
+        store.save();
+        renderPanel();
+      });
+    }
+    panel.querySelectorAll('[data-faq-del]').forEach(function (button) {
+      button.addEventListener('click', function () {
+        var id = Number(button.getAttribute('data-faq-del'));
+        D().faq = D().faq.filter(function (f) { return f.id !== id; });
+        store.save();
+        renderPanel();
+      });
+    });
+
+    // Changement de formule.
+    var planOpen = panel.querySelector('#plan-open');
+    if (planOpen) {
+      planOpen.addEventListener('click', function () {
+        var box = panel.querySelector('#plan-choices');
+        box.hidden = !box.hidden;
+      });
+    }
+    panel.querySelectorAll('[data-plan]').forEach(function (button) {
+      button.addEventListener('click', function () {
+        S.plan = button.getAttribute('data-plan');
+        store.save();
+        renderChrome();
+        renderPanel();
+      });
+    });
+
+    // Export RGPD : un vrai fichier JSON, téléchargé depuis le navigateur.
+    var exportBtn = panel.querySelector('#export-data');
+    if (exportBtn) {
+      exportBtn.addEventListener('click', function () {
+        var payload = JSON.stringify({
+          exporte_le: new Date().toISOString(),
+          identite: S.identity, metier: S.trade, horaires: S.hours,
+          regles: S.rules, autonomie: S.autonomy, script: store.script(),
+          donnees: D()
+        }, null, 2);
+        var blob = new Blob([payload], { type: 'application/json' });
+        var link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = 'ally-donnees-' + (S.identity.lastName || 'compte').toLowerCase() + '.json';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(link.href);
+        exportBtn.textContent = 'Export téléchargé';
+        window.setTimeout(function () { exportBtn.textContent = 'Exporter mes données'; }, 2500);
+      });
+    }
+
+    // Suppression : effacement réel, avec confirmation.
+    var wipeBtn = panel.querySelector('#wipe-data');
+    if (wipeBtn) {
+      wipeBtn.addEventListener('click', function () {
+        if (wipeBtn.getAttribute('data-armed') !== '1') {
+          wipeBtn.setAttribute('data-armed', '1');
+          wipeBtn.textContent = 'Confirmer la suppression définitive';
+          window.setTimeout(function () {
+            wipeBtn.removeAttribute('data-armed');
+            wipeBtn.textContent = 'Supprimer toutes mes données';
+          }, 5000);
+          return;
+        }
+        store.reset();
+        window.ALLY_RESTART();
+      });
+    }
+
+    // Tutoriels dépliables.
+    panel.querySelectorAll('[data-tuto]').forEach(function (button) {
+      button.addEventListener('click', function () {
+        var body = document.getElementById('tuto-' + button.getAttribute('data-tuto'));
+        var open = body.hidden;
+        body.hidden = !open;
+        button.setAttribute('aria-expanded', String(open));
+      });
+    });
+
+    // Agenda : annuler ou déplacer un rendez-vous, bloquer une demi-journée.
+    panel.querySelectorAll('[data-rdv-cancel]').forEach(function (button) {
+      button.addEventListener('click', function () {
+        var id = Number(button.getAttribute('data-rdv-cancel'));
+        var r = D().rdv.filter(function (x) { return x.id === id; })[0];
+        D().rdv = D().rdv.filter(function (x) { return x.id !== id; });
+        if (r) store.log('Annulation du rendez-vous de ' + r.client, 'Créneau libéré, ' + r.client + ' prévenu');
+        store.save();
+        renderNav(); renderPanel();
+        el.sub.textContent = SUBS[ui.tab]();
+      });
+    });
+    var blockForm = panel.querySelector('#block-form');
+    if (blockForm) {
+      blockForm.addEventListener('submit', function (event) {
+        event.preventDefault();
+        var day = document.getElementById('block-day').value;
+        var half = document.getElementById('block-half').value;
+        D().blocked.unshift({ id: Date.now(), label: day + ' ' + half });
+        store.log('Blocage de créneau', day + ' ' + half + ' rendu indisponible');
+        store.save();
+        renderPanel();
+      });
+    }
+    panel.querySelectorAll('[data-unblock]').forEach(function (button) {
+      button.addEventListener('click', function () {
+        var id = Number(button.getAttribute('data-unblock'));
+        D().blocked = D().blocked.filter(function (b) { return b.id !== id; });
+        store.save();
+        renderPanel();
+      });
+    });
 
     panel.querySelectorAll('[data-jump]').forEach(function (button) {
       button.addEventListener('click', function () {

@@ -107,3 +107,26 @@ ${js}
 
 fs.writeFileSync(path.join(__dirname, 'ally-demo.html'), shell);
 console.log('ally-demo.html écrit — ' + Math.round(shell.length / 1024) + ' Ko');
+
+/* Variante pour publication en ligne : même contenu, sans les balises
+   <html>/<head>/<body>, que l'hébergeur fournit lui-même. Servie en https,
+   elle donne accès au micro — impossible sur un fichier local. */
+const hosted = `<title>Ally — secrétaire IA pour professionnels solo</title>
+<style>
+:root { color-scheme: dark; }
+/* La page assume une identité sombre unique, celle du produit : on neutralise
+   le thème clair de l'hôte plutôt que de livrer deux identités. */
+html, body { background: oklch(0.15 0.02 264); margin: 0; }
+${css}
+.screen { display: none; }
+.screen[data-active] { display: block; }
+</style>
+${screens}
+<script>
+${router}
+${js}
+</script>
+`;
+
+fs.writeFileSync(path.join(__dirname, 'ally-artifact.html'), hosted);
+console.log('ally-artifact.html écrit — ' + Math.round(hosted.length / 1024) + ' Ko');
