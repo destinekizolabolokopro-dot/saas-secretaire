@@ -632,6 +632,81 @@ input[type="range"] {
   .ob-nav .btn { flex: 1; }
 }
 
+/* ============ ABONNEMENT ============ */
+.billing-switch { display: flex; gap: 10px; justify-content: center; margin-bottom: 34px; }
+.save-badge {
+  font-size: 11px; margin-left: 6px; padding: 2px 7px;
+  border-radius: var(--pill); background: oklch(0.75 0.15 200 / 0.2); color: var(--cyan);
+}
+.choice[aria-pressed="true"] .save-badge { background: oklch(0.12 0.02 264 / 0.2); color: inherit; }
+
+.plans { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; align-items: start; }
+.plan {
+  position: relative; display: flex; flex-direction: column; gap: 10px;
+  background: var(--card-glass); border: 1px solid oklch(1 0 0 / 0.08);
+  border-radius: var(--r-lg); padding: 28px 24px; backdrop-filter: blur(10px);
+}
+.plan.is-popular {
+  border-color: oklch(0.72 0.19 296 / 0.5);
+  background: linear-gradient(160deg, oklch(0.22 0.04 296 / 0.55), oklch(0.19 0.02 264 / 0.75));
+}
+.plan-flag {
+  position: absolute; top: -11px; left: 24px;
+  font-size: 11px; font-weight: 600; padding: 4px 11px; border-radius: var(--pill);
+  background: var(--grad); color: var(--on-accent);
+}
+.plan h2 { font-size: 21px; font-weight: 700; }
+.plan-tagline { font-size: 14px; color: var(--txt-3); line-height: 1.5; min-height: 42px; }
+.plan-price { display: flex; align-items: baseline; gap: 6px; margin-top: 4px; }
+.plan-price strong { font-family: var(--ff-h); font-size: 38px; font-weight: 700; line-height: 1; }
+.plan-price span { font-size: 13px; color: var(--txt-4); }
+.plan-billed { font-size: 12px; color: var(--txt-5); }
+.plan-for {
+  font-size: 13px; color: var(--txt-3); line-height: 1.5;
+  padding: 10px 12px; border-radius: var(--r-sm); background: oklch(1 0 0 / 0.04);
+}
+.plan-quota { font-size: 12px; color: var(--txt-4); font-variant-numeric: tabular-nums; }
+.plan-features { list-style: none; margin: 6px 0 0; padding: 0; display: flex; flex-direction: column; gap: 9px; }
+.plan-features li {
+  position: relative; padding-left: 20px; font-size: 13px; line-height: 1.5; color: var(--txt-2);
+}
+.plan-features li::before {
+  content: ''; position: absolute; left: 0; top: 6px;
+  width: 8px; height: 8px; border-radius: 50%;
+  border: 2px solid var(--cyan);
+}
+.plan-features.muted li { color: var(--txt-5); }
+.plan-features.muted li::before { border-color: oklch(0.4 0.01 264); }
+.plan .btn { margin-top: auto; justify-content: center; }
+
+.checkout { display: grid; grid-template-columns: 1.25fr 1fr; gap: 20px; align-items: start; }
+.demo-warning {
+  font-size: 12px; line-height: 1.6; color: var(--yellow);
+  background: oklch(0.3 0.1 90 / 0.15); border-radius: var(--r-sm);
+  padding: 12px 14px; margin-top: 18px;
+}
+.consent { display: flex; gap: 10px; align-items: flex-start; margin-top: 16px; font-size: 13px; color: var(--txt-3); line-height: 1.5; }
+.consent input { margin-top: 2px; accent-color: var(--accent); width: 16px; height: 16px; flex-shrink: 0; }
+.summary { position: sticky; top: 24px; }
+.summary-plan { margin-bottom: 16px; }
+.summary-plan strong { display: block; font-family: var(--ff-h); font-size: 20px; font-weight: 700; }
+.summary-plan span { font-size: 13px; color: var(--txt-4); line-height: 1.5; }
+.summary-line {
+  display: flex; justify-content: space-between; gap: 12px;
+  padding: 11px 0; border-bottom: 1px solid var(--hair); font-size: 14px;
+}
+.summary-line.total { border-bottom: none; font-weight: 600; }
+.summary-features { list-style: none; margin: 14px 0 18px; padding: 0; display: flex; flex-direction: column; gap: 7px; }
+.summary-features li { font-size: 12px; color: var(--txt-4); padding-left: 14px; position: relative; line-height: 1.45; }
+.summary-features li::before { content: '·'; position: absolute; left: 4px; color: var(--cyan); }
+
+@media (max-width: 900px) {
+  .plans { grid-template-columns: 1fr; }
+  .checkout { grid-template-columns: 1fr; }
+  .summary { position: static; }
+  .plan-tagline { min-height: 0; }
+}
+
 /* Ally — espace pro */
 
 .shell { display: grid; grid-template-columns: 264px 1fr; min-height: 100vh; }
@@ -1301,6 +1376,28 @@ input[type="range"] {
   .block-form { flex-direction: column; align-items: stretch; }
 }
 
+/* Suites de conversation proposées après chaque réponse. */
+.voice-follow, .chat-follow { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.chat-follow { margin-top: 4px; }
+
+/* ============ CONNEXIONS ============ */
+.link-row {
+  display: flex; align-items: flex-start; gap: 14px;
+  padding: 16px 0; border-bottom: 1px solid var(--hair);
+}
+.link-row:last-child { border-bottom: none; }
+.link-state { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; margin-top: 6px; }
+.link-state.on  { background: var(--cyan); box-shadow: 0 0 0 4px oklch(0.75 0.15 200 / 0.15); }
+.link-state.off { background: oklch(0.4 0.01 264); }
+.link-main { flex: 1; min-width: 0; }
+.link-main strong { display: block; font-size: 14px; font-weight: 600; }
+.link-main span { display: block; font-size: 13px; color: var(--txt-4); margin-top: 2px; line-height: 1.5; }
+.link-need { font-size: 12px !important; color: var(--txt-5) !important; margin-top: 6px !important; }
+@media (max-width: 560px) {
+  .link-row { flex-wrap: wrap; }
+  .link-row .btn { width: 100%; }
+}
+
 .screen { display: none; }
 .screen[data-active] { display: block; }
 </style>
@@ -1325,12 +1422,13 @@ input[type="range"] {
       <a href="#solution">Solution</a>
       <a href="#how">Fonctionnement</a>
       <a href="#focus">Pour les avocats</a>
+      <a href="#pricing">Tarifs</a>
       <a href="#trust">Confidentialité</a>
     </div>
 
     <div class="nav-right">
       <a class="nav-login" href="#" data-goto="login">Espace pro</a>
-      <a class="btn btn-primary nav-cta" href="#cta">Rejoindre la liste d'attente</a>
+      <a class="btn btn-primary nav-cta" href="#" data-goto="abonnement">Essayer 14 jours</a>
     </div>
   </nav>
 
@@ -1347,7 +1445,7 @@ input[type="range"] {
           métier, encadrée par vos règles. Aucun engagement pris sans votre validation.
         </p>
         <div class="hero-actions">
-          <a class="btn btn-primary" href="#cta">Rejoindre la liste d'attente</a>
+          <a class="btn btn-primary" href="#" data-goto="abonnement">Essayer 14 jours offerts</a>
           <a class="btn btn-ghost" href="#how">Voir comment ça marche</a>
         </div>
       </div>
@@ -1467,6 +1565,19 @@ input[type="range"] {
       </div>
     </section>
 
+    <section class="section section-wide reveal" id="pricing">
+      <p class="kicker">Tarifs</p>
+      <h2 style="max-width:680px">Moins cher qu'une demi-journée de secrétariat par semaine.</h2>
+      <p class="section-lede" style="margin-top:16px;max-width:620px">
+        Un seul client gagné rembourse l'abonnement. Les 14 premiers jours sont
+        offerts, sans carte bancaire.
+      </p>
+      <div class="plans" id="landing-plans" style="margin-top:48px"></div>
+      <p class="note" style="text-align:center;margin-top:24px;color:var(--txt-4);font-size:13px">
+        Tarifs hors taxes, par professionnel. Sans engagement, résiliable en un clic.
+      </p>
+    </section>
+
     <section class="section section-narrow reveal" id="trust" style="padding-top:120px">
       <p class="kicker">Confidentialité</p>
       <h2 style="max-width:680px">Pensée dès la conception pour les données sensibles.</h2>
@@ -1508,6 +1619,108 @@ input[type="range"] {
     <span>© 2026 Ally</span>
     <span>Assistant IA pour professionnels solo</span>
   </footer>
+</div>
+</div>
+<div class="screen" id="screen-abonnement">
+<div class="page">
+  <div class="blob blob-a" aria-hidden="true"></div>
+  <div class="blob blob-b" aria-hidden="true"></div>
+
+  <div class="ob-shell" style="max-width:1080px">
+    <div class="ob-head">
+      <a class="logo" href="#" data-goto="landing">
+        <span class="logo-mark" aria-hidden="true"></span>
+        <span class="logo-word">Ally</span>
+      </a>
+      <a class="auth-back" href="#" data-goto="login">J'ai déjà un compte</a>
+    </div>
+
+    <main>
+      <p class="ob-step-label" id="sub-step-label">Étape 1 sur 2</p>
+      <h1 id="sub-title">Choisissez votre formule</h1>
+      <p class="ob-lede" id="sub-lede">
+        Les 14 premiers jours sont offerts, sans carte bancaire. Vous ne payez
+        qu'à la fin de l'essai, et vous changez de formule quand vous voulez.
+      </p>
+
+      <!-- Étape 1 — Formules -->
+      <section id="sub-step-1">
+        <div class="billing-switch" role="group" aria-label="Périodicité de facturation">
+          <button type="button" class="choice" data-cycle="month" aria-pressed="true">Mensuel</button>
+          <button type="button" class="choice" data-cycle="year" aria-pressed="false">
+            Annuel <span class="save-badge">2 mois offerts</span>
+          </button>
+        </div>
+
+        <div class="plans" id="plans"></div>
+
+        <p class="note" style="text-align:center;margin-top:24px">
+          Tarifs hors taxes, par professionnel. Sans engagement, résiliable en un clic.
+        </p>
+      </section>
+
+      <!-- Étape 2 — Compte -->
+      <section id="sub-step-2" hidden>
+        <div class="checkout">
+          <div class="card">
+            <p class="card-title">Votre compte</p>
+
+            <div class="ob-grid-2">
+              <div class="ob-field">
+                <label class="ob-label" for="sub-first">Prénom</label>
+                <input class="field" id="sub-first" type="text" autocomplete="given-name" placeholder="Antoine">
+              </div>
+              <div class="ob-field">
+                <label class="ob-label" for="sub-last">Nom</label>
+                <input class="field" id="sub-last" type="text" autocomplete="family-name" placeholder="Dubois">
+              </div>
+            </div>
+
+            <div class="ob-field">
+              <label class="ob-label" for="sub-email">Email professionnel</label>
+              <input class="field" id="sub-email" type="email" autocomplete="email" placeholder="vous@cabinet.fr">
+            </div>
+
+            <div class="ob-field">
+              <label class="ob-label" for="sub-pass">Mot de passe</label>
+              <input class="field" id="sub-pass" type="password" autocomplete="new-password" placeholder="8 caractères minimum">
+            </div>
+
+            <p class="demo-warning">
+              Démonstration : aucun compte n'est créé sur un serveur, aucun paiement
+              n'est encaissé et aucune donnée bancaire n'est demandée. Tout reste
+              dans votre navigateur.
+            </p>
+
+            <label class="consent">
+              <input type="checkbox" id="sub-cgv">
+              <span>J'accepte les conditions générales et la politique de confidentialité.</span>
+            </label>
+
+            <button class="btn btn-primary" id="sub-submit" type="button" style="width:100%;margin-top:18px">
+              Démarrer mes 14 jours offerts
+            </button>
+            <p class="note" style="text-align:center;margin-top:12px">
+              Aucun prélèvement avant le <span id="sub-date">—</span>.
+            </p>
+          </div>
+
+          <aside class="card summary">
+            <p class="card-title">Récapitulatif</p>
+            <div class="summary-plan">
+              <strong id="sum-name">—</strong>
+              <span id="sum-tagline">—</span>
+            </div>
+            <div class="summary-line"><span>Essai <span id="sum-trial">14 jours</span></span><strong>0 €</strong></div>
+            <div class="summary-line"><span id="sum-cycle">Puis chaque mois</span><strong id="sum-price">—</strong></div>
+            <div class="summary-line total"><span>À payer aujourd'hui</span><strong>0 €</strong></div>
+            <ul class="summary-features" id="sum-features"></ul>
+            <button type="button" class="btn-link" id="sub-back">← Changer de formule</button>
+          </aside>
+        </div>
+      </section>
+    </main>
+  </div>
 </div>
 </div>
 <div class="screen" id="screen-login">
@@ -2145,6 +2358,81 @@ window.ALLY_DISPLAY_NAME = function (identity, profile) {
   return (title ? title + ' ' : '') + identity.lastName;
 };
 
+/* Ally — formules d'abonnement.
+   Positionnement : sous le coût d'un télésecrétariat externalisé, très
+   au-dessus d'un simple répondeur. La valeur vendue n'est pas la minute
+   d'appel, c'est le client qu'on ne perd pas. */
+window.ALLY_PLANS = [
+  {
+    id: 'permanence',
+    name: 'Permanence',
+    price: 79,
+    priceYear: 790,
+    tagline: 'Pour ne plus jamais manquer un appel.',
+    forWho: 'Indépendant qui démarre, moins de 5 appels par jour',
+    quota: { calls: 120, emails: 300 },
+    features: [
+      'Ally décroche 24 h/24, avec votre script',
+      'Transfert des urgences sur votre portable',
+      'Prise de rendez-vous dans votre agenda',
+      'Transcription et résumé de chaque appel',
+      'Emails de confirmation et de rappel',
+      '1 ligne téléphonique'
+    ],
+    missing: ['Brouillons de réponse rédigés', 'Commande vocale', 'Plusieurs lignes']
+  },
+  {
+    id: 'cabinet',
+    name: 'Cabinet',
+    price: 149,
+    priceYear: 1490,
+    popular: true,
+    tagline: 'L\'assistante complète, appels, emails et agenda.',
+    forWho: 'Le cas courant : un professionnel seul, en activité pleine',
+    quota: { calls: 400, emails: 1200 },
+    features: [
+      'Tout ce que contient Permanence',
+      'Brouillons de réponse rédigés, validés par vous',
+      'Commande vocale depuis l\'application',
+      'Base de connaissances illimitée',
+      'Règles d\'autonomie par type de tâche',
+      'Résumé quotidien par email ou SMS',
+      'Voix personnalisable'
+    ],
+    missing: ['Plusieurs lignes', 'Plusieurs collaborateurs']
+  },
+  {
+    id: 'associes',
+    name: 'Associés',
+    price: 299,
+    priceYear: 2990,
+    tagline: 'Plusieurs praticiens, une seule assistante.',
+    forWho: 'Cabinet de 2 à 5 associés, ou activité à fort volume',
+    quota: { calls: 1500, emails: 5000 },
+    features: [
+      'Tout ce que contient Cabinet',
+      'Jusqu\'à 5 lignes et 5 collaborateurs',
+      'Routage par praticien et par motif',
+      'Agendas multiples synchronisés',
+      'Journal d\'accès détaillé par utilisateur',
+      'Accompagnement à la mise en route',
+      'Support prioritaire sous 4 h'
+    ],
+    missing: []
+  }
+];
+
+window.ALLY_TRIAL = {
+  days: 14,
+  label: 'Pilote',
+  note: '14 jours pour tester avec vos vrais appels. Sans carte bancaire, sans engagement.'
+};
+
+window.ALLY_PLAN_BY_ID = function (id) {
+  return window.ALLY_PLANS.filter(function (p) { return p.id === id; })[0]
+    || window.ALLY_PLANS[1];
+};
+
 /* Ally — état du compte, persisté en localStorage.
    L'onboarding écrit, l'espace pro lit : le tableau de bord reste celui du
    professionnel après un rechargement, avec ses réglages. */
@@ -2186,6 +2474,8 @@ window.ALLY_DISPLAY_NAME = function (identity, profile) {
       /* Voix d'Ally : identifiant de la voix du navigateur, débit, hauteur. */
       voice: { uri: '', rate: 1, pitch: 1 },
       plan: '',
+      subscription: null,
+      links: { gmail: false, outlook: false, gcal: false, phone: false, sms: true },
       waitlist: [],
       data: null,
       /* Script d'appel : null tant que le pro ne l'a pas personnalisé, on
@@ -2927,6 +3217,220 @@ window.ALLY_DISPLAY_NAME = function (identity, profile) {
   };
 })();
 
+/* Ally — couche conversationnelle.
+   Le moteur d'intentions répond juste, mais sèchement. Cette couche lui donne
+   une tenue de conversation : elle se souvient du sujet en cours, comprend les
+   relances (« et demain ? », « annule-le »), varie ses formulations et propose
+   toujours la suite logique — comme un assistant qui suit le fil plutôt qu'un
+   répondeur qui traite des requêtes isolées. */
+(function () {
+  'use strict';
+
+  /* Mémoire courte : de quoi parle-t-on, et qu'a-t-on proposé ensuite. */
+  var ctx = { intent: null, entity: null, entityType: null, lastReply: null, turns: 0 };
+
+  function norm(text) {
+    return String(text).toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .replace(/['’]/g, ' ').replace(/[^a-z0-9\s:]/g, ' ')
+      .replace(/\s+/g, ' ').trim();
+  }
+  function has(t, words) { return words.some(function (w) { return t.indexOf(w) !== -1; }); }
+
+  /* Varie l'ouverture sans jamais tomber dans le bavardage. */
+  function pick(list) { return list[Math.floor(Math.random() * list.length)]; }
+
+  var ACKS = ['', '', 'Alors, ', 'Voyons. ', 'Bien sûr. '];
+
+  window.ALLY_CONVERSE = {
+
+    reset: function () {
+      ctx = { intent: null, entity: null, entityType: null, lastReply: null, turns: 0 };
+    },
+
+    context: function () { return ctx; },
+
+    /* Point d'entrée unique du chat et de la voix. */
+    respond: function (input) {
+      var store = window.ALLY_STORE;
+      var brain = window.ALLY_BRAIN;
+      var D = store.data();
+      var S = store.state;
+      var t = norm(input);
+      ctx.turns += 1;
+
+      /* ---------- Politesse et fil de conversation ---------- */
+      if (has(t, ['bonjour', 'salut', 'bonsoir', 'coucou']) && t.length < 24) {
+        var hour = new Date().getHours();
+        return this.wrap({
+          kind: 'answer',
+          reply: (hour < 18 ? 'Bonjour ' : 'Bonsoir ') + store.displayName() + '. '
+            + this.brief(),
+          follow: brain.suggestions().slice(0, 3)
+        });
+      }
+
+      if (has(t, ['merci', 'parfait', 'super', 'nickel', 'tres bien']) && t.length < 26) {
+        return this.wrap({
+          kind: 'answer',
+          reply: pick(['Avec plaisir.', 'Je vous en prie.', 'À votre service.'])
+            + ' Autre chose ?',
+          follow: brain.suggestions().slice(0, 2)
+        });
+      }
+
+      if (has(t, ['que sais tu faire', 'que peux tu faire', 'tu sais faire quoi',
+                  'aide moi', 'comment ca marche', 'tes fonctions'])) {
+        return this.wrap({
+          kind: 'answer',
+          reply: 'Je gère trois choses pour vous. Vos appels : je décroche, je qualifie la '
+            + 'demande et je transfère si c\'est urgent. Vos emails : je prépare les réponses, '
+            + 'vous validez. Votre agenda : je pose, je déplace et j\'annule dans vos créneaux. '
+            + 'Vous pouvez aussi me demander ce qui s\'est passé dans la journée.',
+          detail: 'Dites-le simplement, comme à une assistante.',
+          follow: ['Résume-moi ma journée', 'Quel est mon prochain rendez-vous ?',
+                   'Y a-t-il eu des urgences ?']
+        });
+      }
+
+      /* Résumé de la journée : ce qu'un pro demande en arrivant. */
+      if (has(t, ['resume', 'recapitule', 'ma journee', 'quoi de neuf', 'du nouveau',
+                  'ou en est on', 'fais le point'])) {
+        return this.wrap({
+          kind: 'answer',
+          reply: this.brief(),
+          detail: 'Mardi 28 juillet 2026',
+          follow: this.briefFollow()
+        });
+      }
+
+      /* ---------- Relances sur le sujet en cours ---------- */
+      if (ctx.entity) {
+        // « annule-le », « annule ce rendez-vous »
+        if (has(t, ['annule', 'supprime', 'enleve']) && t.length < 40) {
+          if (ctx.entityType === 'rdv') {
+            var r = ctx.entity;
+            return this.wrap({
+              kind: 'action', sensitive: true,
+              confirm: 'J\'annule le rendez-vous de ' + r.client + ' à ' + r.time
+                + ' et je le préviens, vous confirmez ?',
+              reply: 'C\'est annulé. J\'ai prévenu ' + r.client + ', le créneau est libéré.',
+              detail: 'Vous pouvez toujours le reproposer depuis l\'agenda.',
+              apply: function () {
+                D.rdv = D.rdv.filter(function (x) { return x.id !== r.id; });
+                store.log('Annulation de ' + r.client, 'Créneau libéré');
+              },
+              follow: ['Qui reste-t-il aujourd\'hui ?', 'Bloque ce créneau']
+            });
+          }
+        }
+
+        // « et demain ? », « et jeudi ? » — on rejoue l'intention précédente
+        if (/^(et|puis|ensuite)\b/.test(t) || t.length < 16) {
+          if (ctx.intent === 'agenda') {
+            var day = has(t, ['demain']) ? 'demain' : null;
+            var list = day
+              ? D.rdv.filter(function (x) { return x.day !== 'Auj.'; }).slice(0, 2)
+              : D.rdv.filter(function (x) { return x.day === 'Auj.'; });
+            return this.wrap({
+              kind: 'answer',
+              reply: list.length
+                ? (day ? 'Ensuite : ' : 'Aujourd\'hui : ') + list.map(function (x) {
+                    return x.client + ' à ' + x.time + (day ? ' ' + x.day.toLowerCase() : '');
+                  }).join(', ') + '.'
+                : 'Rien de prévu sur cette période.',
+              follow: ['Bloque mon agenda vendredi après-midi', 'Résume-moi ma journée']
+            });
+          }
+        }
+      }
+
+      /* ---------- Sinon, le moteur d'intentions fait le travail ---------- */
+      var result = brain.ask(input);
+
+      // On mémorise le sujet pour les relances.
+      if (/rendez|rdv|deplace|decale/.test(t)) {
+        ctx.intent = 'agenda';
+        ctx.entityType = 'rdv';
+        ctx.entity = D.rdv[0] || null;
+      } else if (/brouillon|mail|email/.test(t)) {
+        ctx.intent = 'emails'; ctx.entityType = 'mail'; ctx.entity = D.drafts[0] || null;
+      } else if (/appel|urgence/.test(t)) {
+        ctx.intent = 'calls'; ctx.entityType = 'call'; ctx.entity = D.calls[0] || null;
+      }
+
+      /* On enrichit la réponse brute : accroche variée et suite proposée. */
+      if (result.kind === 'answer' && ctx.turns > 1 && Math.random() < 0.4) {
+        result.reply = pick(ACKS) + result.reply.charAt(0).toLowerCase() + result.reply.slice(1);
+        result.reply = result.reply.charAt(0).toUpperCase() + result.reply.slice(1);
+      }
+
+      if (!result.follow) result.follow = this.followFor(result, ctx);
+      return this.wrap(result);
+    },
+
+    /* Le point du jour, en une phrase utile. */
+    brief: function () {
+      var store = window.ALLY_STORE;
+      var D = store.data();
+      var today = D.rdv.filter(function (r) { return r.day === 'Auj.'; });
+      var urgent = D.calls.filter(function (c) { return c.kind === 'urgent'; });
+      var bits = [];
+
+      bits.push(D.calls.length + (D.calls.length > 1 ? ' appels reçus' : ' appel reçu'));
+      if (today.length) {
+        bits.push(today.length + (today.length > 1 ? ' rendez-vous' : ' rendez-vous')
+          + ', le prochain à ' + today[0].time + ' avec ' + today[0].client);
+      } else {
+        bits.push('aucun rendez-vous');
+      }
+      if (D.drafts.length) {
+        bits.push(D.drafts.length + ' email' + (D.drafts.length > 1 ? 's' : '')
+          + ' à valider');
+      }
+
+      var line = bits.join(', ') + '.';
+      if (urgent.length) {
+        line += ' À signaler : ' + urgent[0].caller + ' a appelé pour « '
+          + urgent[0].subject + ' », je vous l\'ai transféré.';
+      }
+      return line;
+    },
+
+    briefFollow: function () {
+      var D = window.ALLY_STORE.data();
+      var out = [];
+      if (D.drafts.length) out.push('Montre-moi les brouillons');
+      if (D.rdv.length) out.push('Quel est mon prochain rendez-vous ?');
+      out.push('Bloque mon agenda vendredi après-midi');
+      return out.slice(0, 3);
+    },
+
+    /* Suite logique proposée après une réponse — le réflexe d'un assistant. */
+    followFor: function (result, context) {
+      if (result.kind === 'unknown') {
+        return window.ALLY_BRAIN.suggestions().slice(0, 3);
+      }
+      if (context.intent === 'agenda') {
+        return ['Et demain ?', 'Annule-le', 'Bloque mon agenda vendredi après-midi'];
+      }
+      if (context.intent === 'emails') {
+        return ['Montre-moi les brouillons', 'Résume-moi ma journée'];
+      }
+      if (context.intent === 'calls') {
+        return ['Qui a appelé aujourd\'hui ?', 'Rappelle-le pour moi'];
+      }
+      return ['Résume-moi ma journée', 'Quel est mon prochain rendez-vous ?'];
+    },
+
+    wrap: function (result) {
+      ctx.lastReply = result.reply;
+      if (!result.follow) result.follow = [];
+      return result;
+    }
+  };
+})();
+
 /* Ally — onglet Téléphonie : voix, script d'appel, simulation d'appel entrant.
    Exporte des fragments de vue et leurs liaisons, consommés par dashboard.js. */
 (function () {
@@ -3361,6 +3865,32 @@ window.ALLY_DISPLAY_NAME = function (identity, profile) {
   }
 })();
 
+/* Formules affichées sur la vitrine, depuis la même source que l'abonnement. */
+(function () {
+  'use strict';
+  var box = document.getElementById('landing-plans');
+  if (!box || !window.ALLY_PLANS) return;
+
+  function esc(v) {
+    return String(v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  box.innerHTML = window.ALLY_PLANS.map(function (plan) {
+    return '<article class="plan' + (plan.popular ? ' is-popular' : '') + '">' +
+      (plan.popular ? '<span class="plan-flag">Le plus choisi</span>' : '') +
+      '<h2 style="font-size:21px">' + esc(plan.name) + '</h2>' +
+      '<p class="plan-tagline">' + esc(plan.tagline) + '</p>' +
+      '<p class="plan-price"><strong>' + plan.price + ' €</strong><span>/ mois HT</span></p>' +
+      '<p class="plan-for">' + esc(plan.forWho) + '</p>' +
+      '<ul class="plan-features">' + plan.features.slice(0, 5).map(function (f) {
+        return '<li>' + esc(f) + '</li>';
+      }).join('') + '</ul>' +
+      '<a class="btn ' + (plan.popular ? 'btn-primary' : 'btn-ghost') +
+        '" href="abonnement.html">Essayer 14 jours</a>' +
+      '</article>';
+  }).join('');
+})();
+
 /* Ally — connexion (démonstration : aucune authentification réelle) */
 (function () {
   'use strict';
@@ -3395,6 +3925,157 @@ window.ALLY_DISPLAY_NAME = function (identity, profile) {
     }
     window.ALLY_GOTO(store.state.configured ? 'dashboard.html' : 'onboarding.html');
   });
+})();
+
+/* Ally — choix de formule et création de compte.
+   Démonstration : rien n'est envoyé à un serveur et aucune donnée bancaire
+   n'est demandée. Le compte créé vit dans le navigateur, puis l'onboarding
+   prend le relais pour le personnaliser. */
+(function () {
+  'use strict';
+
+  var store = window.ALLY_STORE;
+  var S = store.state;
+  var PLANS = window.ALLY_PLANS;
+  var TRIAL = window.ALLY_TRIAL;
+
+  var state = { step: 1, cycle: 'month', plan: 'cabinet' };
+
+  function esc(v) {
+    return String(v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  function chosen() { return window.ALLY_PLAN_BY_ID(state.plan); }
+
+  function priceOf(plan) {
+    return state.cycle === 'year' ? plan.priceYear : plan.price;
+  }
+  function priceLabel(plan) {
+    return state.cycle === 'year'
+      ? plan.priceYear + ' € / an'
+      : plan.price + ' € / mois';
+  }
+
+  /* ---------- Étape 1 : les formules ---------- */
+  function renderPlans() {
+    document.getElementById('plans').innerHTML = PLANS.map(function (plan) {
+      var perMonth = state.cycle === 'year' ? Math.round(plan.priceYear / 12) : plan.price;
+      return '<article class="plan' + (plan.popular ? ' is-popular' : '') + '">' +
+        (plan.popular ? '<span class="plan-flag">Le plus choisi</span>' : '') +
+        '<h2>' + esc(plan.name) + '</h2>' +
+        '<p class="plan-tagline">' + esc(plan.tagline) + '</p>' +
+        '<p class="plan-price"><strong>' + perMonth + ' €</strong><span>/ mois HT</span></p>' +
+        (state.cycle === 'year'
+          ? '<p class="plan-billed">Facturé ' + plan.priceYear + ' € par an</p>'
+          : '<p class="plan-billed">Sans engagement</p>') +
+        '<p class="plan-for">' + esc(plan.forWho) + '</p>' +
+        '<p class="plan-quota">' + plan.quota.calls + ' appels · ' + plan.quota.emails + ' emails par mois</p>' +
+        '<ul class="plan-features">' + plan.features.map(function (f) {
+          return '<li>' + esc(f) + '</li>';
+        }).join('') + '</ul>' +
+        (plan.missing.length
+          ? '<ul class="plan-features muted">' + plan.missing.map(function (f) {
+              return '<li>' + esc(f) + '</li>';
+            }).join('') + '</ul>'
+          : '') +
+        '<button type="button" class="btn ' + (plan.popular ? 'btn-primary' : 'btn-ghost') +
+          '" data-choose="' + plan.id + '">Essayer ' + esc(plan.name) + '</button>' +
+        '</article>';
+    }).join('');
+
+    document.querySelectorAll('[data-choose]').forEach(function (button) {
+      button.addEventListener('click', function () {
+        state.plan = button.getAttribute('data-choose');
+        state.step = 2;
+        render();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+    });
+  }
+
+  document.querySelectorAll('[data-cycle]').forEach(function (button) {
+    button.addEventListener('click', function () {
+      state.cycle = button.getAttribute('data-cycle');
+      document.querySelectorAll('[data-cycle]').forEach(function (other) {
+        other.setAttribute('aria-pressed', String(other === button));
+      });
+      renderPlans();
+    });
+  });
+
+  /* ---------- Étape 2 : le compte ---------- */
+  function trialEnd() {
+    var date = new Date();
+    date.setDate(date.getDate() + TRIAL.days);
+    return date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+  }
+
+  function renderSummary() {
+    var plan = chosen();
+    document.getElementById('sum-name').textContent = plan.name;
+    document.getElementById('sum-tagline').textContent = plan.tagline;
+    document.getElementById('sum-trial').textContent = TRIAL.days + ' jours';
+    document.getElementById('sum-cycle').textContent =
+      state.cycle === 'year' ? 'Puis chaque année' : 'Puis chaque mois';
+    document.getElementById('sum-price').textContent = priceLabel(plan);
+    document.getElementById('sub-date').textContent = trialEnd();
+
+    document.getElementById('sum-features').innerHTML =
+      plan.features.slice(0, 5).map(function (f) {
+        return '<li>' + esc(f) + '</li>';
+      }).join('');
+  }
+
+  document.getElementById('sub-back').addEventListener('click', function () {
+    state.step = 1;
+    render();
+  });
+
+  document.getElementById('sub-submit').addEventListener('click', function () {
+    var first = document.getElementById('sub-first');
+    var last = document.getElementById('sub-last');
+    var email = document.getElementById('sub-email');
+    var pass = document.getElementById('sub-pass');
+    var cgv = document.getElementById('sub-cgv');
+
+    if (!last.value.trim()) { last.focus(); return; }
+    if (!email.checkValidity() || !email.value) { email.focus(); return; }
+    if (pass.value.length < 8) { pass.focus(); pass.setAttribute('aria-invalid', 'true'); return; }
+    if (!cgv.checked) { cgv.focus(); return; }
+
+    var plan = chosen();
+    S.identity.firstName = first.value.trim() || S.identity.firstName;
+    S.identity.lastName = last.value.trim();
+    S.identity.email = email.value.trim();
+    S.plan = plan.name;
+    S.subscription = {
+      planId: plan.id, cycle: state.cycle,
+      price: priceOf(plan), trialEndsOn: trialEnd(), startedOn: new Date().toISOString()
+    };
+    store.save();
+
+    // Le questionnaire prend le relais : métier, horaires, règles.
+    window.ALLY_GOTO('onboarding.html');
+  });
+
+  /* ---------- Navigation ---------- */
+  function render() {
+    document.getElementById('sub-step-1').hidden = (state.step !== 1);
+    document.getElementById('sub-step-2').hidden = (state.step !== 2);
+    document.getElementById('sub-step-label').textContent = 'Étape ' + state.step + ' sur 2';
+    document.getElementById('sub-title').textContent =
+      state.step === 1 ? 'Choisissez votre formule' : 'Créez votre compte';
+    document.getElementById('sub-lede').textContent = state.step === 1
+      ? 'Les 14 premiers jours sont offerts, sans carte bancaire. Vous ne payez qu\'à la '
+        + 'fin de l\'essai, et vous changez de formule quand vous voulez.'
+      : 'Il ne reste qu\'à vous identifier. Vous configurerez Ally juste après, '
+        + 'en quelques minutes.';
+    if (state.step === 2) renderSummary();
+  }
+
+  renderPlans();
+  render();
 })();
 
 /* Ally — questionnaire de configuration (5 étapes).
@@ -3734,6 +4415,7 @@ window.ALLY_DISPLAY_NAME = function (identity, profile) {
 
   var ACCOUNT_SECTIONS = [
     { id: 'plan',   label: 'Abonnement' },
+    { id: 'links',  label: 'Connexions' },
     { id: 'privacy', label: 'Sécurité' },
     { id: 'alerts', label: 'Notifications' },
     { id: 'help',   label: 'Support' }
@@ -4356,6 +5038,12 @@ window.ALLY_DISPLAY_NAME = function (identity, profile) {
       '<div class="plan-card">' +
         '<p class="plan-kicker">Formule actuelle</p>' +
         '<p class="plan-name">' + esc(store.plan()) + '</p>' +
+        (S.subscription
+          ? '<p class="note" style="margin-bottom:16px">' +
+            (S.subscription.cycle === 'year' ? 'Facturation annuelle' : 'Facturation mensuelle') +
+            ' · ' + S.subscription.price + ' € HT · essai jusqu\'au ' +
+            esc(S.subscription.trialEndsOn) + '</p>'
+          : '') +
         '<div class="meter"><div class="meter-head"><span>Appels traités</span><span>' +
           q.calls[0] + ' / ' + q.calls[1] + '</span></div>' +
           '<div class="meter-track"><div class="meter-fill accent" style="width:' + pct(q.calls) + '%"></div></div></div>' +
@@ -4485,7 +5173,51 @@ window.ALLY_DISPLAY_NAME = function (identity, profile) {
       '</div></div>';
   }
 
-  var ACCOUNT_VIEWS = { plan: accountPlan, privacy: accountPrivacy, alerts: accountAlerts, help: accountHelp };
+  /* Services qu'Ally doit relier pour travailler réellement. */
+  var SERVICES = [
+    { id: 'gmail',    name: 'Gmail',            role: 'Lecture des emails entrants et envoi des réponses',
+      need: 'Autorisation Google (OAuth), périmètre lecture + envoi' },
+    { id: 'outlook',  name: 'Outlook / Microsoft 365', role: 'Alternative à Gmail pour la messagerie',
+      need: 'Autorisation Microsoft (OAuth)' },
+    { id: 'gcal',     name: 'Google Calendar',  role: 'Lecture des disponibilités, création et déplacement de rendez-vous',
+      need: 'Autorisation Google (OAuth), périmètre agenda' },
+    { id: 'phone',    name: 'Numéro de téléphone', role: 'La ligne sur laquelle Ally décroche',
+      need: 'Numéro fourni par Ally, ou renvoi de votre ligne existante' },
+    { id: 'sms',      name: 'Alertes SMS',      role: 'Notifications d\'urgence sur votre portable',
+      need: 'Votre numéro de portable, déjà renseigné' }
+  ];
+
+  function accountLinks() {
+    return '<div class="stack limit-800">' +
+      '<div class="card">' +
+        '<p class="card-title">Connexions</p>' +
+        '<p class="note" style="margin-bottom:18px">Ally a besoin d\'accéder à votre messagerie, ' +
+          'à votre agenda et à une ligne téléphonique pour travailler à votre place.</p>' +
+        SERVICES.map(function (svc) {
+          var on = !!S.links[svc.id];
+          return '<div class="link-row">' +
+            '<span class="link-state ' + (on ? 'on' : 'off') + '" aria-hidden="true"></span>' +
+            '<div class="link-main">' +
+              '<strong>' + esc(svc.name) + '</strong>' +
+              '<span>' + esc(svc.role) + '</span>' +
+              (on ? '<span class="link-need">Connecté</span>'
+                  : '<span class="link-need">' + esc(svc.need) + '</span>') +
+            '</div>' +
+            '<button type="button" class="btn ' + (on ? 'btn-ghost' : 'btn-primary') +
+              ' btn-sm" data-link="' + svc.id + '">' + (on ? 'Déconnecter' : 'Connecter') + '</button>' +
+          '</div>';
+        }).join('') +
+      '</div>' +
+      '<div class="card">' +
+        '<p class="card-title">Ce que la démonstration ne fait pas</p>' +
+        '<p class="note">Ces connexions sont simulées. Relier réellement Gmail ou Google ' +
+          'Calendar suppose un serveur, une autorisation OAuth validée par Google, et un ' +
+          'hébergement européen conforme au RGPD — impossible depuis une page seule. ' +
+          'L\'interface est ici pour montrer le parcours et les autorisations demandées.</p>' +
+      '</div></div>';
+  }
+
+  var ACCOUNT_VIEWS = { plan: accountPlan, links: accountLinks, privacy: accountPrivacy, alerts: accountAlerts, help: accountHelp };
 
   function viewAccount() {
     return '<div class="choice-row filters" role="group" aria-label="Sections du compte">' +
@@ -4614,6 +5346,18 @@ window.ALLY_DISPLAY_NAME = function (identity, profile) {
       button.addEventListener('click', function () {
         var id = Number(button.getAttribute('data-faq-del'));
         D().faq = D().faq.filter(function (f) { return f.id !== id; });
+        store.save();
+        renderPanel();
+      });
+    });
+
+    // Connexions : bascule d'état, simulée mais persistée.
+    panel.querySelectorAll('[data-link]').forEach(function (button) {
+      button.addEventListener('click', function () {
+        var id = button.getAttribute('data-link');
+        S.links[id] = !S.links[id];
+        store.log(S.links[id] ? 'Connexion de ' + id : 'Déconnexion de ' + id,
+          S.links[id] ? 'Service relié à Ally' : 'Service détaché');
         store.save();
         renderPanel();
       });
@@ -4862,7 +5606,7 @@ window.ALLY_DISPLAY_NAME = function (identity, profile) {
         bubble('out', text);
         input.value = '';
 
-        var result = window.ALLY_BRAIN.ask(text);
+        var result = window.ALLY_CONVERSE.respond(text);
         var answer = (result.kind === 'action' && result.confirm &&
           (S.confirmLevel === 'always' || (S.confirmLevel === 'sensitive' && result.sensitive)))
           ? result.confirm : result.reply;
@@ -4870,6 +5614,27 @@ window.ALLY_DISPLAY_NAME = function (identity, profile) {
         window.setTimeout(function () {
           bubble('in', answer, result.detail);
           if (S.chatSpeaks) window.ALLY_VOICE.speak(answer, store.voiceOptions());
+
+          // Les suites proposées : on clique, la conversation continue.
+          var old = log.querySelector('.chat-follow');
+          if (old) old.remove();
+          if (result.follow && result.follow.length) {
+            var row = document.createElement('div');
+            row.className = 'chat-follow';
+            result.follow.forEach(function (text) {
+              var chip = document.createElement('button');
+              chip.type = 'button';
+              chip.className = 'voice-chip-sm';
+              chip.textContent = text;
+              chip.addEventListener('click', function () {
+                input.value = text;
+                chatForm.dispatchEvent(new Event('submit', { cancelable: true }));
+              });
+              row.appendChild(chip);
+            });
+            log.appendChild(row);
+            log.scrollTop = log.scrollHeight;
+          }
         }, 350);
       });
     }
@@ -4942,7 +5707,7 @@ window.ALLY_DISPLAY_NAME = function (identity, profile) {
     el.heard.textContent = '« ' + text + ' »';
     el.voiceTitle.textContent = 'Ally répond';
 
-    var result = BRAIN.ask(text);
+    var result = window.ALLY_CONVERSE.respond(text);
     var needsConfirm = result.kind === 'action' &&
       (S.confirmLevel === 'always' || (S.confirmLevel === 'sensitive' && result.sensitive));
 
@@ -4975,7 +5740,15 @@ window.ALLY_DISPLAY_NAME = function (identity, profile) {
     VOICE.speak(result.reply, store.voiceOptions());
 
     var box = document.getElementById('voice-suggestions');
-    box.innerHTML = '<p class="voice-reply">' + esc(result.reply) + '</p>';
+    box.innerHTML = '<p class="voice-reply">' + esc(result.reply) + '</p>' +
+      ((result.follow && result.follow.length)
+        ? '<div class="voice-follow">' + result.follow.map(function (text) {
+            return '<button type="button" class="voice-chip-sm">' + esc(text) + '</button>';
+          }).join('') + '</div>'
+        : '');
+    box.querySelectorAll('.voice-chip-sm').forEach(function (chip) {
+      chip.addEventListener('click', function () { handle(chip.textContent); });
+    });
     document.getElementById('voice-again').hidden = false;
 
     if (spoken) logVoice(spoken, result.kind === 'action' ? 'Exécuté' : 'Répondu');

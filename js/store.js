@@ -39,6 +39,8 @@
       /* Voix d'Ally : identifiant de la voix du navigateur, débit, hauteur. */
       voice: { uri: '', rate: 1, pitch: 1 },
       plan: '',
+      subscription: null,
+      links: { gmail: false, outlook: false, gcal: false, phone: false, sms: true },
       waitlist: [],
       data: null,
       /* Script d'appel : null tant que le pro ne l'a pas personnalisé, on

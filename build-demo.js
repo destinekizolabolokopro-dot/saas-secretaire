@@ -23,6 +23,7 @@ function body(file) {
 
 const SCREENS = [
   ['landing', 'index.html'],
+  ['abonnement', 'abonnement.html'],
   ['login', 'login.html'],
   ['onboarding', 'onboarding.html'],
   ['dashboard', 'dashboard.html']
@@ -32,7 +33,7 @@ let screens = SCREENS.map(([id, file]) => {
   let markup = body(file);
 
   // Les liens entre pages deviennent des changements d'écran.
-  markup = markup.replace(/href="(index|login|onboarding|dashboard)\.html"/g,
+  markup = markup.replace(/href="(index|abonnement|login|onboarding|dashboard)\.html"/g,
     (_, target) => 'href="#" data-goto="' + target.replace('index', 'landing') + '"');
 
   // #greeting existe dans l'onboarding et dans Configuration IA : on désambiguïse.
@@ -43,9 +44,9 @@ let screens = SCREENS.map(([id, file]) => {
 }).join('\n');
 
 /* ---- JS : mêmes fichiers, navigation redirigée vers le routeur ---- */
-let js = ['js/profiles.js', 'js/store.js', 'js/voice.js', 'js/brain.js',
-          'js/telephony.js', 'js/landing.js', 'js/login.js',
-          'js/onboarding.js', 'js/dashboard.js'].map(read).join('\n');
+let js = ['js/profiles.js', 'js/plans.js', 'js/store.js', 'js/voice.js', 'js/brain.js',
+          'js/converse.js', 'js/telephony.js', 'js/landing.js', 'js/login.js',
+          'js/subscribe.js', 'js/onboarding.js', 'js/dashboard.js'].map(read).join('\n');
 
 js = js
   .replace(/window\.location\.href = ([^;]+);/g, 'window.ALLY_GOTO($1);')

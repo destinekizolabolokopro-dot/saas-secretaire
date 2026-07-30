@@ -59,3 +59,29 @@
     });
   }
 })();
+
+/* Formules affichées sur la vitrine, depuis la même source que l'abonnement. */
+(function () {
+  'use strict';
+  var box = document.getElementById('landing-plans');
+  if (!box || !window.ALLY_PLANS) return;
+
+  function esc(v) {
+    return String(v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  box.innerHTML = window.ALLY_PLANS.map(function (plan) {
+    return '<article class="plan' + (plan.popular ? ' is-popular' : '') + '">' +
+      (plan.popular ? '<span class="plan-flag">Le plus choisi</span>' : '') +
+      '<h2 style="font-size:21px">' + esc(plan.name) + '</h2>' +
+      '<p class="plan-tagline">' + esc(plan.tagline) + '</p>' +
+      '<p class="plan-price"><strong>' + plan.price + ' €</strong><span>/ mois HT</span></p>' +
+      '<p class="plan-for">' + esc(plan.forWho) + '</p>' +
+      '<ul class="plan-features">' + plan.features.slice(0, 5).map(function (f) {
+        return '<li>' + esc(f) + '</li>';
+      }).join('') + '</ul>' +
+      '<a class="btn ' + (plan.popular ? 'btn-primary' : 'btn-ghost') +
+        '" href="abonnement.html">Essayer 14 jours</a>' +
+      '</article>';
+  }).join('');
+})();

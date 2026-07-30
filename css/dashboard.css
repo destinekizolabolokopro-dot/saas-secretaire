@@ -666,3 +666,25 @@
   .search-results, .notif-panel { right: auto; left: 0; }
   .block-form { flex-direction: column; align-items: stretch; }
 }
+
+/* Suites de conversation proposées après chaque réponse. */
+.voice-follow, .chat-follow { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.chat-follow { margin-top: 4px; }
+
+/* ============ CONNEXIONS ============ */
+.link-row {
+  display: flex; align-items: flex-start; gap: 14px;
+  padding: 16px 0; border-bottom: 1px solid var(--hair);
+}
+.link-row:last-child { border-bottom: none; }
+.link-state { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; margin-top: 6px; }
+.link-state.on  { background: var(--cyan); box-shadow: 0 0 0 4px oklch(0.75 0.15 200 / 0.15); }
+.link-state.off { background: oklch(0.4 0.01 264); }
+.link-main { flex: 1; min-width: 0; }
+.link-main strong { display: block; font-size: 14px; font-weight: 600; }
+.link-main span { display: block; font-size: 13px; color: var(--txt-4); margin-top: 2px; line-height: 1.5; }
+.link-need { font-size: 12px !important; color: var(--txt-5) !important; margin-top: 6px !important; }
+@media (max-width: 560px) {
+  .link-row { flex-wrap: wrap; }
+  .link-row .btn { width: 100%; }
+}

@@ -18,6 +18,7 @@
 
   var ACCOUNT_SECTIONS = [
     { id: 'plan',   label: 'Abonnement' },
+    { id: 'links',  label: 'Connexions' },
     { id: 'privacy', label: 'Sécurité' },
     { id: 'alerts', label: 'Notifications' },
     { id: 'help',   label: 'Support' }
@@ -640,6 +641,12 @@
       '<div class="plan-card">' +
         '<p class="plan-kicker">Formule actuelle</p>' +
         '<p class="plan-name">' + esc(store.plan()) + '</p>' +
+        (S.subscription
+          ? '<p class="note" style="margin-bottom:16px">' +
+            (S.subscription.cycle === 'year' ? 'Facturation annuelle' : 'Facturation mensuelle') +
+            ' · ' + S.subscription.price + ' € HT · essai jusqu\'au ' +
+            esc(S.subscription.trialEndsOn) + '</p>'
+          : '') +
         '<div class="meter"><div class="meter-head"><span>Appels traités</span><span>' +
           q.calls[0] + ' / ' + q.calls[1] + '</span></div>' +
           '<div class="meter-track"><div class="meter-fill accent" style="width:' + pct(q.calls) + '%"></div></div></div>' +
@@ -769,7 +776,51 @@
       '</div></div>';
   }
 
-  var ACCOUNT_VIEWS = { plan: accountPlan, privacy: accountPrivacy, alerts: accountAlerts, help: accountHelp };
+  /* Services qu'Ally doit relier pour travailler réellement. */
+  var SERVICES = [
+    { id: 'gmail',    name: 'Gmail',            role: 'Lecture des emails entrants et envoi des réponses',
+      need: 'Autorisation Google (OAuth), périmètre lecture + envoi' },
+    { id: 'outlook',  name: 'Outlook / Microsoft 365', role: 'Alternative à Gmail pour la messagerie',
+      need: 'Autorisation Microsoft (OAuth)' },
+    { id: 'gcal',     name: 'Google Calendar',  role: 'Lecture des disponibilités, création et déplacement de rendez-vous',
+      need: 'Autorisation Google (OAuth), périmètre agenda' },
+    { id: 'phone',    name: 'Numéro de téléphone', role: 'La ligne sur laquelle Ally décroche',
+      need: 'Numéro fourni par Ally, ou renvoi de votre ligne existante' },
+    { id: 'sms',      name: 'Alertes SMS',      role: 'Notifications d\'urgence sur votre portable',
+      need: 'Votre numéro de portable, déjà renseigné' }
+  ];
+
+  function accountLinks() {
+    return '<div class="stack limit-800">' +
+      '<div class="card">' +
+        '<p class="card-title">Connexions</p>' +
+        '<p class="note" style="margin-bottom:18px">Ally a besoin d\'accéder à votre messagerie, ' +
+          'à votre agenda et à une ligne téléphonique pour travailler à votre place.</p>' +
+        SERVICES.map(function (svc) {
+          var on = !!S.links[svc.id];
+          return '<div class="link-row">' +
+            '<span class="link-state ' + (on ? 'on' : 'off') + '" aria-hidden="true"></span>' +
+            '<div class="link-main">' +
+              '<strong>' + esc(svc.name) + '</strong>' +
+              '<span>' + esc(svc.role) + '</span>' +
+              (on ? '<span class="link-need">Connecté</span>'
+                  : '<span class="link-need">' + esc(svc.need) + '</span>') +
+            '</div>' +
+            '<button type="button" class="btn ' + (on ? 'btn-ghost' : 'btn-primary') +
+              ' btn-sm" data-link="' + svc.id + '">' + (on ? 'Déconnecter' : 'Connecter') + '</button>' +
+          '</div>';
+        }).join('') +
+      '</div>' +
+      '<div class="card">' +
+        '<p class="card-title">Ce que la démonstration ne fait pas</p>' +
+        '<p class="note">Ces connexions sont simulées. Relier réellement Gmail ou Google ' +
+          'Calendar suppose un serveur, une autorisation OAuth validée par Google, et un ' +
+          'hébergement européen conforme au RGPD — impossible depuis une page seule. ' +
+          'L\'interface est ici pour montrer le parcours et les autorisations demandées.</p>' +
+      '</div></div>';
+  }
+
+  var ACCOUNT_VIEWS = { plan: accountPlan, links: accountLinks, privacy: accountPrivacy, alerts: accountAlerts, help: accountHelp };
 
   function viewAccount() {
     return '<div class="choice-row filters" role="group" aria-label="Sections du compte">' +
@@ -898,6 +949,18 @@
       button.addEventListener('click', function () {
         var id = Number(button.getAttribute('data-faq-del'));
         D().faq = D().faq.filter(function (f) { return f.id !== id; });
+        store.save();
+        renderPanel();
+      });
+    });
+
+    // Connexions : bascule d'état, simulée mais persistée.
+    panel.querySelectorAll('[data-link]').forEach(function (button) {
+      button.addEventListener('click', function () {
+        var id = button.getAttribute('data-link');
+        S.links[id] = !S.links[id];
+        store.log(S.links[id] ? 'Connexion de ' + id : 'Déconnexion de ' + id,
+          S.links[id] ? 'Service relié à Ally' : 'Service détaché');
         store.save();
         renderPanel();
       });
@@ -1146,7 +1209,7 @@
         bubble('out', text);
         input.value = '';
 
-        var result = window.ALLY_BRAIN.ask(text);
+        var result = window.ALLY_CONVERSE.respond(text);
         var answer = (result.kind === 'action' && result.confirm &&
           (S.confirmLevel === 'always' || (S.confirmLevel === 'sensitive' && result.sensitive)))
           ? result.confirm : result.reply;
@@ -1154,6 +1217,27 @@
         window.setTimeout(function () {
           bubble('in', answer, result.detail);
           if (S.chatSpeaks) window.ALLY_VOICE.speak(answer, store.voiceOptions());
+
+          // Les suites proposées : on clique, la conversation continue.
+          var old = log.querySelector('.chat-follow');
+          if (old) old.remove();
+          if (result.follow && result.follow.length) {
+            var row = document.createElement('div');
+            row.className = 'chat-follow';
+            result.follow.forEach(function (text) {
+              var chip = document.createElement('button');
+              chip.type = 'button';
+              chip.className = 'voice-chip-sm';
+              chip.textContent = text;
+              chip.addEventListener('click', function () {
+                input.value = text;
+                chatForm.dispatchEvent(new Event('submit', { cancelable: true }));
+              });
+              row.appendChild(chip);
+            });
+            log.appendChild(row);
+            log.scrollTop = log.scrollHeight;
+          }
         }, 350);
       });
     }
@@ -1226,7 +1310,7 @@
     el.heard.textContent = '« ' + text + ' »';
     el.voiceTitle.textContent = 'Ally répond';
 
-    var result = BRAIN.ask(text);
+    var result = window.ALLY_CONVERSE.respond(text);
     var needsConfirm = result.kind === 'action' &&
       (S.confirmLevel === 'always' || (S.confirmLevel === 'sensitive' && result.sensitive));
 
@@ -1259,7 +1343,15 @@
     VOICE.speak(result.reply, store.voiceOptions());
 
     var box = document.getElementById('voice-suggestions');
-    box.innerHTML = '<p class="voice-reply">' + esc(result.reply) + '</p>';
+    box.innerHTML = '<p class="voice-reply">' + esc(result.reply) + '</p>' +
+      ((result.follow && result.follow.length)
+        ? '<div class="voice-follow">' + result.follow.map(function (text) {
+            return '<button type="button" class="voice-chip-sm">' + esc(text) + '</button>';
+          }).join('') + '</div>'
+        : '');
+    box.querySelectorAll('.voice-chip-sm').forEach(function (chip) {
+      chip.addEventListener('click', function () { handle(chip.textContent); });
+    });
     document.getElementById('voice-again').hidden = false;
 
     if (spoken) logVoice(spoken, result.kind === 'action' ? 'Exécuté' : 'Répondu');

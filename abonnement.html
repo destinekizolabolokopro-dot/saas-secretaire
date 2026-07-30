@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Créer un compte — Ally</title>
+<meta name="robots" content="noindex">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/site.css">
+</head>
+<body>
+<div class="page">
+  <div class="blob blob-a" aria-hidden="true"></div>
+  <div class="blob blob-b" aria-hidden="true"></div>
+
+  <div class="ob-shell" style="max-width:1080px">
+    <div class="ob-head">
+      <a class="logo" href="index.html">
+        <span class="logo-mark" aria-hidden="true"></span>
+        <span class="logo-word">Ally</span>
+      </a>
+      <a class="auth-back" href="login.html">J'ai déjà un compte</a>
+    </div>
+
+    <main>
+      <p class="ob-step-label" id="sub-step-label">Étape 1 sur 2</p>
+      <h1 id="sub-title">Choisissez votre formule</h1>
+      <p class="ob-lede" id="sub-lede">
+        Les 14 premiers jours sont offerts, sans carte bancaire. Vous ne payez
+        qu'à la fin de l'essai, et vous changez de formule quand vous voulez.
+      </p>
+
+      <!-- Étape 1 — Formules -->
+      <section id="sub-step-1">
+        <div class="billing-switch" role="group" aria-label="Périodicité de facturation">
+          <button type="button" class="choice" data-cycle="month" aria-pressed="true">Mensuel</button>
+          <button type="button" class="choice" data-cycle="year" aria-pressed="false">
+            Annuel <span class="save-badge">2 mois offerts</span>
+          </button>
+        </div>
+
+        <div class="plans" id="plans"></div>
+
+        <p class="note" style="text-align:center;margin-top:24px">
+          Tarifs hors taxes, par professionnel. Sans engagement, résiliable en un clic.
+        </p>
+      </section>
+
+      <!-- Étape 2 — Compte -->
+      <section id="sub-step-2" hidden>
+        <div class="checkout">
+          <div class="card">
+            <p class="card-title">Votre compte</p>
+
+            <div class="ob-grid-2">
+              <div class="ob-field">
+                <label class="ob-label" for="sub-first">Prénom</label>
+                <input class="field" id="sub-first" type="text" autocomplete="given-name" placeholder="Antoine">
+              </div>
+              <div class="ob-field">
+                <label class="ob-label" for="sub-last">Nom</label>
+                <input class="field" id="sub-last" type="text" autocomplete="family-name" placeholder="Dubois">
+              </div>
+            </div>
+
+            <div class="ob-field">
+              <label class="ob-label" for="sub-email">Email professionnel</label>
+              <input class="field" id="sub-email" type="email" autocomplete="email" placeholder="vous@cabinet.fr">
+            </div>
+
+            <div class="ob-field">
+              <label class="ob-label" for="sub-pass">Mot de passe</label>
+              <input class="field" id="sub-pass" type="password" autocomplete="new-password" placeholder="8 caractères minimum">
+            </div>
+
+            <p class="demo-warning">
+              Démonstration : aucun compte n'est créé sur un serveur, aucun paiement
+              n'est encaissé et aucune donnée bancaire n'est demandée. Tout reste
+              dans votre navigateur.
+            </p>
+
+            <label class="consent">
+              <input type="checkbox" id="sub-cgv">
+              <span>J'accepte les conditions générales et la politique de confidentialité.</span>
+            </label>
+
+            <button class="btn btn-primary" id="sub-submit" type="button" style="width:100%;margin-top:18px">
+              Démarrer mes 14 jours offerts
+            </button>
+            <p class="note" style="text-align:center;margin-top:12px">
+              Aucun prélèvement avant le <span id="sub-date">—</span>.
+            </p>
+          </div>
+
+          <aside class="card summary">
+            <p class="card-title">Récapitulatif</p>
+            <div class="summary-plan">
+              <strong id="sum-name">—</strong>
+              <span id="sum-tagline">—</span>
+            </div>
+            <div class="summary-line"><span>Essai <span id="sum-trial">14 jours</span></span><strong>0 €</strong></div>
+            <div class="summary-line"><span id="sum-cycle">Puis chaque mois</span><strong id="sum-price">—</strong></div>
+            <div class="summary-line total"><span>À payer aujourd'hui</span><strong>0 €</strong></div>
+            <ul class="summary-features" id="sum-features"></ul>
+            <button type="button" class="btn-link" id="sub-back">← Changer de formule</button>
+          </aside>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+
+<script src="js/profiles.js"></script>
+<script src="js/plans.js"></script>
+<script src="js/store.js"></script>
+<script src="js/subscribe.js"></script>
+</body>
+</html>
