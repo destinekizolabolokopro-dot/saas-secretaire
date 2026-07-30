@@ -34,8 +34,42 @@
       retentionDays: 90,
       summaryFreq: 'daily',
       voiceEnabled: true,
-      confirmLevel: 'sensitive'
+      confirmLevel: 'sensitive',
+      chatSpeaks: true,
+      /* Voix d'Ally : identifiant de la voix du navigateur, débit, hauteur. */
+      voice: { uri: '', rate: 1, pitch: 1 },
+      /* Script d'appel : null tant que le pro ne l'a pas personnalisé, on
+         retombe alors sur celui généré pour son métier. */
+      script: null
     };
+  }
+
+  /* Script d'appel par défaut, dérivé du métier et de l'identité. */
+  function defaultScript(profile, identity, greeting) {
+    var who = window.ALLY_DISPLAY_NAME(identity, profile);
+    var client = profile.clientWord;
+    return [
+      { id: 'greeting', label: 'Accueil',
+        hint: 'La toute première phrase, dès le décroché.',
+        text: greeting },
+      { id: 'qualify', label: 'Qualification',
+        hint: 'Comment Ally identifie le motif de l\'appel.',
+        text: 'Très bien. Pouvez-vous me préciser votre demande, afin que je vous oriente correctement ?' },
+      { id: 'urgent', label: 'Urgence détectée',
+        hint: 'Déclenché dès qu\'une urgence est reconnue. Transfert immédiat.',
+        text: 'Je comprends qu\'il s\'agit d\'une urgence. Je vous mets en relation immédiatement avec '
+          + who + ', ne quittez pas.' },
+      { id: 'booking', label: 'Prise de rendez-vous',
+        hint: 'Proposition de créneau, dans vos disponibilités déclarées.',
+        text: 'Je regarde les disponibilités. Je peux vous proposer un créneau, cela vous convient-il ?' },
+      { id: 'unknown', label: 'Demande hors périmètre',
+        hint: 'Quand Ally ne sait pas répondre : elle prend un message, elle n\'invente pas.',
+        text: 'Je préfère ne pas répondre à votre place sur ce point. Je note votre demande et '
+          + who + ' vous rappellera. Puis-je avoir votre nom et votre numéro ?' },
+      { id: 'closing', label: 'Clôture',
+        hint: 'La phrase de fin, toujours prononcée.',
+        text: 'C\'est noté, je transmets. Merci de votre appel et belle journée.' }
+    ];
   }
 
   function merge(base, saved) {
@@ -43,9 +77,13 @@
     Object.keys(base).forEach(function (key) {
       var value = saved[key];
       if (value === undefined || value === null) return;
-      if (Array.isArray(base[key])) base[key] = value;
-      else if (typeof base[key] === 'object') base[key] = merge(base[key], value);
-      else base[key] = value;
+      // base[key] peut valoir null (script non personnalisé) : on affecte alors
+      // directement, sinon Object.keys(null) planterait à la lecture du compte.
+      if (base[key] === null || Array.isArray(base[key]) || typeof base[key] !== 'object') {
+        base[key] = value;
+      } else {
+        base[key] = merge(base[key], value);
+      }
     });
     return base;
   }
@@ -77,6 +115,22 @@
     greeting: function () {
       if (state.greeting) return state.greeting;
       return this.profile().greeting({ org: state.identity.org, name: this.displayName() });
+    },
+
+    /* Script d'appel courant : celui du pro, sinon celui de son métier. */
+    script: function () {
+      if (state.script && state.script.length) return state.script;
+      return defaultScript(this.profile(), state.identity, this.greeting());
+    },
+
+    resetScript: function () {
+      state.script = defaultScript(this.profile(), state.identity, this.greeting());
+      this.save();
+      return state.script;
+    },
+
+    voiceOptions: function () {
+      return { voiceURI: state.voice.uri, rate: state.voice.rate, pitch: state.voice.pitch };
     },
 
     save: function () {

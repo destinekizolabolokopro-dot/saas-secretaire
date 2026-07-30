@@ -446,3 +446,147 @@
   .voice-fab span:not(.mic) { display: none; }
   .voice-fab { padding: 16px; }
 }
+
+/* ============ TÉLÉPHONIE ============ */
+.line-card {
+  background: linear-gradient(135deg, oklch(0.22 0.04 296 / 0.5), oklch(0.2 0.03 200 / 0.38));
+  border: 1px solid oklch(0.72 0.19 296 / 0.28);
+  border-radius: var(--r); padding: 24px;
+}
+.line-head { display: flex; align-items: flex-start; gap: 16px; margin-bottom: 22px; }
+.line-pulse {
+  width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; margin-top: 4px;
+  background: var(--cyan); box-shadow: 0 0 0 0 oklch(0.75 0.15 200 / 0.6);
+  animation: line-ping 2s ease-out infinite;
+}
+@keyframes line-ping {
+  0%   { box-shadow: 0 0 0 0 oklch(0.75 0.15 200 / 0.55); }
+  100% { box-shadow: 0 0 0 14px oklch(0.75 0.15 200 / 0); }
+}
+.line-title { font-family: var(--ff-h); font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+.line-sub { font-size: 14px; color: var(--txt-3); line-height: 1.55; }
+.line-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.line-stats div { display: flex; flex-direction: column; gap: 2px; }
+.line-stats strong { font-family: var(--ff-h); font-size: 24px; font-weight: 700; }
+.line-stats span { font-size: 12px; color: var(--txt-4); }
+
+/* ---- Choix de la voix ---- */
+.voice-picker { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 22px; }
+.voice-chip {
+  display: flex; flex-direction: column; gap: 2px; align-items: flex-start;
+  padding: 11px 16px; border-radius: var(--r-sm); cursor: pointer;
+  background: var(--s4); border: 1px solid var(--bd-2);
+  font-family: inherit; color: var(--txt-2); text-align: left;
+  transition: border-color .15s, background .15s;
+}
+.voice-chip:hover { border-color: var(--bd-3); }
+.voice-chip[aria-pressed="true"] {
+  background: oklch(0.72 0.19 296 / 0.15);
+  border-color: oklch(0.72 0.19 296 / 0.55); color: var(--txt);
+}
+.voice-name { font-size: 13px; font-weight: 600; }
+.voice-lang { font-size: 11px; color: var(--txt-5); }
+.voice-sliders { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 20px; }
+.voice-try { display: flex; gap: 10px; flex-wrap: wrap; }
+
+/* ---- Script d'appel ---- */
+.script-head {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: 16px; margin-bottom: 18px;
+}
+.script-list { display: flex; flex-direction: column; gap: 14px; }
+.script-step {
+  background: var(--s1); border: 1px solid var(--bd);
+  border-radius: var(--r-md); padding: 14px 16px;
+}
+.script-step-head { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 10px; }
+.script-num {
+  font-family: var(--ff-h); font-size: 12px; font-weight: 700;
+  color: var(--accent-bright); padding-top: 2px; flex-shrink: 0;
+}
+.script-meta { flex: 1; min-width: 0; }
+.script-meta label { display: block; font-size: 14px; font-weight: 600; }
+.script-meta span { display: block; font-size: 12px; color: var(--txt-4); margin-top: 2px; line-height: 1.45; }
+.script-text { background: var(--s0); font-size: 13px; min-height: 0; }
+
+/* ---- Simulation d'appel ---- */
+.call-stage {
+  border: 1px solid var(--bd); border-radius: var(--r-md);
+  background: var(--s1); min-height: 180px; max-height: 380px;
+  overflow-y: auto; padding: 16px; margin-bottom: 16px;
+  transition: border-color .2s;
+}
+.call-stage.is-live { border-color: oklch(0.75 0.15 200 / 0.5); }
+.call-empty {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 12px; min-height: 148px; color: var(--txt-4); font-size: 14px;
+}
+.call-icon {
+  width: 34px; height: 34px; border-radius: 50%;
+  border: 2px solid var(--txt-5); opacity: .6;
+}
+.call-log { display: flex; flex-direction: column; gap: 12px; }
+.call-line { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.call-line .call-who {
+  font-size: 11px; text-transform: uppercase; letter-spacing: .08em;
+  width: 62px; flex-shrink: 0;
+}
+.call-ally .call-who { color: var(--accent-bright); }
+.call-caller .call-who { color: var(--txt-5); }
+.call-line .call-text { flex: 1; min-width: 160px; font-size: 14px; line-height: 1.55; }
+.call-caller .call-text { color: var(--txt-3); }
+.call-tag {
+  font-size: 11px; padding: 3px 9px; border-radius: var(--pill); white-space: nowrap;
+  background: oklch(0.3 0.10 200 / 0.25); color: oklch(0.8 0.12 200);
+}
+.call-tag.urgent  { background: oklch(0.3 0.15 25 / 0.30);  color: oklch(0.8 0.15 25); }
+.call-tag.pending { background: oklch(0.3 0.10 90 / 0.25);  color: oklch(0.85 0.10 90); }
+.call-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+
+/* ---- Overlay vocal ---- */
+.voice-viz.is-live .core { animation-duration: 1.1s; }
+.voice-viz .ring { animation-play-state: paused; }
+.voice-viz.is-live .ring { animation-play-state: running; }
+.voice-detail {
+  font-size: 12px; color: var(--txt-4); line-height: 1.5;
+  margin-bottom: 16px; margin-top: -8px;
+}
+.voice-form { display: flex; gap: 10px; margin-bottom: 16px; }
+.voice-form .field { flex: 1; border-radius: var(--pill); }
+.voice-suggestions {
+  display: flex; flex-wrap: wrap; gap: 8px;
+  justify-content: center; margin-bottom: 20px;
+}
+.voice-chip-sm {
+  font-family: inherit; font-size: 12px; line-height: 1.4;
+  padding: 7px 13px; border-radius: var(--pill); cursor: pointer;
+  background: oklch(1 0 0 / 0.05); border: 1px solid var(--bd-2);
+  color: var(--txt-3); text-align: left;
+}
+.voice-chip-sm:hover { background: oklch(1 0 0 / 0.09); color: var(--txt); }
+.voice-reply {
+  font-size: 15px; line-height: 1.6; color: var(--txt);
+  background: oklch(0.72 0.19 296 / 0.12);
+  border: 1px solid oklch(0.72 0.19 296 / 0.3);
+  border-radius: var(--r-md); padding: 14px 16px; text-align: left;
+}
+
+/* ---- Chat ---- */
+.chat-head {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: 16px; margin-bottom: 16px;
+}
+.chat-suggestions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.bubble-detail {
+  display: block; font-size: 11px; color: var(--txt-5);
+  margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--hair);
+}
+
+@media (max-width: 700px) {
+  .line-stats { grid-template-columns: 1fr; gap: 10px; }
+  .line-stats div { flex-direction: row; align-items: baseline; gap: 8px; }
+  .voice-sliders { grid-template-columns: 1fr; gap: 14px; }
+  .script-head { flex-direction: column; gap: 10px; }
+  .chat-head { flex-direction: column; gap: 12px; }
+  .call-line .call-who { width: auto; }
+}

@@ -108,6 +108,11 @@
 
 *, *::before, *::after { box-sizing: border-box; }
 
+/* Doit primer sur les display:flex/grid des composants, sinon l'attribut
+   hidden ne masque rien — les boutons d'appel et le menu mobile restaient
+   affichés en permanence. */
+[hidden] { display: none !important; }
+
 html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
 
 body {
@@ -491,7 +496,6 @@ input[type="range"] {
   background: oklch(0.72 0.19 296 / 0.15); border: 1px solid oklch(0.72 0.19 296 / 0.4);
   color: oklch(0.9 0.05 296); font-size: 15px; font-weight: 600;
 }
-[hidden] { display: none !important; }
 
 /* ---- Footer ---- */
 .footer {
@@ -1079,6 +1083,150 @@ input[type="range"] {
   .voice-fab { padding: 16px; }
 }
 
+/* ============ TÉLÉPHONIE ============ */
+.line-card {
+  background: linear-gradient(135deg, oklch(0.22 0.04 296 / 0.5), oklch(0.2 0.03 200 / 0.38));
+  border: 1px solid oklch(0.72 0.19 296 / 0.28);
+  border-radius: var(--r); padding: 24px;
+}
+.line-head { display: flex; align-items: flex-start; gap: 16px; margin-bottom: 22px; }
+.line-pulse {
+  width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; margin-top: 4px;
+  background: var(--cyan); box-shadow: 0 0 0 0 oklch(0.75 0.15 200 / 0.6);
+  animation: line-ping 2s ease-out infinite;
+}
+@keyframes line-ping {
+  0%   { box-shadow: 0 0 0 0 oklch(0.75 0.15 200 / 0.55); }
+  100% { box-shadow: 0 0 0 14px oklch(0.75 0.15 200 / 0); }
+}
+.line-title { font-family: var(--ff-h); font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+.line-sub { font-size: 14px; color: var(--txt-3); line-height: 1.55; }
+.line-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.line-stats div { display: flex; flex-direction: column; gap: 2px; }
+.line-stats strong { font-family: var(--ff-h); font-size: 24px; font-weight: 700; }
+.line-stats span { font-size: 12px; color: var(--txt-4); }
+
+/* ---- Choix de la voix ---- */
+.voice-picker { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 22px; }
+.voice-chip {
+  display: flex; flex-direction: column; gap: 2px; align-items: flex-start;
+  padding: 11px 16px; border-radius: var(--r-sm); cursor: pointer;
+  background: var(--s4); border: 1px solid var(--bd-2);
+  font-family: inherit; color: var(--txt-2); text-align: left;
+  transition: border-color .15s, background .15s;
+}
+.voice-chip:hover { border-color: var(--bd-3); }
+.voice-chip[aria-pressed="true"] {
+  background: oklch(0.72 0.19 296 / 0.15);
+  border-color: oklch(0.72 0.19 296 / 0.55); color: var(--txt);
+}
+.voice-name { font-size: 13px; font-weight: 600; }
+.voice-lang { font-size: 11px; color: var(--txt-5); }
+.voice-sliders { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 20px; }
+.voice-try { display: flex; gap: 10px; flex-wrap: wrap; }
+
+/* ---- Script d'appel ---- */
+.script-head {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: 16px; margin-bottom: 18px;
+}
+.script-list { display: flex; flex-direction: column; gap: 14px; }
+.script-step {
+  background: var(--s1); border: 1px solid var(--bd);
+  border-radius: var(--r-md); padding: 14px 16px;
+}
+.script-step-head { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 10px; }
+.script-num {
+  font-family: var(--ff-h); font-size: 12px; font-weight: 700;
+  color: var(--accent-bright); padding-top: 2px; flex-shrink: 0;
+}
+.script-meta { flex: 1; min-width: 0; }
+.script-meta label { display: block; font-size: 14px; font-weight: 600; }
+.script-meta span { display: block; font-size: 12px; color: var(--txt-4); margin-top: 2px; line-height: 1.45; }
+.script-text { background: var(--s0); font-size: 13px; min-height: 0; }
+
+/* ---- Simulation d'appel ---- */
+.call-stage {
+  border: 1px solid var(--bd); border-radius: var(--r-md);
+  background: var(--s1); min-height: 180px; max-height: 380px;
+  overflow-y: auto; padding: 16px; margin-bottom: 16px;
+  transition: border-color .2s;
+}
+.call-stage.is-live { border-color: oklch(0.75 0.15 200 / 0.5); }
+.call-empty {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 12px; min-height: 148px; color: var(--txt-4); font-size: 14px;
+}
+.call-icon {
+  width: 34px; height: 34px; border-radius: 50%;
+  border: 2px solid var(--txt-5); opacity: .6;
+}
+.call-log { display: flex; flex-direction: column; gap: 12px; }
+.call-line { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.call-line .call-who {
+  font-size: 11px; text-transform: uppercase; letter-spacing: .08em;
+  width: 62px; flex-shrink: 0;
+}
+.call-ally .call-who { color: var(--accent-bright); }
+.call-caller .call-who { color: var(--txt-5); }
+.call-line .call-text { flex: 1; min-width: 160px; font-size: 14px; line-height: 1.55; }
+.call-caller .call-text { color: var(--txt-3); }
+.call-tag {
+  font-size: 11px; padding: 3px 9px; border-radius: var(--pill); white-space: nowrap;
+  background: oklch(0.3 0.10 200 / 0.25); color: oklch(0.8 0.12 200);
+}
+.call-tag.urgent  { background: oklch(0.3 0.15 25 / 0.30);  color: oklch(0.8 0.15 25); }
+.call-tag.pending { background: oklch(0.3 0.10 90 / 0.25);  color: oklch(0.85 0.10 90); }
+.call-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+
+/* ---- Overlay vocal ---- */
+.voice-viz.is-live .core { animation-duration: 1.1s; }
+.voice-viz .ring { animation-play-state: paused; }
+.voice-viz.is-live .ring { animation-play-state: running; }
+.voice-detail {
+  font-size: 12px; color: var(--txt-4); line-height: 1.5;
+  margin-bottom: 16px; margin-top: -8px;
+}
+.voice-form { display: flex; gap: 10px; margin-bottom: 16px; }
+.voice-form .field { flex: 1; border-radius: var(--pill); }
+.voice-suggestions {
+  display: flex; flex-wrap: wrap; gap: 8px;
+  justify-content: center; margin-bottom: 20px;
+}
+.voice-chip-sm {
+  font-family: inherit; font-size: 12px; line-height: 1.4;
+  padding: 7px 13px; border-radius: var(--pill); cursor: pointer;
+  background: oklch(1 0 0 / 0.05); border: 1px solid var(--bd-2);
+  color: var(--txt-3); text-align: left;
+}
+.voice-chip-sm:hover { background: oklch(1 0 0 / 0.09); color: var(--txt); }
+.voice-reply {
+  font-size: 15px; line-height: 1.6; color: var(--txt);
+  background: oklch(0.72 0.19 296 / 0.12);
+  border: 1px solid oklch(0.72 0.19 296 / 0.3);
+  border-radius: var(--r-md); padding: 14px 16px; text-align: left;
+}
+
+/* ---- Chat ---- */
+.chat-head {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: 16px; margin-bottom: 16px;
+}
+.chat-suggestions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.bubble-detail {
+  display: block; font-size: 11px; color: var(--txt-5);
+  margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--hair);
+}
+
+@media (max-width: 700px) {
+  .line-stats { grid-template-columns: 1fr; gap: 10px; }
+  .line-stats div { flex-direction: row; align-items: baseline; gap: 8px; }
+  .voice-sliders { grid-template-columns: 1fr; gap: 14px; }
+  .script-head { flex-direction: column; gap: 10px; }
+  .chat-head { flex-direction: column; gap: 12px; }
+  .call-line .call-who { width: auto; }
+}
+
 /* Un seul écran visible à la fois. */
 .screen { display: none; }
 .screen[data-active] { display: block; }
@@ -1516,21 +1664,31 @@ input[type="range"] {
 
 <div class="voice-overlay" id="voice-overlay" role="dialog" aria-modal="true" aria-labelledby="voice-title" hidden>
   <div class="voice-panel">
-    <div class="voice-viz" aria-hidden="true">
+    <div class="voice-viz" id="voice-viz" aria-hidden="true">
       <span class="ring"></span><span class="ring"></span><span class="ring"></span>
       <span class="core"></span>
     </div>
+
     <h2 id="voice-title">Ally écoute…</h2>
     <p class="voice-heard" id="voice-heard" role="status"></p>
+    <p class="voice-detail" id="voice-detail" hidden></p>
     <p class="voice-confirm" id="voice-confirm" hidden></p>
+
+    <form class="voice-form" id="voice-form">
+      <label class="sr-only" for="voice-input">Écrire votre demande à Ally</label>
+      <input class="field" id="voice-input" type="text" placeholder="Écrivez votre demande…" autocomplete="off">
+      <button class="btn btn-primary btn-md" type="submit">Demander</button>
+    </form>
+
+    <div class="voice-suggestions" id="voice-suggestions"></div>
+
     <div class="voice-actions">
       <button class="btn btn-primary btn-md" id="voice-ok" type="button" hidden>Confirmer</button>
-      <button class="btn btn-ghost btn-md" id="voice-cancel" type="button">Annuler</button>
+      <button class="btn btn-ghost btn-md" id="voice-again" type="button" hidden>Reparler</button>
+      <button class="btn btn-ghost btn-md" id="voice-cancel" type="button">Fermer</button>
     </div>
-    <p class="voice-unwired">
-      Interface de démonstration : la reconnaissance et la synthèse vocales ne sont pas
-      branchées. Les ordres défilent en exemple.
-    </p>
+
+    <p class="voice-unwired" id="voice-note"></p>
   </div>
 </div>
 </div>
@@ -1946,8 +2104,42 @@ window.ALLY_DISPLAY_NAME = function (identity, profile) {
       retentionDays: 90,
       summaryFreq: 'daily',
       voiceEnabled: true,
-      confirmLevel: 'sensitive'
+      confirmLevel: 'sensitive',
+      chatSpeaks: true,
+      /* Voix d'Ally : identifiant de la voix du navigateur, débit, hauteur. */
+      voice: { uri: '', rate: 1, pitch: 1 },
+      /* Script d'appel : null tant que le pro ne l'a pas personnalisé, on
+         retombe alors sur celui généré pour son métier. */
+      script: null
     };
+  }
+
+  /* Script d'appel par défaut, dérivé du métier et de l'identité. */
+  function defaultScript(profile, identity, greeting) {
+    var who = window.ALLY_DISPLAY_NAME(identity, profile);
+    var client = profile.clientWord;
+    return [
+      { id: 'greeting', label: 'Accueil',
+        hint: 'La toute première phrase, dès le décroché.',
+        text: greeting },
+      { id: 'qualify', label: 'Qualification',
+        hint: 'Comment Ally identifie le motif de l\'appel.',
+        text: 'Très bien. Pouvez-vous me préciser votre demande, afin que je vous oriente correctement ?' },
+      { id: 'urgent', label: 'Urgence détectée',
+        hint: 'Déclenché dès qu\'une urgence est reconnue. Transfert immédiat.',
+        text: 'Je comprends qu\'il s\'agit d\'une urgence. Je vous mets en relation immédiatement avec '
+          + who + ', ne quittez pas.' },
+      { id: 'booking', label: 'Prise de rendez-vous',
+        hint: 'Proposition de créneau, dans vos disponibilités déclarées.',
+        text: 'Je regarde les disponibilités. Je peux vous proposer un créneau, cela vous convient-il ?' },
+      { id: 'unknown', label: 'Demande hors périmètre',
+        hint: 'Quand Ally ne sait pas répondre : elle prend un message, elle n\'invente pas.',
+        text: 'Je préfère ne pas répondre à votre place sur ce point. Je note votre demande et '
+          + who + ' vous rappellera. Puis-je avoir votre nom et votre numéro ?' },
+      { id: 'closing', label: 'Clôture',
+        hint: 'La phrase de fin, toujours prononcée.',
+        text: 'C\'est noté, je transmets. Merci de votre appel et belle journée.' }
+    ];
   }
 
   function merge(base, saved) {
@@ -1955,9 +2147,13 @@ window.ALLY_DISPLAY_NAME = function (identity, profile) {
     Object.keys(base).forEach(function (key) {
       var value = saved[key];
       if (value === undefined || value === null) return;
-      if (Array.isArray(base[key])) base[key] = value;
-      else if (typeof base[key] === 'object') base[key] = merge(base[key], value);
-      else base[key] = value;
+      // base[key] peut valoir null (script non personnalisé) : on affecte alors
+      // directement, sinon Object.keys(null) planterait à la lecture du compte.
+      if (base[key] === null || Array.isArray(base[key]) || typeof base[key] !== 'object') {
+        base[key] = value;
+      } else {
+        base[key] = merge(base[key], value);
+      }
     });
     return base;
   }
@@ -1991,6 +2187,22 @@ window.ALLY_DISPLAY_NAME = function (identity, profile) {
       return this.profile().greeting({ org: state.identity.org, name: this.displayName() });
     },
 
+    /* Script d'appel courant : celui du pro, sinon celui de son métier. */
+    script: function () {
+      if (state.script && state.script.length) return state.script;
+      return defaultScript(this.profile(), state.identity, this.greeting());
+    },
+
+    resetScript: function () {
+      state.script = defaultScript(this.profile(), state.identity, this.greeting());
+      this.save();
+      return state.script;
+    },
+
+    voiceOptions: function () {
+      return { voiceURI: state.voice.uri, rate: state.voice.rate, pitch: state.voice.pitch };
+    },
+
     save: function () {
       try { window.localStorage.setItem(KEY, JSON.stringify(state)); return true; }
       catch (e) { return false; }
@@ -2009,6 +2221,957 @@ window.ALLY_DISPLAY_NAME = function (identity, profile) {
   /* Repart du questionnaire. Le fichier de démonstration autonome remplace
      cette fonction par un simple rechargement, puisqu'il n'a pas de pages. */
   window.ALLY_RESTART = function () { window.ALLY_GOTO('onboarding.html'); };
+})();
+
+/* Ally — voix réelle.
+   Synthèse (TTS) et reconnaissance (STT) via les API du navigateur, sans
+   dépendance ni clé d'API.
+
+   À savoir sur les limites, elles sont réelles :
+   - La synthèse fonctionne partout, y compris en ouvrant le fichier en local.
+   - La reconnaissance exige un contexte sécurisé (https ou localhost) et
+     Chrome/Edge/Safari. Ouvert en file://, le micro est refusé par le
+     navigateur : on bascule alors sur la saisie au clavier, et l'interface
+     le dit clairement au lieu de faire semblant. */
+(function () {
+  'use strict';
+
+  var synth = window.speechSynthesis || null;
+  var Recognition = window.SpeechRecognition || window.webkitSpeechRecognition || null;
+
+  /* Un contexte sécurisé est nécessaire pour accéder au micro.
+     Chrome déclare pourtant file:// comme « sécurisé » alors que la
+     reconnaissance y échoue systématiquement : on l'exclut explicitement,
+     pour annoncer la vraie raison plutôt qu'un refus de micro trompeur. */
+  var isFile = location.protocol === 'file:';
+  var secure = !isFile && (
+    (window.isSecureContext === true)
+    || location.protocol === 'https:'
+    || location.hostname === 'localhost'
+    || location.hostname === '127.0.0.1');
+
+  var voices = [];
+  var listeners = [];
+
+  function loadVoices() {
+    if (!synth) return;
+    var all = synth.getVoices() || [];
+    // On privilégie le français, en repli sur tout le reste.
+    var fr = all.filter(function (v) { return /^fr/i.test(v.lang); });
+    voices = (fr.length ? fr : all).slice(0, 12);
+    listeners.forEach(function (fn) { fn(voices); });
+  }
+
+  if (synth) {
+    loadVoices();
+    // Chrome charge les voix de façon asynchrone.
+    if (typeof synth.onvoiceschanged !== 'undefined') {
+      synth.onvoiceschanged = loadVoices;
+    }
+  }
+
+  var recognition = null;
+  var listening = false;
+
+  window.ALLY_VOICE = {
+
+    /* ---------- Disponibilité ---------- */
+    canSpeak: function () { return !!synth; },
+    canListen: function () { return !!Recognition && secure; },
+
+    /* Explique précisément pourquoi le micro n'est pas disponible. */
+    listenBlockedReason: function () {
+      if (!Recognition) {
+        return 'Votre navigateur ne gère pas la reconnaissance vocale. '
+          + 'Chrome, Edge ou Safari la prennent en charge.';
+      }
+      if (isFile) {
+        return 'Le micro ne fonctionne pas sur un fichier ouvert en local '
+          + '(file://). Servez la page en http://localhost ou en https pour dicter. '
+          + 'En attendant, écrivez votre demande : Ally répond quand même à voix haute.';
+      }
+      if (!secure) {
+        return 'Le micro exige une page servie en https ou en localhost. '
+          + 'Vous pouvez écrire votre demande, Ally répondra à voix haute.';
+      }
+      return null;
+    },
+
+    /* ---------- Voix disponibles ---------- */
+    voices: function () { return voices; },
+    onVoices: function (fn) {
+      listeners.push(fn);
+      if (voices.length) fn(voices);
+    },
+
+    /* Retrouve la voix enregistrée dans le compte, sinon la première française. */
+    resolveVoice: function (wanted) {
+      if (!voices.length) return null;
+      var match = voices.filter(function (v) { return v.voiceURI === wanted; })[0];
+      return match || voices[0];
+    },
+
+    /* ---------- Parole ---------- */
+    speak: function (text, options, onEnd) {
+      if (!synth || !text) { if (onEnd) onEnd(); return null; }
+      options = options || {};
+
+      synth.cancel();
+      var utter = new SpeechSynthesisUtterance(text);
+      var voice = this.resolveVoice(options.voiceURI);
+      if (voice) { utter.voice = voice; utter.lang = voice.lang; }
+      else utter.lang = 'fr-FR';
+
+      utter.rate = options.rate || 1;
+      utter.pitch = options.pitch || 1;
+      utter.onend = function () { if (onEnd) onEnd(); };
+      utter.onerror = function () { if (onEnd) onEnd(); };
+
+      synth.speak(utter);
+      return utter;
+    },
+
+    stopSpeaking: function () { if (synth) synth.cancel(); },
+    isSpeaking: function () { return !!synth && synth.speaking; },
+
+    /* ---------- Écoute ---------- */
+    /* handlers : { onPartial, onResult, onError, onEnd } */
+    listen: function (handlers) {
+      if (!this.canListen()) {
+        if (handlers.onError) handlers.onError(this.listenBlockedReason());
+        return false;
+      }
+      this.stopListening();
+
+      recognition = new Recognition();
+      recognition.lang = 'fr-FR';
+      recognition.interimResults = true;
+      recognition.continuous = false;
+      recognition.maxAlternatives = 1;
+
+      var finalText = '';
+
+      recognition.onresult = function (event) {
+        var interim = '';
+        for (var i = event.resultIndex; i < event.results.length; i++) {
+          var chunk = event.results[i][0].transcript;
+          if (event.results[i].isFinal) finalText += chunk;
+          else interim += chunk;
+        }
+        if (interim && handlers.onPartial) handlers.onPartial(interim);
+        if (finalText && handlers.onResult) {
+          handlers.onResult(finalText.trim());
+          finalText = '';
+        }
+      };
+
+      recognition.onerror = function (event) {
+        var messages = {
+          'not-allowed': 'Accès au micro refusé. Autorisez-le dans les réglages du navigateur.',
+          'service-not-allowed': 'Le service de reconnaissance est indisponible sur cette page.',
+          'no-speech': 'Je n\'ai rien entendu.',
+          'audio-capture': 'Aucun micro détecté sur cet appareil.',
+          'network': 'La reconnaissance vocale nécessite une connexion internet.'
+        };
+        if (handlers.onError) handlers.onError(messages[event.error] || 'Erreur micro : ' + event.error);
+      };
+
+      recognition.onend = function () {
+        listening = false;
+        if (handlers.onEnd) handlers.onEnd();
+      };
+
+      try {
+        recognition.start();
+        listening = true;
+        return true;
+      } catch (e) {
+        if (handlers.onError) handlers.onError('Le micro est déjà en cours d\'utilisation.');
+        return false;
+      }
+    },
+
+    stopListening: function () {
+      if (recognition) {
+        try { recognition.stop(); } catch (e) {}
+        recognition = null;
+      }
+      listening = false;
+    },
+
+    isListening: function () { return listening; }
+  };
+})();
+
+/* Ally — moteur de compréhension partagé.
+   Un seul cerveau alimente la commande vocale, le chat écrit et la simulation
+   d'appel : les trois comprennent les mêmes demandes et puisent dans les mêmes
+   données (base de connaissances, agenda, brouillons, appels, règles).
+   Ce n'est pas un modèle de langage : c'est un moteur d'intentions déterministe,
+   donc auditable — ce qui est le bon choix pour un métier à secret professionnel. */
+(function () {
+  'use strict';
+
+  /* Normalise pour comparer : minuscules, sans accents, sans ponctuation. */
+  function norm(text) {
+    return String(text).toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .replace(/['’]/g, ' ')
+      .replace(/[^a-z0-9\s:]/g, ' ')
+      .replace(/\s+/g, ' ').trim();
+  }
+
+  function hasAll(text, words) {
+    return words.every(function (w) { return text.indexOf(w) !== -1; });
+  }
+  function hasAny(text, words) {
+    return words.some(function (w) { return text.indexOf(w) !== -1; });
+  }
+
+  /* Extrait une heure : « 14h », « 14 h 30 », « 9:30 ». */
+  function findTime(text) {
+    var m = text.match(/(\d{1,2})\s*(?:h|:)\s*(\d{2})?/);
+    if (!m) return null;
+    var h = parseInt(m[1], 10);
+    var min = m[2] ? m[2] : '00';
+    if (h > 23) return null;
+    return (h < 10 ? '0' + h : h) + ':' + min;
+  }
+
+  var DAYS = [
+    ['lundi', 'lun'], ['mardi', 'mar'], ['mercredi', 'mer'], ['jeudi', 'jeu'],
+    ['vendredi', 'ven'], ['samedi', 'sam'], ['dimanche', 'dim']
+  ];
+  function findDay(text) {
+    for (var i = 0; i < DAYS.length; i++) {
+      if (text.indexOf(DAYS[i][0]) !== -1) return DAYS[i][0];
+    }
+    if (text.indexOf('demain') !== -1) return 'demain';
+    if (text.indexOf('apres demain') !== -1) return 'après-demain';
+    return null;
+  }
+  function findHalf(text) {
+    if (hasAny(text, ['apres midi', 'apres-midi'])) return 'après-midi';
+    if (text.indexOf('matin') !== -1) return 'matin';
+    if (text.indexOf('soir') !== -1) return 'fin de journée';
+    return null;
+  }
+
+  /* Score de recouvrement avec une entrée de la base de connaissances. */
+  var STOP = ['le', 'la', 'les', 'de', 'des', 'du', 'un', 'une', 'et', 'a', 'au',
+    'aux', 'en', 'est', 'ce', 'que', 'qui', 'quoi', 'quel', 'quelle', 'quels',
+    'quelles', 'pour', 'sur', 'dans', 'vous', 'votre', 'vos', 'mon', 'ma', 'mes',
+    'je', 'tu', 'il', 'elle', 'ally', 'combien', 'comment', 'est ce', 'sont'];
+
+  function keywords(text) {
+    return norm(text).split(' ').filter(function (w) {
+      return w.length > 2 && STOP.indexOf(w) === -1;
+    });
+  }
+
+  /* Un appelant ne reprend jamais les mots exacts de la fiche : il demande
+     « vous intervenez dans quel secteur » là où la base dit « zone
+     d'intervention ». On élargit donc la question, pas la base. */
+  var SYNONYMS = {
+    secteur: ['zone', 'intervention', 'perimetre'],
+    zone: ['secteur', 'intervention'],
+    intervenez: ['intervention', 'zone', 'secteur'],
+    intervenir: ['intervention', 'zone', 'secteur'],
+    deplacez: ['intervention', 'zone', 'secteur'],
+    tarif: ['prix', 'cout', 'honoraires'],
+    tarifs: ['tarif', 'prix', 'cout', 'honoraires'],
+    prix: ['tarif', 'cout'],
+    coute: ['tarif', 'prix'],
+    horaire: ['horaires', 'ouverture', 'ouvert'],
+    horaires: ['horaire', 'ouverture', 'ouvert'],
+    ouvert: ['horaires', 'ouverture'],
+    ouvrez: ['horaires', 'ouverture'],
+    delai: ['delais', 'attente'],
+    delais: ['delai', 'attente'],
+    garantie: ['garanties', 'decennale', 'assurance'],
+    apporter: ['documents', 'document', 'piece'],
+    papiers: ['documents', 'document', 'piece'],
+    rembourse: ['vitale', 'mutuelle', 'secteur']
+  };
+
+  function expand(words) {
+    var out = words.slice();
+    words.forEach(function (word) {
+      var extra = SYNONYMS[word];
+      if (extra) extra.forEach(function (syn) {
+        if (out.indexOf(syn) === -1) out.push(syn);
+      });
+    });
+    return out;
+  }
+
+  function faqMatch(text, faq) {
+    var asked = expand(keywords(text));
+    if (!asked.length) return null;
+    var best = null, bestScore = 0;
+
+    faq.forEach(function (item) {
+      var pool = keywords(item.q + ' ' + item.a);
+      var score = 0;
+      asked.forEach(function (word) {
+        pool.forEach(function (candidate) {
+          if (candidate === word) score += 2;
+          else if (candidate.indexOf(word) === 0 || word.indexOf(candidate) === 0) score += 1;
+        });
+      });
+      if (score > bestScore) { bestScore = score; best = item; }
+    });
+
+    return bestScore >= 2 ? best : null;
+  }
+
+  window.ALLY_BRAIN = {
+
+    /* Suggestions affichées au pro, adaptées à son métier. */
+    suggestions: function () {
+      var store = window.ALLY_STORE;
+      var p = store.profile();
+      var first = p.rdv[0];
+      return [
+        'Quel est mon prochain rendez-vous ?',
+        first ? 'Déplace le rendez-vous de ' + first.time + ' à demain' : 'Bloque mon agenda vendredi après-midi',
+        'Combien de brouillons attendent ma validation ?',
+        p.faq[1] ? p.faq[1].q + ' ?' : 'Quels sont mes horaires ?',
+        'Y a-t-il eu des urgences aujourd\'hui ?'
+      ];
+    },
+
+    /* Renvoie { reply, detail, kind, sensitive, apply }.
+       - kind : 'answer' (question) | 'action' (modification) | 'unknown'
+       - sensitive : l'action mérite une confirmation orale
+       - apply : fonction appelée si l'ordre est confirmé (peut être absente) */
+    ask: function (input) {
+      var store = window.ALLY_STORE;
+      var S = store.state;
+      var p = store.profile();
+      var t = norm(input);
+
+      if (!t) {
+        return { kind: 'unknown', reply: 'Je n\'ai rien entendu. Vous pouvez répéter ?' };
+      }
+
+      /* ---------- Identité ---------- */
+      if (hasAny(t, ['qui suis je', 'mon nom', 'je suis qui'])) {
+        return {
+          kind: 'answer',
+          reply: 'Vous êtes ' + store.displayName() + ', ' + S.identity.org + '.',
+          detail: 'Profil ' + p.name.toLowerCase()
+        };
+      }
+
+      /* ---------- Urgences et appels ---------- */
+      if (hasAny(t, ['urgence', 'urgent'])
+          && !hasAny(t, ['transfere', 'transferer', 'bascule', 'renvoie'])) {
+        var urgent = p.calls.filter(function (c) { return c.kind === 'urgent'; });
+        if (!urgent.length) {
+          return { kind: 'answer', reply: 'Aucune urgence aujourd\'hui.' };
+        }
+        return {
+          kind: 'answer',
+          reply: 'Oui : ' + urgent[0].caller + ' a appelé à ' + urgent[0].time
+            + ' pour « ' + urgent[0].subject + ' ». Je vous l\'ai transféré immédiatement.',
+          detail: urgent[0].transcript
+        };
+      }
+
+      if (hasAny(t, ['qui a appele', 'appels', 'appel recu', 'appele aujourd hui'])) {
+        var names = p.calls.map(function (c) { return c.caller; });
+        return {
+          kind: 'answer',
+          reply: p.calls.length + ' appels aujourd\'hui : ' + names.join(', ') + '.',
+          detail: p.calls.filter(function (c) { return c.kind === 'pending'; }).length
+            + ' en attente de rappel'
+        };
+      }
+
+      /* ---------- Brouillons et emails ---------- */
+      if (hasAny(t, ['brouillon', 'a valider', 'validation'])
+          && !hasAny(t, ['envoie', 'envoyer', 'envoi'])) {
+        var n = p.drafts.length;
+        if (!n) return { kind: 'answer', reply: 'Aucun brouillon en attente.' };
+        return {
+          kind: 'answer',
+          reply: n + ' brouillon' + (n > 1 ? 's attendent' : ' attend') + ' votre validation : '
+            + p.drafts.map(function (d) { return d.subject; }).join(', ') + '.',
+          detail: 'Onglet Conversations, filtre « À valider »'
+        };
+      }
+
+      if (hasAny(t, ['envoie', 'envoyer', 'envoi']) && hasAny(t, ['mail', 'email', 'courriel', 'devis', 'compte rendu'])) {
+        var blocked = S.rules.draft;
+        if (blocked) {
+          return {
+            kind: 'action', sensitive: true,
+            confirm: 'Je prépare cet email. Votre profil impose une validation avant envoi, je le laisse en brouillon — vous confirmez ?',
+            reply: 'Le brouillon est prêt dans vos emails à valider. Votre profil '
+              + p.name.toLowerCase() + ' interdit un envoi direct sans votre accord.',
+            detail: 'Règle « aucun envoi sans validation » active'
+          };
+        }
+        return {
+          kind: 'action', sensitive: true,
+          confirm: 'J\'envoie cet email maintenant, vous confirmez ?',
+          reply: 'C\'est envoyé.',
+          detail: 'Autonomie emails : ' + this.autonomyLabel(S.autonomy.emails)
+        };
+      }
+
+      /* ---------- Agenda : consultation ---------- */
+      if (hasAny(t, ['prochain rendez vous', 'prochain rdv', 'prochain rendez'])) {
+        var next = p.rdv[0];
+        if (!next) return { kind: 'answer', reply: 'Aucun rendez-vous à venir.' };
+        return {
+          kind: 'answer',
+          reply: 'Votre prochain rendez-vous : ' + next.client + ' à ' + next.time
+            + (next.day === 'Auj.' ? ', aujourd\'hui' : ', ' + next.day) + ' — ' + next.type + '.'
+        };
+      }
+
+      if (hasAny(t, ['agenda', 'rendez vous', 'rdv', 'planning'])
+          && hasAny(t, ['combien', 'quoi', 'journee', 'aujourd hui', 'demain', 'programme', 'ai je'])
+          && !hasAny(t, ['deplace', 'decale', 'bouge', 'bloque', 'annule', 'ajoute', 'cale'])) {
+        var today = p.rdv.filter(function (r) { return r.day === 'Auj.'; });
+        return {
+          kind: 'answer',
+          reply: today.length + ' rendez-vous aujourd\'hui : '
+            + today.map(function (r) { return r.client + ' à ' + r.time; }).join(', ') + '.',
+          detail: p.rdv.length - today.length + ' autres cette semaine'
+        };
+      }
+
+      /* ---------- Agenda : modification ---------- */
+      if (hasAny(t, ['deplace', 'decale', 'bouge', 'reporte'])) {
+        var time = findTime(t);
+        var day = findDay(t);
+        var target = time
+          ? p.rdv.filter(function (r) { return r.time === time; })[0]
+          : p.rdv[0];
+        var who = target ? target.client : 'ce rendez-vous';
+        return {
+          kind: 'action', sensitive: true,
+          confirm: 'Vous voulez bien que je déplace le rendez-vous de ' + who
+            + (day ? ' à ' + day : '') + (time ? ' ' + time.replace(':', 'h') : '') + ' ?',
+          reply: 'C\'est fait, le rendez-vous de ' + who + ' est déplacé'
+            + (day ? ' à ' + day : '') + (time ? ' ' + time.replace(':', 'h') : '')
+            + '. Je préviens ' + (p.clientWord === 'patient' ? 'le patient' : 'le client') + '.',
+          detail: 'Modification tracée dans l\'agenda'
+        };
+      }
+
+      if (hasAny(t, ['bloque', 'bloquer', 'indisponible', 'reserve moi'])) {
+        var d = findDay(t) || 'ce créneau';
+        var half = findHalf(t);
+        var label = d + (half ? ' ' + half : '');
+        return {
+          kind: 'action', sensitive: false,
+          reply: label.charAt(0).toUpperCase() + label.slice(1)
+            + ' est bloqué, aucun rendez-vous ne sera proposé sur ce créneau.',
+          detail: 'Règle de disponibilité mise à jour'
+        };
+      }
+
+      if (hasAny(t, ['annule']) && hasAny(t, ['rendez vous', 'rdv', 'consultation'])) {
+        return {
+          kind: 'action', sensitive: true,
+          confirm: 'J\'annule ce rendez-vous et je préviens l\'intéressé, vous confirmez ?',
+          reply: 'Le rendez-vous est annulé, la personne est prévenue.',
+          detail: 'Créneau libéré'
+        };
+      }
+
+      if (hasAny(t, ['ajoute', 'cale', 'creneau', 'nouveau rendez'])) {
+        var nd = findDay(t), nt = findTime(t);
+        return {
+          kind: 'action', sensitive: true,
+          confirm: 'Je pose un rendez-vous' + (nd ? ' ' + nd : '') + (nt ? ' à ' + nt.replace(':', 'h') : '')
+            + ', vous confirmez ?',
+          reply: 'C\'est noté' + (nd ? ', ' + nd : '') + (nt ? ' à ' + nt.replace(':', 'h') : '') + '.',
+          detail: 'Créneau vérifié contre vos disponibilités'
+        };
+      }
+
+      /* ---------- Règles et configuration ---------- */
+      if (hasAny(t, ['transfere', 'transferer', 'bascule', 'renvoie']) && hasAny(t, ['urgence', 'urgent', 'portable'])) {
+        return {
+          kind: 'action', sensitive: true,
+          confirm: 'Je modifie votre règle de transfert des urgences, vous confirmez ?',
+          reply: 'Règle mise à jour : les urgences arrivent désormais directement sur votre portable'
+            + (S.identity.phone ? ', au ' + S.identity.phone : '') + '.',
+          detail: 'Onglet Ally → Contacts prioritaires',
+          apply: function () { S.rules.transfer = true; store.save(); }
+        };
+      }
+
+      if (hasAny(t, ['mode brouillon', 'valider avant', 'sans validation', 'autonomie'])) {
+        return {
+          kind: 'answer',
+          reply: 'Aujourd\'hui : appels ' + this.autonomyLabel(S.autonomy.calls).toLowerCase()
+            + ', emails ' + this.autonomyLabel(S.autonomy.emails).toLowerCase()
+            + ', agenda ' + this.autonomyLabel(S.autonomy.agenda).toLowerCase() + '.',
+          detail: p.secret ? 'Profil à secret professionnel : validation imposée sur les emails' : null
+        };
+      }
+
+      if (hasAny(t, ['horaire', 'ouvert', 'ouverture', 'ferme', 'fermeture'])
+          && hasAny(t, ['mes', 'je', 'mon', 'suis'])) {
+        var open = S.hours.filter(function (h) { return h.on; });
+        return {
+          kind: 'answer',
+          reply: 'Vous êtes ouvert ' + open.map(function (h) {
+            return h.label.toLowerCase() + ' ' + h.from + '-' + h.to;
+          }).join(', ') + '.',
+          detail: S.closures ? 'Fermetures : ' + S.closures : null
+        };
+      }
+
+      /* ---------- Base de connaissances du cabinet ---------- */
+      var found = faqMatch(input, p.faq);
+      if (found) {
+        return {
+          kind: 'answer',
+          reply: found.a,
+          detail: 'Base de connaissances → ' + found.q
+        };
+      }
+
+      /* ---------- Repli ---------- */
+      return {
+        kind: 'unknown',
+        reply: 'Je n\'ai pas compris cette demande. Je sais consulter votre agenda, '
+          + 'déplacer ou bloquer un rendez-vous, préparer un email, et répondre à partir '
+          + 'de la base de connaissances du cabinet.',
+        detail: 'Essayez : « ' + this.suggestions()[0] + ' »'
+      };
+    },
+
+    autonomyLabel: function (v) {
+      return v < 34 ? 'Toujours valider' : v < 67 ? 'Semi-autonome' : 'IA autonome';
+    },
+
+    /* Utilisé par la simulation d'appel : la réponse qu'Ally donnerait à un
+       appelant, en respectant les règles de transfert. */
+    answerCaller: function (input) {
+      var store = window.ALLY_STORE;
+      var p = store.profile();
+      var t = norm(input);
+
+      if (hasAny(t, ['urgence', 'urgent', 'grave', 'tout de suite', 'immediatement'])) {
+        return {
+          kind: 'transfer',
+          reply: 'Je comprends qu\'il s\'agit d\'une urgence. Je vous mets en relation '
+            + 'immédiatement avec ' + store.displayName() + ', ne quittez pas.'
+        };
+      }
+
+      var known = faqMatch(input, p.faq);
+
+      /* Une question de renseignement passe avant la prise de rendez-vous :
+         « vos tarifs pour une première consultation ? » demande un prix, pas
+         un créneau, alors que le mot « consultation » y figure. */
+      var isQuestion = hasAny(t, ['tarif', 'prix', 'coute', 'combien', 'horaire',
+        'ouvert', 'ferme', 'secteur', 'zone', 'delai', 'garantie', 'document',
+        'quel', 'quels', 'quelle', 'quelles']);
+      if (known && isQuestion) return { kind: 'answer', reply: known.a };
+
+      var wantsBooking = hasAny(t, ['rendez vous', 'rdv', 'creneau', 'disponibilite', 'devis'])
+        || (hasAny(t, ['consultation', 'accompagnement', 'intervention'])
+            && hasAny(t, ['souhaite', 'voudrais', 'cherche', 'prendre', 'avoir', 'possible']));
+
+      if (wantsBooking) {
+        var slot = p.rdv.filter(function (r) { return r.day !== 'Auj.'; })[0];
+        return {
+          kind: 'booking',
+          reply: 'Je peux vous proposer un créneau'
+            + (slot ? ' ' + slot.day.toLowerCase() + ' à ' + slot.time : ' cette semaine')
+            + '. Cela vous convient-il ?'
+        };
+      }
+
+      if (known) return { kind: 'answer', reply: known.a };
+
+      return {
+        kind: 'note',
+        reply: 'Je note votre demande et je la transmets à ' + store.displayName()
+          + ', qui vous rappellera. Puis-je avoir votre nom et votre numéro ?'
+      };
+    }
+  };
+})();
+
+/* Ally — onglet Téléphonie : voix, script d'appel, simulation d'appel entrant.
+   Exporte des fragments de vue et leurs liaisons, consommés par dashboard.js. */
+(function () {
+  'use strict';
+
+  var store = window.ALLY_STORE;
+  var voice = window.ALLY_VOICE;
+  var brain = window.ALLY_BRAIN;
+
+  function esc(v) {
+    return String(v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  /* Phrase courte pour essayer une voix, personnalisée au cabinet. */
+  function sampleLine() {
+    var S = store.state;
+    return S.identity.org + ', bonjour. Je suis Ally, l\'assistante. Comment puis-je vous aider ?';
+  }
+
+  /* ====================== SIMULATION D'APPEL ====================== */
+  /* L'appel se déroule vraiment : chaque réplique d'Ally est prononcée par la
+     voix choisie, et ses réponses viennent du même moteur que la commande
+     vocale et le chat. */
+  var call = { running: false, turns: [], step: 0 };
+
+  var SCENARIOS = {
+    avocat: [
+      { caller: 'Bonjour, je voudrais prendre rendez-vous pour un litige avec mon employeur.' },
+      { caller: 'Quels sont vos tarifs pour une première consultation ?' },
+      { caller: 'En fait c\'est urgent, j\'ai une audience demain matin.' }
+    ],
+    medecin: [
+      { caller: 'Bonjour, je souhaite une consultation cette semaine.' },
+      { caller: 'Quel est le tarif de la consultation ?' },
+      { caller: 'J\'ai une douleur dans la poitrine depuis ce matin, c\'est urgent.' }
+    ],
+    artisan: [
+      { caller: 'Bonjour, je voudrais un devis pour refaire ma salle de bain.' },
+      { caller: 'Vous intervenez dans quel secteur ?' },
+      { caller: 'J\'ai une fuite qui coule en ce moment, c\'est urgent.' }
+    ],
+    consultant: [
+      { caller: 'Bonjour, je cherche un accompagnement sur une réorganisation.' },
+      { caller: 'Quel est votre tarif journalier ?' },
+      { caller: 'C\'est urgent, nous avons un comité lundi.' }
+    ]
+  };
+
+  function scenario() {
+    return SCENARIOS[store.state.trade] || SCENARIOS.avocat;
+  }
+
+  window.ALLY_TELEPHONY = {
+
+    /* ---------------------------- VUE ---------------------------- */
+    view: function () {
+      var S = store.state;
+      var p = store.profile();
+      var script = store.script();
+      var canListen = voice.canListen();
+      var blocked = voice.listenBlockedReason();
+
+      return '<div class="stack limit-900">' +
+
+        /* ---- Statut de la ligne ---- */
+        '<div class="line-card">' +
+          '<div class="line-head">' +
+            '<span class="line-pulse" aria-hidden="true"></span>' +
+            '<div>' +
+              '<p class="line-title">Ligne active</p>' +
+              '<p class="line-sub">Ally décroche à votre place en dehors de vos disponibilités, ' +
+                'et quand vous êtes déjà en ligne.</p>' +
+            '</div>' +
+          '</div>' +
+          '<div class="line-stats">' +
+            '<div><strong>' + p.quota.calls[0] + '</strong><span>appels traités</span></div>' +
+            '<div><strong>' + p.stats.avoided + '</strong><span>appels sauvés</span></div>' +
+            '<div><strong>' + p.stats.saved + '</strong><span>gagnées cette semaine</span></div>' +
+          '</div>' +
+        '</div>' +
+
+        /* ---- Voix d'Ally ---- */
+        '<div class="card">' +
+          '<p class="card-title">La voix d\'Ally</p>' +
+          '<p class="note" style="margin-bottom:16px">C\'est la voix que vos ' + esc(p.clientWord) +
+            's entendront au téléphone, et celle qui vous répond dans l\'application. ' +
+            'Écoutez-les avant de choisir.</p>' +
+          '<div id="voice-picker" class="voice-picker"></div>' +
+
+          '<div class="voice-sliders">' +
+            '<div class="slider-block">' +
+              '<div class="slider-head"><label for="voice-rate">Débit</label>' +
+                '<output id="out-rate">' + S.voice.rate.toFixed(1) + '×</output></div>' +
+              '<input type="range" id="voice-rate" min="0.6" max="1.6" step="0.1" value="' + S.voice.rate + '">' +
+            '</div>' +
+            '<div class="slider-block">' +
+              '<div class="slider-head"><label for="voice-pitch">Hauteur</label>' +
+                '<output id="out-pitch">' + S.voice.pitch.toFixed(1) + '</output></div>' +
+              '<input type="range" id="voice-pitch" min="0.6" max="1.5" step="0.1" value="' + S.voice.pitch + '">' +
+            '</div>' +
+          '</div>' +
+          '<div class="voice-try">' +
+            '<button type="button" class="btn btn-primary btn-md" id="try-voice">Essayer cette voix</button>' +
+            '<button type="button" class="btn btn-ghost btn-md" id="stop-voice">Arrêter</button>' +
+          '</div>' +
+        '</div>' +
+
+        /* ---- Script d'appel ---- */
+        '<div class="card">' +
+          '<div class="script-head">' +
+            '<div>' +
+              '<p class="card-title" style="margin-bottom:4px">Votre script d\'appel</p>' +
+              '<p class="note">Ce qu\'Ally dit, étape par étape. Modifiez librement : ' +
+                'elle suivra exactement vos phrases.</p>' +
+            '</div>' +
+            '<button type="button" class="btn-link" id="reset-script">Rétablir le script ' + esc(p.name.toLowerCase()) + '</button>' +
+          '</div>' +
+
+          '<div class="script-list">' + script.map(function (step, index) {
+            return '<div class="script-step">' +
+              '<div class="script-step-head">' +
+                '<span class="script-num">' + (index < 9 ? '0' : '') + (index + 1) + '</span>' +
+                '<div class="script-meta">' +
+                  '<label for="script-' + step.id + '">' + esc(step.label) + '</label>' +
+                  '<span>' + esc(step.hint) + '</span>' +
+                '</div>' +
+                '<button type="button" class="btn-play" data-say="' + step.id + '">' +
+                  '<span aria-hidden="true">▶</span> Écouter</button>' +
+              '</div>' +
+              '<textarea class="field script-text" id="script-' + step.id + '" ' +
+                'data-script="' + step.id + '" rows="2">' + esc(step.text) + '</textarea>' +
+            '</div>';
+          }).join('') + '</div>' +
+        '</div>' +
+
+        /* ---- Simulation d'appel ---- */
+        '<div class="card">' +
+          '<div class="script-head">' +
+            '<div>' +
+              '<p class="card-title" style="margin-bottom:4px">Simuler un appel entrant</p>' +
+              '<p class="note">Un ' + esc(p.clientWord) + ' appelle. Ally décroche, applique votre ' +
+                'script, répond depuis votre base de connaissances et transfère si c\'est urgent.</p>' +
+            '</div>' +
+          '</div>' +
+
+          '<div class="call-stage" id="call-stage">' +
+            '<div class="call-empty" id="call-empty">' +
+              '<span class="call-icon" aria-hidden="true"></span>' +
+              '<p>Aucun appel en cours.</p>' +
+            '</div>' +
+            '<div class="call-log" id="call-log" hidden></div>' +
+          '</div>' +
+
+          '<div class="call-actions">' +
+            '<button type="button" class="btn btn-primary btn-md" id="start-call">Lancer un appel</button>' +
+            '<button type="button" class="btn btn-ghost btn-md" id="next-turn" hidden>Réplique suivante</button>' +
+            '<button type="button" class="btn btn-ghost btn-md" id="end-call" hidden>Raccrocher</button>' +
+          '</div>' +
+
+          (canListen
+            ? '<p class="note" style="margin-top:14px">Vous pouvez aussi répondre au micro depuis ' +
+              'le bouton « Parler à Ally ».</p>'
+            : '<p class="lock-note" style="margin-top:16px">' + esc(blocked || '') + '</p>') +
+        '</div>' +
+
+      '</div>';
+    },
+
+    /* ---------------------------- LIAISONS ---------------------------- */
+    bind: function (panel, refresh) {
+      var S = store.state;
+
+      /* ---- Sélecteur de voix ---- */
+      var picker = panel.querySelector('#voice-picker');
+
+      function renderVoices(list) {
+        if (!picker) return;
+        if (!voice.canSpeak()) {
+          picker.innerHTML = '<p class="lock-note">Votre navigateur ne gère pas la synthèse vocale.</p>';
+          return;
+        }
+        if (!list.length) {
+          // Certains navigateurs chargent les voix en différé ; d'autres
+          // (Linux sans moteur vocal, Chrome headless) n'en ont aucune.
+          picker.innerHTML = '<p class="note">Recherche des voix installées…</p>';
+          window.setTimeout(function () {
+            if (!voice.voices().length) {
+              picker.innerHTML = '<p class="lock-note">Aucune voix trouvée sur cet appareil. '
+                + 'Chrome et Edge sur Windows ou macOS en proposent plusieurs en français ; '
+                + 'sur Linux, il faut installer un moteur vocal comme espeak-ng.</p>';
+            }
+          }, 1500);
+          return;
+        }
+        var current = voice.resolveVoice(S.voice.uri);
+        picker.innerHTML = list.map(function (v) {
+          var active = current && v.voiceURI === current.voiceURI;
+          return '<button type="button" class="voice-chip" data-voice="' + esc(v.voiceURI) + '"' +
+            ' aria-pressed="' + active + '">' +
+            '<span class="voice-name">' + esc(v.name.replace(/\s*\(.*\)\s*/, '')) + '</span>' +
+            '<span class="voice-lang">' + esc(v.lang) + '</span>' +
+            '</button>';
+        }).join('');
+
+        picker.querySelectorAll('[data-voice]').forEach(function (chip) {
+          chip.addEventListener('click', function () {
+            S.voice.uri = chip.getAttribute('data-voice');
+            store.save();
+            picker.querySelectorAll('[data-voice]').forEach(function (other) {
+              other.setAttribute('aria-pressed', String(other === chip));
+            });
+            // Retour immédiat : on entend la voix qu'on vient de choisir.
+            voice.speak(sampleLine(), store.voiceOptions());
+          });
+        });
+      }
+
+      voice.onVoices(renderVoices);
+      renderVoices(voice.voices());
+
+      var rate = panel.querySelector('#voice-rate');
+      if (rate) rate.addEventListener('input', function () {
+        S.voice.rate = Number(rate.value);
+        panel.querySelector('#out-rate').textContent = S.voice.rate.toFixed(1) + '×';
+        store.save();
+      });
+
+      var pitch = panel.querySelector('#voice-pitch');
+      if (pitch) pitch.addEventListener('input', function () {
+        S.voice.pitch = Number(pitch.value);
+        panel.querySelector('#out-pitch').textContent = S.voice.pitch.toFixed(1);
+        store.save();
+      });
+
+      var tryBtn = panel.querySelector('#try-voice');
+      if (tryBtn) tryBtn.addEventListener('click', function () {
+        voice.speak(sampleLine(), store.voiceOptions());
+      });
+
+      var stopBtn = panel.querySelector('#stop-voice');
+      if (stopBtn) stopBtn.addEventListener('click', function () { voice.stopSpeaking(); });
+
+      /* ---- Script d'appel ---- */
+      panel.querySelectorAll('[data-script]').forEach(function (area) {
+        area.addEventListener('input', function () {
+          var id = area.getAttribute('data-script');
+          var script = store.script().map(function (step) {
+            return step.id === id ? Object.assign({}, step, { text: area.value }) : step;
+          });
+          S.script = script;
+          store.save();
+        });
+      });
+
+      panel.querySelectorAll('[data-say]').forEach(function (button) {
+        button.addEventListener('click', function () {
+          var id = button.getAttribute('data-say');
+          var step = store.script().filter(function (s) { return s.id === id; })[0];
+          if (step) voice.speak(step.text, store.voiceOptions());
+        });
+      });
+
+      var resetBtn = panel.querySelector('#reset-script');
+      if (resetBtn) resetBtn.addEventListener('click', function () {
+        store.resetScript();
+        refresh();
+      });
+
+      /* ---- Simulation d'appel ---- */
+      var log = panel.querySelector('#call-log');
+      var empty = panel.querySelector('#call-empty');
+      var startBtn = panel.querySelector('#start-call');
+      var nextBtn = panel.querySelector('#next-turn');
+      var endBtn = panel.querySelector('#end-call');
+
+      function stepText(id) {
+        var step = store.script().filter(function (s) { return s.id === id; })[0];
+        return step ? step.text : '';
+      }
+
+      function push(who, text, tag) {
+        var line = document.createElement('div');
+        line.className = 'call-line call-' + who;
+        line.innerHTML = '<span class="call-who">' + (who === 'ally' ? 'Ally' : 'Appelant') + '</span>' +
+          '<span class="call-text"></span>' +
+          (tag ? '<span class="call-tag ' + tag.kind + '">' + esc(tag.label) + '</span>' : '');
+        line.querySelector('.call-text').textContent = text;
+        log.appendChild(line);
+        log.scrollTop = log.scrollHeight;
+        return line;
+      }
+
+      function say(text, tag) {
+        push('ally', text, tag);
+        voice.speak(text, store.voiceOptions());
+      }
+
+      function startCall() {
+        call.running = true;
+        call.step = 0;
+        log.innerHTML = '';
+        log.hidden = false;
+        empty.hidden = true;
+        startBtn.hidden = true;
+        nextBtn.hidden = false;
+        endBtn.hidden = false;
+        panel.querySelector('#call-stage').classList.add('is-live');
+        say(stepText('greeting'), { kind: 'ok', label: 'Accueil' });
+      }
+
+      function nextTurn() {
+        var lines = scenario();
+        if (call.step >= lines.length) { endCall(); return; }
+
+        var said = lines[call.step].caller;
+        call.step += 1;
+        push('caller', said);
+
+        // La réponse vient du moteur partagé, pas d'un script figé.
+        var answer = window.setTimeout(function () {
+          var result = brain.answerCaller(said);
+          var tags = {
+            transfer: { kind: 'urgent', label: 'Transfert immédiat' },
+            booking: { kind: 'ok', label: 'Prise de RDV' },
+            answer: { kind: 'ok', label: 'Base de connaissances' },
+            note: { kind: 'pending', label: 'Message pris' }
+          };
+
+          if (result.kind === 'transfer') {
+            say(stepText('urgent'), tags.transfer);
+            window.setTimeout(function () {
+              push('ally', 'Appel transféré vers ' + (S.identity.phone || 'votre portable') + '.',
+                { kind: 'urgent', label: 'Règle « urgences »' });
+              endCall(true);
+            }, 1200);
+            return;
+          }
+
+          say(result.reply, tags[result.kind] || tags.note);
+          if (call.step >= lines.length) {
+            window.setTimeout(function () {
+              say(stepText('closing'), { kind: 'ok', label: 'Clôture' });
+              window.setTimeout(function () { endCall(true); }, 600);
+            }, 1400);
+          }
+        }, 500);
+        return answer;
+      }
+
+      function endCall(keepLog) {
+        call.running = false;
+        nextBtn.hidden = true;
+        endBtn.hidden = true;
+        startBtn.hidden = false;
+        startBtn.textContent = 'Relancer un appel';
+        panel.querySelector('#call-stage').classList.remove('is-live');
+        if (!keepLog) {
+          voice.stopSpeaking();
+          log.hidden = true;
+          empty.hidden = false;
+        }
+      }
+
+      if (startBtn) startBtn.addEventListener('click', startCall);
+      if (nextBtn) nextBtn.addEventListener('click', nextTurn);
+      if (endBtn) endBtn.addEventListener('click', function () { endCall(false); });
+    }
+  };
 })();
 
 /* Ally — landing : scroll-reveal, menu mobile, liste d'attente */
@@ -2432,6 +3595,7 @@ window.ALLY_DISPLAY_NAME = function (identity, profile) {
     { id: 'today',         label: "Aujourd'hui" },
     { id: 'conversations', label: 'Conversations' },
     { id: 'agenda',        label: 'Agenda' },
+    { id: 'telephony',     label: 'Téléphonie' },
     { id: 'ally',          label: 'Ally' }
   ];
 
@@ -2546,6 +3710,11 @@ window.ALLY_DISPLAY_NAME = function (identity, profile) {
       return calls().length + ' appels aujourd\'hui · ' + drafts().length + ' brouillons à valider';
     },
     agenda: function () { return todayRdv().length + ' rendez-vous aujourd\'hui · synchronisé avec Google Calendar'; },
+    telephony: function () {
+      return window.ALLY_VOICE.canListen()
+        ? 'Voix, script d\'appel et simulation — micro disponible'
+        : 'Voix, script d\'appel et simulation d\'appel entrant';
+    },
     ally: function () { return 'Comportement, autonomie et connaissances de votre assistante'; },
     account: function () { return S.identity.email || P().plan; }
   };
@@ -2870,6 +4039,8 @@ window.ALLY_DISPLAY_NAME = function (identity, profile) {
       '<div class="card"><p class="card-title">Commande vocale</p>' +
         switchRow('flat', 'voiceEnabled', 'Parler à Ally depuis l\'application',
           'Affiche le bouton micro en bas de l\'écran.') +
+        '<p class="note" style="margin-top:12px">Le choix de la voix et son essai se font dans ' +
+          '<button type="button" class="btn-link" data-jump="telephony">l\'onglet Téléphonie</button>.</p>' +
         '<p class="sub-label">Confirmation orale avant exécution</p>' +
         '<div class="choice-row" role="group" aria-label="Niveau de confirmation requis">' +
           [['none', 'Aucune'], ['sensitive', 'Actions sensibles'], ['always', 'Systématique']].map(function (pair) {
@@ -2984,21 +4155,34 @@ window.ALLY_DISPLAY_NAME = function (identity, profile) {
 
   function accountHelp() {
     var tutorials = [
-      'Configurer vos règles de transfert',
+      'Choisir la voix d\'Ally',
+      'Écrire votre script d\'appel',
       'Comprendre le mode brouillon à valider',
-      'Synchroniser votre agenda',
       'Donner des ordres à Ally à la voix'
     ];
     return '<div class="cols cols-12 limit-1000">' +
-      '<div class="card chat"><p class="card-title">Assistance</p>' +
+      '<div class="card chat">' +
+        '<div class="chat-head">' +
+          '<div><p class="card-title" style="margin-bottom:2px">Écrire à Ally</p>' +
+            '<p class="note">Même moteur que la commande vocale : elle répond pareil.</p></div>' +
+          '<div class="switch-row" style="gap:10px">' +
+            '<span id="lbl-speak" style="font-size:12px;color:var(--txt-4)">Lire à voix haute</span>' +
+            '<button type="button" class="toggle" role="switch" id="chat-speak"' +
+              ' aria-checked="' + !!S.chatSpeaks + '" aria-labelledby="lbl-speak"></button>' +
+          '</div>' +
+        '</div>' +
         '<div class="chat-log" id="chat-log">' +
-          '<div class="bubble bubble-in">Bonjour ' + esc(name()) + ', comment puis-je vous aider ?</div>' +
-          '<div class="bubble bubble-out">Comment modifier le script d\'accueil ?</div>' +
-          '<div class="bubble bubble-in">Onglet Ally → Script d\'accueil téléphonique. La modification est appliquée immédiatement.</div>' +
+          '<div class="bubble bubble-in">Bonjour ' + esc(name()) + '. Posez-moi une question sur ' +
+            'votre agenda, vos appels ou votre cabinet — ou donnez-moi un ordre.</div>' +
+        '</div>' +
+        '<div class="chat-suggestions">' +
+          window.ALLY_BRAIN.suggestions().slice(0, 3).map(function (text) {
+            return '<button type="button" class="voice-chip-sm" data-suggest>' + esc(text) + '</button>';
+          }).join('') +
         '</div>' +
         '<form class="chat-form" id="chat-form">' +
           '<label class="sr-only" for="chat-input">Votre message</label>' +
-          '<input class="field" id="chat-input" type="text" placeholder="Écrire un message...">' +
+          '<input class="field" id="chat-input" type="text" placeholder="Écrire à Ally..." autocomplete="off">' +
           '<button type="submit" class="btn btn-primary btn-md">Envoyer</button>' +
         '</form>' +
       '</div>' +
@@ -3018,14 +4202,17 @@ window.ALLY_DISPLAY_NAME = function (identity, profile) {
   }
 
   var VIEWS = {
-    today: viewToday, conversations: viewConversations,
-    agenda: viewAgenda, ally: viewAlly, account: viewAccount
+    today: viewToday, conversations: viewConversations, agenda: viewAgenda,
+    telephony: function () { return window.ALLY_TELEPHONY.view(); },
+    ally: viewAlly, account: viewAccount
   };
 
   /* ---------- Liaison des événements ---------- */
   function renderPanel() {
     el.panel.innerHTML = VIEWS[ui.tab]();
     var panel = el.panel;
+
+    if (ui.tab === 'telephony') window.ALLY_TELEPHONY.bind(panel, renderPanel);
 
     panel.querySelectorAll('[data-jump]').forEach(function (button) {
       button.addEventListener('click', function () {
@@ -3125,82 +4312,220 @@ window.ALLY_DISPLAY_NAME = function (identity, profile) {
       });
     }
 
+    /* Le chat écrit et la commande vocale partagent le même moteur : poser la
+       question au clavier ou à la voix donne exactement la même réponse. */
     var chatForm = panel.querySelector('#chat-form');
     if (chatForm) {
+      var speakToggle = panel.querySelector('#chat-speak');
+      if (speakToggle) {
+        speakToggle.addEventListener('click', function () {
+          S.chatSpeaks = !S.chatSpeaks;
+          speakToggle.setAttribute('aria-checked', String(S.chatSpeaks));
+          store.save();
+        });
+      }
+
+      panel.querySelectorAll('[data-suggest]').forEach(function (chip) {
+        chip.addEventListener('click', function () {
+          document.getElementById('chat-input').value = chip.textContent;
+          chatForm.dispatchEvent(new Event('submit', { cancelable: true }));
+        });
+      });
+
       chatForm.addEventListener('submit', function (event) {
         event.preventDefault();
         var input = document.getElementById('chat-input');
         var text = input.value.trim();
         if (!text) return;
         var log = document.getElementById('chat-log');
-        var bubble = document.createElement('div');
-        bubble.className = 'bubble bubble-out';
-        bubble.textContent = text;
-        log.appendChild(bubble);
+
+        function bubble(kind, content, detail) {
+          var node = document.createElement('div');
+          node.className = 'bubble bubble-' + kind;
+          node.textContent = content;
+          if (detail) {
+            var small = document.createElement('span');
+            small.className = 'bubble-detail';
+            small.textContent = detail;
+            node.appendChild(small);
+          }
+          log.appendChild(node);
+          log.scrollTop = log.scrollHeight;
+        }
+
+        bubble('out', text);
         input.value = '';
-        log.scrollTop = log.scrollHeight;
+
+        var result = window.ALLY_BRAIN.ask(text);
+        var answer = (result.kind === 'action' && result.confirm &&
+          (S.confirmLevel === 'always' || (S.confirmLevel === 'sensitive' && result.sensitive)))
+          ? result.confirm : result.reply;
+
+        window.setTimeout(function () {
+          bubble('in', answer, result.detail);
+          if (S.chatSpeaks) window.ALLY_VOICE.speak(answer, store.voiceOptions());
+        }, 350);
       });
     }
   }
 
-  /* ---------- Commande vocale (interface seule) ---------- */
-  var voice = { index: 0, timers: [], lastFocus: null };
-  function clearTimers() { voice.timers.forEach(clearTimeout); voice.timers = []; }
-  function later(fn, delay) { voice.timers.push(setTimeout(fn, delay)); }
+  /* ---------- Commande vocale réelle ----------
+     Le micro passe par l'API du navigateur, la réponse vient du moteur partagé
+     avec le chat et la simulation d'appel, et Ally la prononce avec la voix
+     choisie dans l'onglet Téléphonie. */
+  var VOICE = window.ALLY_VOICE;
+  var BRAIN = window.ALLY_BRAIN;
+  var session = { lastFocus: null, pending: null, timers: [] };
 
-  function openVoice() {
-    var demos = P().voiceDemo;
-    var demo = demos[voice.index % demos.length];
-    voice.index += 1;
-    voice.lastFocus = document.activeElement;
+  function clearTimers() { session.timers.forEach(clearTimeout); session.timers = []; }
+  function later(fn, delay) { session.timers.push(setTimeout(fn, delay)); }
 
-    clearTimers();
-    el.overlay.hidden = false;
-    el.voiceTitle.textContent = 'Ally écoute…';
-    el.heard.textContent = '';
-    el.confirm.hidden = true;
-    el.voiceOk.hidden = true;
-    el.voiceCancel.textContent = 'Annuler';
-    el.voiceCancel.focus();
-
-    later(function () {
-      el.voiceTitle.textContent = 'Ordre reçu';
-      el.heard.textContent = '« ' + demo.heard + ' »';
-
-      var needsConfirm = S.confirmLevel === 'always' ||
-        (S.confirmLevel === 'sensitive' && !!demo.confirm);
-
-      if (needsConfirm) {
-        el.confirm.textContent = demo.confirm || 'Vous confirmez cet ordre avant que je l\'exécute ?';
-        el.confirm.hidden = false;
-        el.voiceOk.hidden = false;
-        el.voiceOk.focus();
-        el.voiceOk.onclick = function () { settle(demo); };
-      } else {
-        later(function () { settle(demo); }, 700);
-      }
-    }, 1200);
+  function renderSuggestions() {
+    var box = document.getElementById('voice-suggestions');
+    box.innerHTML = BRAIN.suggestions().slice(0, 4).map(function (text) {
+      return '<button type="button" class="voice-chip-sm">' + esc(text) + '</button>';
+    }).join('');
+    box.querySelectorAll('button').forEach(function (chip) {
+      chip.addEventListener('click', function () { handle(chip.textContent); });
+    });
   }
 
-  function settle(demo) {
+  function setNote(text) {
+    var note = document.getElementById('voice-note');
+    note.textContent = text || '';
+    note.hidden = !text;
+  }
+
+  function startListening() {
+    var input = document.getElementById('voice-input');
+
+    if (!VOICE.canListen()) {
+      // On le dit franchement au lieu de simuler une écoute qui n'existe pas.
+      el.voiceTitle.textContent = 'Écrivez votre demande';
+      el.heard.textContent = '';
+      document.getElementById('voice-viz').classList.remove('is-live');
+      setNote(VOICE.listenBlockedReason());
+      input.focus();
+      return;
+    }
+
+    el.voiceTitle.textContent = 'Ally écoute…';
+    el.heard.textContent = '';
+    document.getElementById('voice-viz').classList.add('is-live');
+    setNote('Parlez, ou écrivez si vous préférez.');
+
+    VOICE.listen({
+      onPartial: function (text) { el.heard.textContent = '« ' + text + '… »'; },
+      onResult: function (text) { handle(text); },
+      onError: function (message) {
+        document.getElementById('voice-viz').classList.remove('is-live');
+        el.voiceTitle.textContent = 'Micro indisponible';
+        setNote(message);
+        input.focus();
+      },
+      onEnd: function () { document.getElementById('voice-viz').classList.remove('is-live'); }
+    });
+  }
+
+  /* Traite une demande, qu'elle vienne du micro ou du clavier. */
+  function handle(text) {
+    VOICE.stopListening();
     clearTimers();
-    el.voiceTitle.textContent = 'C\'est fait';
+    document.getElementById('voice-viz').classList.remove('is-live');
+
+    el.heard.textContent = '« ' + text + ' »';
+    el.voiceTitle.textContent = 'Ally répond';
+
+    var result = BRAIN.ask(text);
+    var needsConfirm = result.kind === 'action' &&
+      (S.confirmLevel === 'always' || (S.confirmLevel === 'sensitive' && result.sensitive));
+
+    var detail = document.getElementById('voice-detail');
+    detail.textContent = result.detail || '';
+    detail.hidden = !result.detail;
+
+    if (needsConfirm) {
+      var question = result.confirm || 'Vous confirmez cet ordre avant que je l\'exécute ?';
+      el.confirm.textContent = question;
+      el.confirm.hidden = false;
+      el.voiceOk.hidden = false;
+      el.voiceOk.focus();
+      session.pending = result;
+      VOICE.speak(question, store.voiceOptions());
+      logVoice(text, 'À valider');
+      return;
+    }
+
+    settle(result, text);
+  }
+
+  function settle(result, spoken) {
     el.confirm.hidden = true;
     el.voiceOk.hidden = true;
-    el.heard.textContent = demo.reply;
-    el.voiceCancel.textContent = 'Fermer';
-    el.voiceCancel.focus();
-    later(closeVoice, 3200);
+    session.pending = null;
+
+    if (result.apply) result.apply();
+    el.voiceTitle.textContent = result.kind === 'action' ? 'C\'est fait' : 'Ally répond';
+    VOICE.speak(result.reply, store.voiceOptions());
+
+    var box = document.getElementById('voice-suggestions');
+    box.innerHTML = '<p class="voice-reply">' + esc(result.reply) + '</p>';
+    document.getElementById('voice-again').hidden = false;
+
+    if (spoken) logVoice(spoken, result.kind === 'action' ? 'Exécuté' : 'Répondu');
+    renderChrome();
+  }
+
+  /* Trace l'ordre dans l'historique visible sous l'onglet Ally. */
+  function logVoice(order, status) {
+    P().voiceLog.unshift({
+      id: Date.now(), order: order, when: 'À l\'instant',
+      result: status === 'À valider' ? 'En attente de votre confirmation' : 'Traité par Ally',
+      state: status === 'À valider' ? 'wait' : 'done'
+    });
+    if (ui.tab === 'ally') renderPanel();
+  }
+
+  function openVoice() {
+    session.lastFocus = document.activeElement;
+    el.overlay.hidden = false;
+    el.confirm.hidden = true;
+    el.voiceOk.hidden = true;
+    document.getElementById('voice-again').hidden = true;
+    document.getElementById('voice-detail').hidden = true;
+    document.getElementById('voice-input').value = '';
+    renderSuggestions();
+    startListening();
   }
 
   function closeVoice() {
     clearTimers();
+    VOICE.stopListening();
+    VOICE.stopSpeaking();
+    session.pending = null;
     el.overlay.hidden = true;
-    if (voice.lastFocus && voice.lastFocus.focus) voice.lastFocus.focus();
+    if (session.lastFocus && session.lastFocus.focus) session.lastFocus.focus();
   }
 
   el.fab.addEventListener('click', openVoice);
   el.voiceCancel.addEventListener('click', closeVoice);
+  document.getElementById('voice-again').addEventListener('click', function () {
+    document.getElementById('voice-again').hidden = true;
+    document.getElementById('voice-detail').hidden = true;
+    renderSuggestions();
+    startListening();
+  });
+  el.voiceOk.addEventListener('click', function () {
+    if (session.pending) settle(session.pending, null);
+  });
+  document.getElementById('voice-form').addEventListener('submit', function (event) {
+    event.preventDefault();
+    var input = document.getElementById('voice-input');
+    var text = input.value.trim();
+    if (!text) return;
+    input.value = '';
+    handle(text);
+  });
   el.overlay.addEventListener('click', function (event) {
     if (event.target === el.overlay) closeVoice();
   });

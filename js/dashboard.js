@@ -12,6 +12,7 @@
     { id: 'today',         label: "Aujourd'hui" },
     { id: 'conversations', label: 'Conversations' },
     { id: 'agenda',        label: 'Agenda' },
+    { id: 'telephony',     label: 'Téléphonie' },
     { id: 'ally',          label: 'Ally' }
   ];
 
@@ -126,6 +127,11 @@
       return calls().length + ' appels aujourd\'hui · ' + drafts().length + ' brouillons à valider';
     },
     agenda: function () { return todayRdv().length + ' rendez-vous aujourd\'hui · synchronisé avec Google Calendar'; },
+    telephony: function () {
+      return window.ALLY_VOICE.canListen()
+        ? 'Voix, script d\'appel et simulation — micro disponible'
+        : 'Voix, script d\'appel et simulation d\'appel entrant';
+    },
     ally: function () { return 'Comportement, autonomie et connaissances de votre assistante'; },
     account: function () { return S.identity.email || P().plan; }
   };
@@ -450,6 +456,8 @@
       '<div class="card"><p class="card-title">Commande vocale</p>' +
         switchRow('flat', 'voiceEnabled', 'Parler à Ally depuis l\'application',
           'Affiche le bouton micro en bas de l\'écran.') +
+        '<p class="note" style="margin-top:12px">Le choix de la voix et son essai se font dans ' +
+          '<button type="button" class="btn-link" data-jump="telephony">l\'onglet Téléphonie</button>.</p>' +
         '<p class="sub-label">Confirmation orale avant exécution</p>' +
         '<div class="choice-row" role="group" aria-label="Niveau de confirmation requis">' +
           [['none', 'Aucune'], ['sensitive', 'Actions sensibles'], ['always', 'Systématique']].map(function (pair) {
@@ -564,21 +572,34 @@
 
   function accountHelp() {
     var tutorials = [
-      'Configurer vos règles de transfert',
+      'Choisir la voix d\'Ally',
+      'Écrire votre script d\'appel',
       'Comprendre le mode brouillon à valider',
-      'Synchroniser votre agenda',
       'Donner des ordres à Ally à la voix'
     ];
     return '<div class="cols cols-12 limit-1000">' +
-      '<div class="card chat"><p class="card-title">Assistance</p>' +
+      '<div class="card chat">' +
+        '<div class="chat-head">' +
+          '<div><p class="card-title" style="margin-bottom:2px">Écrire à Ally</p>' +
+            '<p class="note">Même moteur que la commande vocale : elle répond pareil.</p></div>' +
+          '<div class="switch-row" style="gap:10px">' +
+            '<span id="lbl-speak" style="font-size:12px;color:var(--txt-4)">Lire à voix haute</span>' +
+            '<button type="button" class="toggle" role="switch" id="chat-speak"' +
+              ' aria-checked="' + !!S.chatSpeaks + '" aria-labelledby="lbl-speak"></button>' +
+          '</div>' +
+        '</div>' +
         '<div class="chat-log" id="chat-log">' +
-          '<div class="bubble bubble-in">Bonjour ' + esc(name()) + ', comment puis-je vous aider ?</div>' +
-          '<div class="bubble bubble-out">Comment modifier le script d\'accueil ?</div>' +
-          '<div class="bubble bubble-in">Onglet Ally → Script d\'accueil téléphonique. La modification est appliquée immédiatement.</div>' +
+          '<div class="bubble bubble-in">Bonjour ' + esc(name()) + '. Posez-moi une question sur ' +
+            'votre agenda, vos appels ou votre cabinet — ou donnez-moi un ordre.</div>' +
+        '</div>' +
+        '<div class="chat-suggestions">' +
+          window.ALLY_BRAIN.suggestions().slice(0, 3).map(function (text) {
+            return '<button type="button" class="voice-chip-sm" data-suggest>' + esc(text) + '</button>';
+          }).join('') +
         '</div>' +
         '<form class="chat-form" id="chat-form">' +
           '<label class="sr-only" for="chat-input">Votre message</label>' +
-          '<input class="field" id="chat-input" type="text" placeholder="Écrire un message...">' +
+          '<input class="field" id="chat-input" type="text" placeholder="Écrire à Ally..." autocomplete="off">' +
           '<button type="submit" class="btn btn-primary btn-md">Envoyer</button>' +
         '</form>' +
       '</div>' +
@@ -598,14 +619,17 @@
   }
 
   var VIEWS = {
-    today: viewToday, conversations: viewConversations,
-    agenda: viewAgenda, ally: viewAlly, account: viewAccount
+    today: viewToday, conversations: viewConversations, agenda: viewAgenda,
+    telephony: function () { return window.ALLY_TELEPHONY.view(); },
+    ally: viewAlly, account: viewAccount
   };
 
   /* ---------- Liaison des événements ---------- */
   function renderPanel() {
     el.panel.innerHTML = VIEWS[ui.tab]();
     var panel = el.panel;
+
+    if (ui.tab === 'telephony') window.ALLY_TELEPHONY.bind(panel, renderPanel);
 
     panel.querySelectorAll('[data-jump]').forEach(function (button) {
       button.addEventListener('click', function () {
@@ -705,82 +729,220 @@
       });
     }
 
+    /* Le chat écrit et la commande vocale partagent le même moteur : poser la
+       question au clavier ou à la voix donne exactement la même réponse. */
     var chatForm = panel.querySelector('#chat-form');
     if (chatForm) {
+      var speakToggle = panel.querySelector('#chat-speak');
+      if (speakToggle) {
+        speakToggle.addEventListener('click', function () {
+          S.chatSpeaks = !S.chatSpeaks;
+          speakToggle.setAttribute('aria-checked', String(S.chatSpeaks));
+          store.save();
+        });
+      }
+
+      panel.querySelectorAll('[data-suggest]').forEach(function (chip) {
+        chip.addEventListener('click', function () {
+          document.getElementById('chat-input').value = chip.textContent;
+          chatForm.dispatchEvent(new Event('submit', { cancelable: true }));
+        });
+      });
+
       chatForm.addEventListener('submit', function (event) {
         event.preventDefault();
         var input = document.getElementById('chat-input');
         var text = input.value.trim();
         if (!text) return;
         var log = document.getElementById('chat-log');
-        var bubble = document.createElement('div');
-        bubble.className = 'bubble bubble-out';
-        bubble.textContent = text;
-        log.appendChild(bubble);
+
+        function bubble(kind, content, detail) {
+          var node = document.createElement('div');
+          node.className = 'bubble bubble-' + kind;
+          node.textContent = content;
+          if (detail) {
+            var small = document.createElement('span');
+            small.className = 'bubble-detail';
+            small.textContent = detail;
+            node.appendChild(small);
+          }
+          log.appendChild(node);
+          log.scrollTop = log.scrollHeight;
+        }
+
+        bubble('out', text);
         input.value = '';
-        log.scrollTop = log.scrollHeight;
+
+        var result = window.ALLY_BRAIN.ask(text);
+        var answer = (result.kind === 'action' && result.confirm &&
+          (S.confirmLevel === 'always' || (S.confirmLevel === 'sensitive' && result.sensitive)))
+          ? result.confirm : result.reply;
+
+        window.setTimeout(function () {
+          bubble('in', answer, result.detail);
+          if (S.chatSpeaks) window.ALLY_VOICE.speak(answer, store.voiceOptions());
+        }, 350);
       });
     }
   }
 
-  /* ---------- Commande vocale (interface seule) ---------- */
-  var voice = { index: 0, timers: [], lastFocus: null };
-  function clearTimers() { voice.timers.forEach(clearTimeout); voice.timers = []; }
-  function later(fn, delay) { voice.timers.push(setTimeout(fn, delay)); }
+  /* ---------- Commande vocale réelle ----------
+     Le micro passe par l'API du navigateur, la réponse vient du moteur partagé
+     avec le chat et la simulation d'appel, et Ally la prononce avec la voix
+     choisie dans l'onglet Téléphonie. */
+  var VOICE = window.ALLY_VOICE;
+  var BRAIN = window.ALLY_BRAIN;
+  var session = { lastFocus: null, pending: null, timers: [] };
 
-  function openVoice() {
-    var demos = P().voiceDemo;
-    var demo = demos[voice.index % demos.length];
-    voice.index += 1;
-    voice.lastFocus = document.activeElement;
+  function clearTimers() { session.timers.forEach(clearTimeout); session.timers = []; }
+  function later(fn, delay) { session.timers.push(setTimeout(fn, delay)); }
 
-    clearTimers();
-    el.overlay.hidden = false;
-    el.voiceTitle.textContent = 'Ally écoute…';
-    el.heard.textContent = '';
-    el.confirm.hidden = true;
-    el.voiceOk.hidden = true;
-    el.voiceCancel.textContent = 'Annuler';
-    el.voiceCancel.focus();
-
-    later(function () {
-      el.voiceTitle.textContent = 'Ordre reçu';
-      el.heard.textContent = '« ' + demo.heard + ' »';
-
-      var needsConfirm = S.confirmLevel === 'always' ||
-        (S.confirmLevel === 'sensitive' && !!demo.confirm);
-
-      if (needsConfirm) {
-        el.confirm.textContent = demo.confirm || 'Vous confirmez cet ordre avant que je l\'exécute ?';
-        el.confirm.hidden = false;
-        el.voiceOk.hidden = false;
-        el.voiceOk.focus();
-        el.voiceOk.onclick = function () { settle(demo); };
-      } else {
-        later(function () { settle(demo); }, 700);
-      }
-    }, 1200);
+  function renderSuggestions() {
+    var box = document.getElementById('voice-suggestions');
+    box.innerHTML = BRAIN.suggestions().slice(0, 4).map(function (text) {
+      return '<button type="button" class="voice-chip-sm">' + esc(text) + '</button>';
+    }).join('');
+    box.querySelectorAll('button').forEach(function (chip) {
+      chip.addEventListener('click', function () { handle(chip.textContent); });
+    });
   }
 
-  function settle(demo) {
+  function setNote(text) {
+    var note = document.getElementById('voice-note');
+    note.textContent = text || '';
+    note.hidden = !text;
+  }
+
+  function startListening() {
+    var input = document.getElementById('voice-input');
+
+    if (!VOICE.canListen()) {
+      // On le dit franchement au lieu de simuler une écoute qui n'existe pas.
+      el.voiceTitle.textContent = 'Écrivez votre demande';
+      el.heard.textContent = '';
+      document.getElementById('voice-viz').classList.remove('is-live');
+      setNote(VOICE.listenBlockedReason());
+      input.focus();
+      return;
+    }
+
+    el.voiceTitle.textContent = 'Ally écoute…';
+    el.heard.textContent = '';
+    document.getElementById('voice-viz').classList.add('is-live');
+    setNote('Parlez, ou écrivez si vous préférez.');
+
+    VOICE.listen({
+      onPartial: function (text) { el.heard.textContent = '« ' + text + '… »'; },
+      onResult: function (text) { handle(text); },
+      onError: function (message) {
+        document.getElementById('voice-viz').classList.remove('is-live');
+        el.voiceTitle.textContent = 'Micro indisponible';
+        setNote(message);
+        input.focus();
+      },
+      onEnd: function () { document.getElementById('voice-viz').classList.remove('is-live'); }
+    });
+  }
+
+  /* Traite une demande, qu'elle vienne du micro ou du clavier. */
+  function handle(text) {
+    VOICE.stopListening();
     clearTimers();
-    el.voiceTitle.textContent = 'C\'est fait';
+    document.getElementById('voice-viz').classList.remove('is-live');
+
+    el.heard.textContent = '« ' + text + ' »';
+    el.voiceTitle.textContent = 'Ally répond';
+
+    var result = BRAIN.ask(text);
+    var needsConfirm = result.kind === 'action' &&
+      (S.confirmLevel === 'always' || (S.confirmLevel === 'sensitive' && result.sensitive));
+
+    var detail = document.getElementById('voice-detail');
+    detail.textContent = result.detail || '';
+    detail.hidden = !result.detail;
+
+    if (needsConfirm) {
+      var question = result.confirm || 'Vous confirmez cet ordre avant que je l\'exécute ?';
+      el.confirm.textContent = question;
+      el.confirm.hidden = false;
+      el.voiceOk.hidden = false;
+      el.voiceOk.focus();
+      session.pending = result;
+      VOICE.speak(question, store.voiceOptions());
+      logVoice(text, 'À valider');
+      return;
+    }
+
+    settle(result, text);
+  }
+
+  function settle(result, spoken) {
     el.confirm.hidden = true;
     el.voiceOk.hidden = true;
-    el.heard.textContent = demo.reply;
-    el.voiceCancel.textContent = 'Fermer';
-    el.voiceCancel.focus();
-    later(closeVoice, 3200);
+    session.pending = null;
+
+    if (result.apply) result.apply();
+    el.voiceTitle.textContent = result.kind === 'action' ? 'C\'est fait' : 'Ally répond';
+    VOICE.speak(result.reply, store.voiceOptions());
+
+    var box = document.getElementById('voice-suggestions');
+    box.innerHTML = '<p class="voice-reply">' + esc(result.reply) + '</p>';
+    document.getElementById('voice-again').hidden = false;
+
+    if (spoken) logVoice(spoken, result.kind === 'action' ? 'Exécuté' : 'Répondu');
+    renderChrome();
+  }
+
+  /* Trace l'ordre dans l'historique visible sous l'onglet Ally. */
+  function logVoice(order, status) {
+    P().voiceLog.unshift({
+      id: Date.now(), order: order, when: 'À l\'instant',
+      result: status === 'À valider' ? 'En attente de votre confirmation' : 'Traité par Ally',
+      state: status === 'À valider' ? 'wait' : 'done'
+    });
+    if (ui.tab === 'ally') renderPanel();
+  }
+
+  function openVoice() {
+    session.lastFocus = document.activeElement;
+    el.overlay.hidden = false;
+    el.confirm.hidden = true;
+    el.voiceOk.hidden = true;
+    document.getElementById('voice-again').hidden = true;
+    document.getElementById('voice-detail').hidden = true;
+    document.getElementById('voice-input').value = '';
+    renderSuggestions();
+    startListening();
   }
 
   function closeVoice() {
     clearTimers();
+    VOICE.stopListening();
+    VOICE.stopSpeaking();
+    session.pending = null;
     el.overlay.hidden = true;
-    if (voice.lastFocus && voice.lastFocus.focus) voice.lastFocus.focus();
+    if (session.lastFocus && session.lastFocus.focus) session.lastFocus.focus();
   }
 
   el.fab.addEventListener('click', openVoice);
   el.voiceCancel.addEventListener('click', closeVoice);
+  document.getElementById('voice-again').addEventListener('click', function () {
+    document.getElementById('voice-again').hidden = true;
+    document.getElementById('voice-detail').hidden = true;
+    renderSuggestions();
+    startListening();
+  });
+  el.voiceOk.addEventListener('click', function () {
+    if (session.pending) settle(session.pending, null);
+  });
+  document.getElementById('voice-form').addEventListener('submit', function (event) {
+    event.preventDefault();
+    var input = document.getElementById('voice-input');
+    var text = input.value.trim();
+    if (!text) return;
+    input.value = '';
+    handle(text);
+  });
   el.overlay.addEventListener('click', function (event) {
     if (event.target === el.overlay) closeVoice();
   });

@@ -37,6 +37,11 @@
 
 *, *::before, *::after { box-sizing: border-box; }
 
+/* Doit primer sur les display:flex/grid des composants, sinon l'attribut
+   hidden ne masque rien — les boutons d'appel et le menu mobile restaient
+   affichés en permanence. */
+[hidden] { display: none !important; }
+
 html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
 
 body {
