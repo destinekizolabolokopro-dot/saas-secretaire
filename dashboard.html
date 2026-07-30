@@ -18,26 +18,31 @@
 
   <aside class="sidebar" id="sidebar">
     <button class="sidebar-close" id="sidebar-close" type="button" aria-label="Fermer le menu">×</button>
+
     <div class="sidebar-head">
       <span class="logo-mark" aria-hidden="true"></span>
       <span class="logo-word">Ally</span>
-      <span class="badge-pro">Pro</span>
+      <span class="badge-pro" id="badge-plan">Pro</span>
     </div>
+
+    <p class="sidebar-section">Au quotidien</p>
     <nav class="nav-list" id="nav-list" aria-label="Sections de l'espace pro"></nav>
-    <div class="profile-card">
-      <span class="avatar" aria-hidden="true"></span>
-      <div>
-        <strong>Maître Dubois</strong>
-        <span>Cabinet Dubois &amp; Associés</span>
-      </div>
-    </div>
+
+    <button class="profile-card" id="profile-card" type="button">
+      <span class="avatar" id="avatar" aria-hidden="true"></span>
+      <span class="profile-text">
+        <strong id="profile-name">—</strong>
+        <span id="profile-org">—</span>
+      </span>
+      <span class="profile-chevron" aria-hidden="true">›</span>
+    </button>
   </aside>
 
   <main class="main">
     <div class="topbar">
-      <div>
-        <h1 id="tab-title">Vue d'ensemble</h1>
-        <p class="topbar-date">Mardi 28 juillet 2026</p>
+      <div class="topbar-id">
+        <h1 id="tab-title">Aujourd'hui</h1>
+        <p class="topbar-sub" id="tab-sub"></p>
       </div>
       <div class="topbar-tools">
         <button class="icon-btn search-toggle" id="search-toggle" type="button" aria-label="Rechercher" aria-expanded="false">
@@ -48,9 +53,9 @@
         </button>
         <label class="sr-only" for="search">Rechercher dans l'espace pro</label>
         <input class="search" id="search" type="search" placeholder="Rechercher...">
-        <button class="icon-btn" type="button" aria-label="Notifications, 1 non lue">
+        <button class="icon-btn" id="notif-btn" type="button" aria-label="Notifications">
           <span class="glyph-sq" aria-hidden="true"></span>
-          <span class="badge" aria-hidden="true"></span>
+          <span class="badge" id="notif-badge" aria-hidden="true"></span>
         </button>
       </div>
     </div>
@@ -84,7 +89,8 @@
   </div>
 </div>
 
-<script src="js/mock-data.js"></script>
+<script src="js/profiles.js"></script>
+<script src="js/store.js"></script>
 <script src="js/dashboard.js"></script>
 </body>
 </html>

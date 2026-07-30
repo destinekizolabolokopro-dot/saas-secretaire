@@ -43,12 +43,15 @@ let screens = SCREENS.map(([id, file]) => {
 }).join('\n');
 
 /* ---- JS : mêmes fichiers, navigation redirigée vers le routeur ---- */
-let js = ['js/mock-data.js', 'js/landing.js', 'js/login.js', 'js/onboarding.js', 'js/dashboard.js']
-  .map(read).join('\n');
+let js = ['js/profiles.js', 'js/store.js', 'js/landing.js', 'js/login.js',
+          'js/onboarding.js', 'js/dashboard.js'].map(read).join('\n');
 
 js = js
   .replace(/window\.location\.href = ([^;]+);/g, 'window.ALLY_GOTO($1);')
+  // #greeting existe côté onboarding (statique) et côté Ally (généré) :
+  // l'un devient ob-greeting, l'autre dash-greeting.
   .replace(/getElementById\('greeting'\)/g, "getElementById('ob-greeting')")
+  .replace(/querySelector\('#greeting'\)/g, "querySelector('#dash-greeting')")
   .replace(/id="greeting"/g, 'id="dash-greeting"')
   .replace(/for="greeting"/g, 'for="dash-greeting"');
 
@@ -61,12 +64,19 @@ window.ALLY_GOTO = function (target) {
   document.querySelectorAll('.screen').forEach(function (s) { s.removeAttribute('data-active'); });
   next.setAttribute('data-active', 'true');
   window.scrollTo(0, 0);
+  // Sans rechargement de page, on redemande à l'écran de relire le compte.
+  if (id === 'dashboard' && window.ALLY_DASHBOARD_REFRESH) window.ALLY_DASHBOARD_REFRESH();
+  if (id === 'onboarding' && window.ALLY_ONBOARDING_REFRESH) window.ALLY_ONBOARDING_REFRESH();
 };
 document.addEventListener('click', function (event) {
   var link = event.target.closest('[data-goto]');
   if (!link) return;
   event.preventDefault();
   window.ALLY_GOTO(link.getAttribute('data-goto'));
+});
+/* Pas de pages ici : réinitialiser recharge le fichier. */
+window.addEventListener('load', function () {
+  window.ALLY_RESTART = function () { window.location.reload(); };
 });
 `;
 
