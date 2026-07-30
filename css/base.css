@@ -115,6 +115,15 @@ img, svg { max-width: 100%; }
   backdrop-filter: blur(10px);
 }
 
+/* ---- Titres de carte et notes (partagés par l'onboarding et l'espace pro) ---- */
+.card-title { font-size: 15px; font-weight: 600; margin-bottom: 16px; }
+.note { font-size: 13px; color: var(--txt-4); line-height: 1.55; }
+.lock-note {
+  margin-top: 14px; font-size: 12px; color: var(--yellow);
+  background: oklch(0.3 0.1 90 / 0.15);
+  border-radius: var(--r-sm); padding: 10px 12px; line-height: 1.5;
+}
+
 /* ---- Logo ---- */
 .logo { display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--txt); }
 .logo-mark { width: 30px; height: 30px; border-radius: 9px; background: var(--grad); flex-shrink: 0; }

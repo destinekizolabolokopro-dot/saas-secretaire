@@ -93,7 +93,6 @@
 .cols-12 { grid-template-columns: 1.2fr 1fr; }
 .cols-11 { grid-template-columns: 1fr 1fr; }
 .stack { display: flex; flex-direction: column; gap: 20px; }
-.card-title { font-size: 15px; font-weight: 600; margin-bottom: 16px; }
 .section-label { font-size: 15px; font-weight: 600; margin-bottom: 14px; }
 .limit-640 { max-width: 640px; }
 .limit-760 { max-width: 760px; }
@@ -181,7 +180,6 @@
 .sync-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .sync-row span:first-child { font-size: 14px; color: var(--txt-2); }
 .sync-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--cyan); flex-shrink: 0; }
-.note { font-size: 13px; color: var(--txt-4); line-height: 1.55; }
 .note-sep { padding-top: 10px; border-top: 1px solid var(--bd); }
 
 /* ============ CONFIG ============ */
@@ -189,10 +187,6 @@
 .slider-head { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 8px; font-size: 13px; }
 .slider-head output { color: oklch(0.65 0.01 264); }
 .slider-locked { opacity: .55; }
-.lock-note {
-  margin-top: 14px; font-size: 12px; color: var(--yellow);
-  background: oklch(0.3 0.1 90 / 0.15); border-radius: var(--r-sm); padding: 10px 12px; line-height: 1.5;
-}
 .voice-log { display: flex; flex-direction: column; }
 .voice-log .row { align-items: flex-start; }
 .voice-log .row-name { font-weight: 400; }
