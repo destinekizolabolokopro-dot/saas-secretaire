@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Connexion — Ally</title>
+<meta name="robots" content="noindex">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/site.css">
+</head>
+<body>
+<div class="page">
+  <div class="blob blob-a" aria-hidden="true"></div>
+  <div class="blob blob-b" aria-hidden="true"></div>
+
+  <div class="auth-shell">
+    <a class="logo" href="index.html">
+      <span class="logo-mark" aria-hidden="true"></span>
+      <span class="logo-word">Ally</span>
+    </a>
+
+    <main class="auth-card">
+      <h1>Espace pro</h1>
+      <p>Accédez au tableau de bord de votre assistante.</p>
+
+      <form id="login-form" novalidate>
+        <div class="auth-field">
+          <label for="login-email">Email professionnel</label>
+          <input class="field" id="login-email" type="email" name="email"
+                 placeholder="vous@cabinet.fr" required autocomplete="email">
+        </div>
+        <div class="auth-field">
+          <label for="login-password">Mot de passe</label>
+          <input class="field" id="login-password" type="password" name="password"
+                 placeholder="••••••••" required autocomplete="current-password">
+        </div>
+        <button class="btn btn-primary" type="submit">Se connecter</button>
+      </form>
+
+      <p class="auth-note">
+        Maquette de démonstration : aucune authentification réelle, n'importe quelle
+        adresse valide ouvre le tableau de bord.<br>
+        Premier accès ? <a href="onboarding.html">Configurer Ally</a>
+      </p>
+    </main>
+
+    <a class="auth-back" href="index.html">← Retour au site</a>
+  </div>
+</div>
+
+<script src="js/login.js"></script>
+</body>
+</html>

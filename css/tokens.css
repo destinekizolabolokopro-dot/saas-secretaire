@@ -1,0 +1,62 @@
+/* Ally — design tokens extraits du handoff design */
+:root {
+  /* Surfaces (7 niveaux relevés dans les maquettes) */
+  --bg:        oklch(0.15 0.02 264);
+  --s0:        oklch(0.13 0.02 264); /* sidebar */
+  --s1:        oklch(0.16 0.02 264); /* inputs, panneaux internes */
+  --s2:        oklch(0.17 0.02 264); /* cartes Problème */
+  --s3:        oklch(0.18 0.02 264); /* carte profil */
+  --s4:        oklch(0.19 0.02 264); /* carte standard */
+  --s5:        oklch(0.20 0.02 264);
+  --s6:        oklch(0.24 0.02 264); /* avatars, bulle chat */
+  --toggle-off:oklch(0.30 0.01 264);
+
+  --card:      oklch(0.19 0.02 264 / 0.8);
+  --card-glass:oklch(0.19 0.02 264 / 0.7);
+
+  /* Texte */
+  --txt:   oklch(0.95 0.006 264);
+  --txt-2: oklch(0.85 0.006 264);
+  --txt-3: oklch(0.72 0.010 264);
+  --txt-4: oklch(0.62 0.010 264);
+  --txt-5: oklch(0.55 0.010 264);
+
+  /* Accents (3 nuances de violet dans les maquettes) */
+  --accent:        oklch(0.72 0.19 296);
+  --accent-bright: oklch(0.75 0.19 296);
+  --accent-glow:   oklch(0.70 0.19 296);
+  --cyan:          oklch(0.75 0.15 200);
+  --yellow:        oklch(0.80 0.10 90);
+  --danger:        oklch(0.75 0.15 25);
+  --on-accent:     oklch(0.12 0.02 264);
+  --grad: linear-gradient(135deg, var(--accent), var(--cyan));
+
+  /* Bordures */
+  --hair: oklch(1 0 0 / 0.06);
+  --bd:   oklch(1 0 0 / 0.07);
+  --bd-2: oklch(1 0 0 / 0.10);
+  --bd-3: oklch(1 0 0 / 0.16);
+
+  /* Typo */
+  --ff-h: 'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
+  --ff-b: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
+
+  /* Rayons */
+  --r-sm: 10px;
+  --r-md: 14px;
+  --r:    16px;
+  --r-lg: 20px;
+  --pill: 100px;
+
+  /* Rythme */
+  --pad-x: 48px;
+  --orbit-r: 170px;
+  --orbit-d: 340px;
+}
+
+@media (max-width: 900px) {
+  :root { --pad-x: 28px; --orbit-r: 132px; --orbit-d: 264px; }
+}
+@media (max-width: 560px) {
+  :root { --pad-x: 20px; --orbit-r: 104px; --orbit-d: 208px; }
+}

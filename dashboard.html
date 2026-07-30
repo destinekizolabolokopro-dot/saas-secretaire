@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Espace pro — Ally</title>
+<meta name="robots" content="noindex">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/dashboard.css">
+</head>
+<body>
+<a class="skip-link" href="#tabpanel">Aller au contenu</a>
+
+<div class="shell" id="shell">
+  <div class="scrim" id="scrim"></div>
+
+  <aside class="sidebar" id="sidebar">
+    <button class="sidebar-close" id="sidebar-close" type="button" aria-label="Fermer le menu">×</button>
+    <div class="sidebar-head">
+      <span class="logo-mark" aria-hidden="true"></span>
+      <span class="logo-word">Ally</span>
+      <span class="badge-pro">Pro</span>
+    </div>
+    <nav class="nav-list" id="nav-list" aria-label="Sections de l'espace pro"></nav>
+    <div class="profile-card">
+      <span class="avatar" aria-hidden="true"></span>
+      <div>
+        <strong>Maître Dubois</strong>
+        <span>Cabinet Dubois &amp; Associés</span>
+      </div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <div>
+        <h1 id="tab-title">Vue d'ensemble</h1>
+        <p class="topbar-date">Mardi 28 juillet 2026</p>
+      </div>
+      <div class="topbar-tools">
+        <button class="icon-btn search-toggle" id="search-toggle" type="button" aria-label="Rechercher" aria-expanded="false">
+          <span class="glyph-mag" aria-hidden="true"></span>
+        </button>
+        <button class="icon-btn" id="menu-toggle" type="button" aria-label="Ouvrir le menu" aria-controls="sidebar" aria-expanded="false" hidden>
+          <span class="glyph-sq" aria-hidden="true"></span>
+        </button>
+        <label class="sr-only" for="search">Rechercher dans l'espace pro</label>
+        <input class="search" id="search" type="search" placeholder="Rechercher...">
+        <button class="icon-btn" type="button" aria-label="Notifications, 1 non lue">
+          <span class="glyph-sq" aria-hidden="true"></span>
+          <span class="badge" aria-hidden="true"></span>
+        </button>
+      </div>
+    </div>
+
+    <div id="tabpanel" role="region" aria-live="polite" aria-labelledby="tab-title"></div>
+  </main>
+</div>
+
+<button class="voice-fab" id="voice-fab" type="button" aria-haspopup="dialog">
+  <span class="mic" aria-hidden="true"></span>
+  <span>Parler à Ally</span>
+</button>
+
+<div class="voice-overlay" id="voice-overlay" role="dialog" aria-modal="true" aria-labelledby="voice-title" hidden>
+  <div class="voice-panel">
+    <div class="voice-viz" aria-hidden="true">
+      <span class="ring"></span><span class="ring"></span><span class="ring"></span>
+      <span class="core"></span>
+    </div>
+    <h2 id="voice-title">Ally écoute…</h2>
+    <p class="voice-heard" id="voice-heard" role="status"></p>
+    <p class="voice-confirm" id="voice-confirm" hidden></p>
+    <div class="voice-actions">
+      <button class="btn btn-primary btn-md" id="voice-ok" type="button" hidden>Confirmer</button>
+      <button class="btn btn-ghost btn-md" id="voice-cancel" type="button">Annuler</button>
+    </div>
+    <p class="voice-unwired">
+      Interface de démonstration : la reconnaissance et la synthèse vocales ne sont pas
+      branchées. Les ordres défilent en exemple.
+    </p>
+  </div>
+</div>
+
+<script src="js/mock-data.js"></script>
+<script src="js/dashboard.js"></script>
+</body>
+</html>

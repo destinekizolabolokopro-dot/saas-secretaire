@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ally — Une secrétaire IA, disponible pendant que vous plaidez.</title>
+<meta name="description" content="Ally répond à vos appels, gère vos emails et votre agenda — configurée pour votre métier, encadrée par vos règles. Aucun engagement pris sans votre validation.">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/site.css">
+</head>
+<body>
+<a class="skip-link" href="#main">Aller au contenu</a>
+
+<div class="page">
+  <div class="blob blob-a" aria-hidden="true"></div>
+  <div class="blob blob-b" aria-hidden="true"></div>
+
+  <nav class="nav" id="nav">
+    <a class="logo" href="index.html">
+      <span class="logo-mark" aria-hidden="true"></span>
+      <span class="logo-word">Ally</span>
+    </a>
+
+    <button class="burger" id="burger" type="button" aria-expanded="false" aria-controls="nav" aria-label="Ouvrir le menu">
+      <span aria-hidden="true"></span><span aria-hidden="true"></span><span aria-hidden="true"></span>
+    </button>
+
+    <div class="nav-links">
+      <a href="#solution">Solution</a>
+      <a href="#how">Fonctionnement</a>
+      <a href="#focus">Pour les avocats</a>
+      <a href="#trust">Confidentialité</a>
+    </div>
+
+    <div class="nav-right">
+      <a class="nav-login" href="login.html">Espace pro</a>
+      <a class="btn btn-primary nav-cta" href="#cta">Rejoindre la liste d'attente</a>
+    </div>
+  </nav>
+
+  <main id="main">
+    <section class="hero">
+      <div>
+        <p class="eyebrow">
+          <span class="eyebrow-dot" aria-hidden="true"></span>
+          Lancement prioritaire — cabinets d'avocats
+        </p>
+        <h1>Une secrétaire IA, disponible pendant que vous plaidez.</h1>
+        <p class="hero-lede">
+          Ally répond à vos appels, gère vos emails et votre agenda — configurée pour votre
+          métier, encadrée par vos règles. Aucun engagement pris sans votre validation.
+        </p>
+        <div class="hero-actions">
+          <a class="btn btn-primary" href="#cta">Rejoindre la liste d'attente</a>
+          <a class="btn btn-ghost" href="#how">Voir comment ça marche</a>
+        </div>
+      </div>
+
+      <div class="orbit-stage" aria-hidden="true">
+        <div class="orbit-ring"></div>
+        <div class="orbit-ring-pulse"></div>
+        <div class="orbit-core"></div>
+
+        <div class="orbit orbit-1">
+          <div class="orbit-slot"><div class="orbit-upright">
+            <div class="orbit-pill"><span class="dot" style="background:var(--accent-bright)"></span>Appel entrant</div>
+          </div></div>
+        </div>
+        <div class="orbit orbit-2">
+          <div class="orbit-slot"><div class="orbit-upright">
+            <div class="orbit-pill"><span class="dot" style="background:var(--cyan)"></span>Brouillon prêt à valider</div>
+          </div></div>
+        </div>
+        <div class="orbit orbit-3">
+          <div class="orbit-slot"><div class="orbit-upright">
+            <div class="orbit-pill"><span class="dot" style="background:var(--yellow)"></span>RDV synchronisé</div>
+          </div></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section section-narrow reveal">
+      <p class="kicker">Le problème</p>
+      <h2 style="max-width:760px">Seul au cabinet, vous ne pouvez pas être en consultation et au téléphone en même temps.</h2>
+      <div class="problem-grid">
+        <div class="problem-cell">
+          <h3 style="color:var(--accent-bright)">Appels manqués</h3>
+          <p>Chaque appel non répondu est un client potentiel perdu.</p>
+        </div>
+        <div class="problem-cell">
+          <h3 style="color:var(--cyan)">Emails en retard</h3>
+          <p>Les réponses s'accumulent entre deux rendez-vous.</p>
+        </div>
+        <div class="problem-cell">
+          <h3 style="color:var(--yellow)">Secrétariat hors budget</h3>
+          <p>Un poste à temps plein n'a pas de sens pour un indépendant.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section section-wide reveal" id="solution">
+      <p class="kicker">La solution</p>
+      <h2 style="max-width:640px">Un seul assistant, trois missions, encadrées par vos règles.</h2>
+      <div class="solution-grid">
+        <div class="card-glass">
+          <div class="glyph" style="background:oklch(0.72 0.19 296 / 0.18)" aria-hidden="true"><span class="glyph-circle"></span></div>
+          <h3>Appels</h3>
+          <p>Ally comprend la demande — prise de RDV, question courante, urgence — et agit ou transfère à vous selon les règles que vous avez définies.</p>
+        </div>
+        <div class="card-glass">
+          <div class="glyph" style="background:oklch(0.75 0.15 200 / 0.18)" aria-hidden="true"><span class="glyph-rect"></span></div>
+          <h3>Emails</h3>
+          <p>Confirmations et rappels partent automatiquement. Les emails sensibles restent en brouillon, à valider par vous avant tout envoi.</p>
+        </div>
+        <div class="card-glass">
+          <div class="glyph" style="background:oklch(0.8 0.1 90 / 0.18)" aria-hidden="true"><span class="glyph-square"></span></div>
+          <h3>Agenda</h3>
+          <p>Prise, déplacement et annulation de rendez-vous synchronisés avec Google Calendar ou Outlook, dans le respect de vos disponibilités.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section section-narrow reveal" id="how">
+      <p class="kicker">Fonctionnement</p>
+      <h2 style="max-width:640px">Configurée pour votre métier en quelques minutes.</h2>
+      <div class="steps">
+        <div>
+          <p class="step-num">01</p>
+          <h4>Votre métier</h4>
+          <p>Avocat, médecin, artisan, consultant — Ally charge le vocabulaire et les scripts adaptés.</p>
+        </div>
+        <div>
+          <p class="step-num">02</p>
+          <h4>Vos disponibilités</h4>
+          <p>Horaires, jours de fermeture, exceptions — Ally s'y tient strictement.</p>
+        </div>
+        <div>
+          <p class="step-num">03</p>
+          <h4>Vos règles</h4>
+          <p>« Toujours transférer les urgences », « jamais d'envoi sans ma validation » — vous fixez le cadre.</p>
+        </div>
+        <div>
+          <p class="step-num">04</p>
+          <h4>Ally est prête</h4>
+          <p>Un profil complet est généré. Vous pouvez ensuite l'affiner à tout moment.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="focus-band reveal" id="focus">
+      <div class="focus-inner">
+        <div>
+          <p class="kicker">Conçue en premier pour les avocats</p>
+          <h2>Le secret professionnel n'est jamais négociable.</h2>
+          <p>
+            Pour les métiers à confidentialité renforcée, le mode « brouillon à valider » est
+            activé par défaut : Ally ne prend jamais d'engagement juridique en votre nom.
+            Chaque échange sensible vous revient pour validation avant tout envoi.
+          </p>
+        </div>
+        <div class="focus-cards">
+          <div class="focus-card">
+            <strong>Mode brouillon par défaut</strong>
+            <span>Activé automatiquement pour les métiers à secret professionnel.</span>
+          </div>
+          <div class="focus-card">
+            <strong>Aucun envoi sans validation</strong>
+            <span>Vous restez seul décisionnaire sur tout contenu métier.</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section section-narrow reveal" id="trust" style="padding-top:120px">
+      <p class="kicker">Confidentialité</p>
+      <h2 style="max-width:680px">Pensée dès la conception pour les données sensibles.</h2>
+      <div class="trust-grid">
+        <div>
+          <h4>Hébergement conforme RGPD</h4>
+          <p>Données hébergées et traitées selon les exigences européennes.</p>
+        </div>
+        <div>
+          <h4>Responsabilité maîtrisée</h4>
+          <p>Ally ne vous engage jamais juridiquement ou médicalement sans validation humaine.</p>
+        </div>
+        <div>
+          <h4>Contrôle total</h4>
+          <p>Vous ajustez à tout moment le niveau d'autonomie accordé à l'IA.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section cta reveal" id="cta">
+      <h2>Soyez parmi les premiers cabinets à essayer Ally.</h2>
+      <p class="section-lede">
+        Places limitées pour la phase pilote réservée aux avocats. Laissez votre email,
+        nous vous contactons dès l'ouverture.
+      </p>
+      <p class="waitlist-done" id="waitlist-done" role="status" hidden>
+        Merci ! Vous êtes sur la liste d'attente.
+      </p>
+      <form class="waitlist-form" id="waitlist-form" novalidate>
+        <label class="sr-only" for="waitlist-email">Votre adresse email professionnelle</label>
+        <input class="field field-pill" id="waitlist-email" type="email" name="email"
+               placeholder="vous@cabinet.fr" required autocomplete="email">
+        <button class="btn btn-primary" type="submit">Rejoindre la liste</button>
+      </form>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <span>© 2026 Ally</span>
+    <span>Assistant IA pour professionnels solo</span>
+  </footer>
+</div>
+
+<script src="js/landing.js"></script>
+</body>
+</html>

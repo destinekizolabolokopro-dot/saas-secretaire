@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Configuration — Ally</title>
+<meta name="robots" content="noindex">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/site.css">
+</head>
+<body>
+<div class="page">
+  <div class="blob blob-a" aria-hidden="true"></div>
+  <div class="blob blob-b" aria-hidden="true"></div>
+
+  <div class="ob-shell">
+    <div class="ob-head">
+      <a class="logo" href="index.html">
+        <span class="logo-mark" aria-hidden="true"></span>
+        <span class="logo-word">Ally</span>
+      </a>
+      <a class="auth-back" href="dashboard.html">Passer cette étape →</a>
+    </div>
+
+    <div class="ob-progress" id="ob-progress" role="progressbar" aria-label="Progression de la configuration"
+         aria-valuemin="1" aria-valuemax="4" aria-valuenow="1">
+      <span class="done"></span><span></span><span></span><span></span>
+    </div>
+
+    <main>
+      <p class="ob-step-label" id="ob-step-label">Étape 1 sur 4</p>
+      <h1 id="ob-title">Quel métier exercez-vous ?</h1>
+      <p class="ob-lede" id="ob-lede">
+        Ally charge le vocabulaire, les scripts d'accueil et le niveau d'autonomie adaptés
+        à votre profession. Vous pourrez tout affiner ensuite.
+      </p>
+
+      <!-- Étape 1 — Métier -->
+      <section class="ob-panel" id="step-1">
+        <div class="trade-grid" id="trade-grid"></div>
+      </section>
+
+      <!-- Étape 2 — Disponibilités -->
+      <section class="ob-panel" id="step-2" hidden>
+        <div class="card">
+          <p class="card-title">Horaires d'ouverture</p>
+          <div id="hours-list"></div>
+        </div>
+        <div class="card">
+          <p class="card-title">Fermetures exceptionnelles</p>
+          <label class="sr-only" for="closures">Jours de fermeture exceptionnels</label>
+          <textarea class="field" id="closures" placeholder="Ex. : jours fériés, congés du 10 au 24 août, mercredi après-midi">Jours fériés, mercredi après-midi</textarea>
+        </div>
+      </section>
+
+      <!-- Étape 3 — Règles -->
+      <section class="ob-panel" id="step-3" hidden>
+        <div class="card">
+          <p class="card-title">Règles de comportement</p>
+          <div id="rules-list"></div>
+        </div>
+        <div class="card">
+          <p class="card-title">Numéro de transfert des urgences</p>
+          <label class="sr-only" for="transfer">Numéro de transfert</label>
+          <input class="field" id="transfer" type="tel" value="06 12 34 56 78" autocomplete="tel">
+        </div>
+      </section>
+
+      <!-- Étape 4 — Récapitulatif -->
+      <section class="ob-panel" id="step-4" hidden>
+        <div class="card">
+          <p class="card-title">Profil généré</p>
+          <div id="recap"></div>
+        </div>
+        <div class="card">
+          <p class="card-title">Script d'accueil téléphonique</p>
+          <label class="sr-only" for="greeting">Script d'accueil</label>
+          <textarea class="field" id="greeting" rows="3"></textarea>
+        </div>
+        <p class="note" id="recap-note"></p>
+      </section>
+
+      <div class="ob-nav">
+        <button class="btn btn-ghost" id="ob-prev" type="button" hidden>Retour</button>
+        <button class="btn btn-primary" id="ob-next" type="button" style="margin-left:auto">Continuer</button>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script src="js/onboarding.js"></script>
+</body>
+</html>
