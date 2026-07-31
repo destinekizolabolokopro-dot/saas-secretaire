@@ -90,7 +90,7 @@
     el.avatar.textContent = ((S.identity.firstName || '?')[0] + (S.identity.lastName || '?')[0]).toUpperCase();
     el.badgePlan.textContent = store.plan();
     el.notifBadge.hidden = !urgentCall();
-    el.fab.hidden = !S.voiceEnabled;
+    el.fab.hidden = !S.voiceEnabled || !store.can('voiceCommand');
     document.title = 'Espace pro — ' + name() + ' — Ally';
   }
 
@@ -310,6 +310,15 @@
       '<strong>' + esc(label) + '</strong>' + (hint ? '<span>' + esc(hint) + '</span>' : '') + '</span>' +
       '<button type="button" class="toggle" role="switch" data-switch="' + group + '.' + key + '"' +
       ' aria-checked="' + checked + '" aria-labelledby="lbl-' + id + '"></button></div>';
+  }
+
+  /* Une capacité absente de la formule se dit, avec la marche à suivre. */
+  function upsell(what, why) {
+    return '<div class="upsell">' +
+      '<p class="upsell-title">' + esc(what) + ' n\'est pas dans votre formule</p>' +
+      '<p class="upsell-why">' + esc(why) + '</p>' +
+      '<button type="button" class="btn btn-primary btn-sm" data-upgrade>Voir les formules</button>' +
+      '</div>';
   }
 
   function emptyState(text) {
@@ -578,7 +587,11 @@
           esc(p.clientWord) + 's entendent.</p>' +
       '</div>' +
 
-      '<div class="card"><p class="card-title">Commande vocale</p>' +
+      (store.can('voiceCommand') ? '' : upsell('La commande vocale',
+        'Dire « Hey Ally, envoie un mail à mon rendez-vous de 15h » demande l\'agent IA, '
+        + 'absent de la formule Permanence.')) +
+
+      (store.can('voiceCommand') ? '<div class="card"><p class="card-title">Commande vocale</p>' +
         switchRow('flat', 'voiceEnabled', 'Parler à Ally depuis l\'application',
           'Affiche le bouton micro en bas de l\'écran.') +
         '<p class="note" style="margin-top:12px">Le choix de la voix et son essai se font dans ' +
@@ -590,16 +603,16 @@
               ' aria-pressed="' + (S.confirmLevel === pair[0]) + '">' + pair[1] + '</button>';
           }).join('') +
         '</div>' +
-      '</div>' +
+      '</div>' : '') +
 
-      '<div class="card"><p class="card-title">Derniers ordres vocaux</p>' +
+      (store.can('voiceCommand') ? '<div class="card"><p class="card-title">Derniers ordres vocaux</p>' +
         '<div class="voice-log">' + D().voiceLog.map(function (entry) {
           return '<div class="row"><div><p class="row-name">« ' + esc(entry.order) + ' »</p>' +
             '<p class="row-meta">' + esc(entry.when) + ' · ' + esc(entry.result) + '</p></div>' +
             '<span class="voice-status ' + entry.state + '">' +
             (entry.state === 'done' ? 'Exécuté' : 'À valider') + '</span></div>';
         }).join('') + '</div>' +
-      '</div>' +
+      '</div>' : '') +
 
       '<div class="card"><p class="card-title">Contacts prioritaires</p>' +
         '<p class="note" style="margin-bottom:14px">Ally vous transfère ces appels immédiatement.</p>' +
@@ -611,7 +624,9 @@
         }).join('') +
       '</div>' +
 
-      '<div class="card"><p class="card-title">Base de connaissances</p>' +
+      (store.can('knowledge')
+        ? '<div class="card"><p class="card-title">Base de connaissances' +
+          (store.planData().caps.knowledge === 'advanced' ? ' <span class="tag">avancée</span>' : '') + '</p>' +
         '<p class="note" style="margin-bottom:14px">Ce qu\'Ally peut répondre seule, sans vous solliciter.</p>' +
         '<div class="faq-list">' + D().faq.map(function (item) {
           return '<div class="faq"><div class="faq-top"><strong>' + esc(item.q) + '</strong>' +
@@ -629,7 +644,11 @@
           '</div>' +
         '</form>' +
         '<button type="button" class="add-row" id="faq-open" style="margin-top:14px">+ Ajouter une entrée</button>' +
-      '</div></div>';
+      '</div>'
+        : upsell('La base de connaissances',
+            'Elle permet à Ally de répondre seule aux questions courantes de vos ' +
+            P().clientWord + 's. Disponible à partir de la formule Cabinet.')) +
+      '</div>';
   }
 
   /* ================================ COMPTE ================================ */
@@ -952,6 +971,10 @@
         store.save();
         renderPanel();
       });
+    });
+
+    panel.querySelectorAll('[data-upgrade]').forEach(function (button) {
+      button.addEventListener('click', function () { ui.account = 'plan'; setTab('account'); });
     });
 
     // Connexions : bascule d'état, simulée mais persistée.

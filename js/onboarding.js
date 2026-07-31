@@ -14,7 +14,7 @@
     { id: 'transfer', label: 'Transférer les urgences vers mon portable',
       hint: 'Ally reconnaît les appels urgents et vous les passe immédiatement.' },
     { id: 'draft', label: "Aucun envoi d'email sans ma validation",
-      hint: 'Tout contenu métier reste en brouillon jusqu\'à votre accord.', lockedBySecret: true },
+      hint: 'Sinon Ally rédige et envoie directement, sur votre ordre vocal.' },
     { id: 'record', label: 'Enregistrer les appels',
       hint: 'Avec message de consentement diffusé à l\'appelant.' },
     { id: 'autobook', label: 'Laisser Ally poser des rendez-vous seule',
@@ -204,11 +204,11 @@
       el.rules.appendChild(row);
     });
 
-    if (p.secret) {
+    if (p.secret && !S.rules.draft) {
       var note = document.createElement('p');
       note.className = 'lock-note';
-      note.textContent = 'Le mode « brouillon à valider » est verrouillé pour ce métier : Ally ne pourra '
-        + 'jamais envoyer un contenu métier sans votre accord.';
+      note.textContent = 'Métier à secret professionnel : Ally enverra vos emails sans relecture. '
+        + 'Activez la validation ci-dessus si vous préférez relire avant envoi.';
       el.rules.appendChild(note);
     }
   }

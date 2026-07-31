@@ -119,6 +119,7 @@
     S.identity.firstName = first.value.trim() || S.identity.firstName;
     S.identity.lastName = last.value.trim();
     S.identity.email = email.value.trim();
+    S.planId = plan.id;
     S.plan = plan.name;
     S.subscription = {
       planId: plan.id, cycle: state.cycle,

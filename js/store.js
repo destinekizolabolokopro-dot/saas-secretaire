@@ -27,17 +27,20 @@
       trade: trade,
       hours: JSON.parse(JSON.stringify(DEFAULT_HOURS)),
       closures: 'Jours fériés, mercredi après-midi',
-      rules: { transfer: true, draft: true, record: true, autobook: true, voice: true },
+      rules: { transfer: true, draft: false, record: true, autobook: true, voice: true },
       autonomy: { calls: profile.autonomy.calls, emails: profile.autonomy.emails, agenda: profile.autonomy.agenda },
       greeting: '',
       notif: { sms: true, push: true, email: false },
       retentionDays: 90,
       summaryFreq: 'daily',
       voiceEnabled: true,
-      confirmLevel: 'sensitive',
+      /* Aucune confirmation orale avant exécution — choix produit assumé.
+         Le réglage reste disponible pour qui préfère relire avant envoi. */
+      confirmLevel: 'none',
       chatSpeaks: true,
       /* Voix d'Ally : identifiant de la voix du navigateur, débit, hauteur. */
       voice: { uri: '', rate: 1, pitch: 1 },
+      planId: 'cabinet',
       plan: '',
       subscription: null,
       links: { gmail: false, outlook: false, gcal: false, phone: false, sms: true },
@@ -136,8 +139,17 @@
       return state.data;
     },
 
-    /* Formule d'abonnement : celle choisie, sinon celle du métier. */
-    plan: function () { return state.plan || this.profile().plan; },
+    /* Formule d'abonnement et capacités qu'elle débloque. */
+    plan: function () { return state.plan || window.ALLY_PLAN_BY_ID(state.planId).name; },
+
+    planData: function () { return window.ALLY_PLAN_BY_ID(state.planId); },
+
+    /* Une capacité absente de la formule est masquée, pas désactivée en
+       silence : l'interface propose alors la montée en gamme. */
+    can: function (capability) {
+      var caps = this.planData().caps;
+      return !!caps[capability];
+    },
 
     /* Journalise un ordre vocal ou une action d'Ally. */
     log: function (order, result, done) {

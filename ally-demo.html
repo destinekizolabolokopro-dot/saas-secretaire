@@ -1400,6 +1400,16 @@ input[type="range"] {
   .link-row .btn { width: 100%; }
 }
 
+/* Capacité absente de la formule : on l'explique et on propose la suite. */
+.upsell {
+  background: oklch(0.3 0.1 90 / 0.12); border: 1px dashed oklch(0.8 0.1 90 / 0.35);
+  border-radius: var(--r); padding: 20px 22px;
+  display: flex; flex-direction: column; gap: 8px; align-items: flex-start;
+}
+.upsell-title { font-size: 15px; font-weight: 600; color: var(--yellow); }
+.upsell-why { font-size: 13px; line-height: 1.6; color: var(--txt-3); }
+.upsell .btn { margin-top: 6px; }
+
 /* Un seul écran visible à la fois. */
 .screen { display: none; }
 .screen[data-active] { display: block; }
@@ -2364,27 +2374,37 @@ window.ALLY_DISPLAY_NAME = function (identity, profile) {
 };
 
 /* Ally — formules d'abonnement.
-   Positionnement : sous le coût d'un télésecrétariat externalisé, très
-   au-dessus d'un simple répondeur. La valeur vendue n'est pas la minute
-   d'appel, c'est le client qu'on ne perd pas. */
+   La logique de prix suit le coût de revient, pas le nombre de cases cochées :
+   Permanence est un standard téléphonique classique, sans IA, donc quasi
+   gratuit à produire. Cabinet et Expert font tourner un agent vocal, dont la
+   minute se paie — c'est ce qui justifie l'écart. */
 window.ALLY_PLANS = [
   {
     id: 'permanence',
     name: 'Permanence',
     price: 79,
     priceYear: 790,
-    tagline: 'Pour ne plus jamais manquer un appel.',
-    forWho: 'Indépendant qui démarre, moins de 5 appels par jour',
-    quota: { calls: 120, emails: 300 },
+    tagline: 'Un standard qui décroche toujours. Sans IA.',
+    forWho: 'Le pro qui veut d\'abord ne plus manquer d\'appel, sans changer ses habitudes',
+    callMode: 'Menu vocal classique : « tapez 1 pour un rendez-vous, 2 pour… »',
+    quota: { calls: 150, emails: 200 },
+    /* Ce que la formule débloque réellement dans l'application. */
+    caps: {
+      app: true, aiCalls: false, autoNotes: false, aiEmails: false,
+      voiceCommand: false, voiceAgenda: false, knowledge: false
+    },
     features: [
-      'Ally décroche 24 h/24, avec votre script',
-      'Transfert des urgences sur votre portable',
-      'Prise de rendez-vous dans votre agenda',
-      'Transcription et résumé de chaque appel',
-      'Emails de confirmation et de rappel',
-      '1 ligne téléphonique'
+      'Accès complet à l\'application Ally',
+      'Menu vocal à touches, façon standard téléphonique',
+      'Renvoi des urgences vers votre portable',
+      'Historique et enregistrement des appels',
+      'Agenda et emails gérés par vous dans l\'app'
     ],
-    missing: ['Brouillons de réponse rédigés', 'Commande vocale', 'Plusieurs lignes']
+    missing: [
+      'Ally ne comprend pas le langage naturel',
+      'Notes d\'appel à rédiger vous-même',
+      'Pas de commande vocale « Hey Ally »'
+    ]
   },
   {
     id: 'cabinet',
@@ -2392,35 +2412,45 @@ window.ALLY_PLANS = [
     price: 149,
     priceYear: 1490,
     popular: true,
-    tagline: 'L\'assistante complète, appels, emails et agenda.',
+    tagline: 'La vraie assistante IA. Elle comprend, rédige et exécute.',
     forWho: 'Le cas courant : un professionnel seul, en activité pleine',
+    callMode: 'Ally comprend la demande en langage naturel et répond',
     quota: { calls: 400, emails: 1200 },
+    caps: {
+      app: true, aiCalls: true, autoNotes: true, aiEmails: true,
+      voiceCommand: true, voiceAgenda: true, knowledge: true
+    },
     features: [
       'Tout ce que contient Permanence',
-      'Brouillons de réponse rédigés, validés par vous',
-      'Commande vocale depuis l\'application',
-      'Base de connaissances illimitée',
-      'Règles d\'autonomie par type de tâche',
-      'Résumé quotidien par email ou SMS',
-      'Voix personnalisable'
+      'Ally dialogue naturellement avec vos appelants',
+      'Résumé et transcription générés automatiquement',
+      'Ally rédige et envoie vos emails sur ordre vocal',
+      'Agenda piloté à 100 % à la voix',
+      'Commande vocale « Hey Ally » dans l\'application',
+      'Base de connaissances du cabinet'
     ],
-    missing: ['Plusieurs lignes', 'Plusieurs collaborateurs']
+    missing: ['Routage multi-praticiens', 'Base de connaissances avancée']
   },
   {
-    id: 'associes',
-    name: 'Associés',
-    price: 299,
-    priceYear: 2990,
-    tagline: 'Plusieurs praticiens, une seule assistante.',
-    forWho: 'Cabinet de 2 à 5 associés, ou activité à fort volume',
-    quota: { calls: 1500, emails: 5000 },
+    id: 'expert',
+    name: 'Expert',
+    price: 249,
+    priceYear: 2490,
+    tagline: 'Pour les cabinets à fort volume et à plusieurs.',
+    forWho: 'Activité dense, ou cabinet à plusieurs praticiens',
+    callMode: 'Agent vocal avancé, routage par motif et par praticien',
+    quota: { calls: 1200, emails: 4000 },
+    caps: {
+      app: true, aiCalls: true, autoNotes: true, aiEmails: true,
+      voiceCommand: true, voiceAgenda: true, knowledge: 'advanced'
+    },
     features: [
       'Tout ce que contient Cabinet',
       'Jusqu\'à 5 lignes et 5 collaborateurs',
-      'Routage par praticien et par motif',
+      'Routage par praticien et par motif d\'appel',
+      'Base de connaissances avancée, documents indexés',
       'Agendas multiples synchronisés',
       'Journal d\'accès détaillé par utilisateur',
-      'Accompagnement à la mise en route',
       'Support prioritaire sous 4 h'
     ],
     missing: []
@@ -2429,7 +2459,7 @@ window.ALLY_PLANS = [
 
 window.ALLY_TRIAL = {
   days: 14,
-  label: 'Pilote',
+  label: 'Essai',
   note: '14 jours pour tester avec vos vrais appels. Sans carte bancaire, sans engagement.'
 };
 
@@ -2467,17 +2497,20 @@ window.ALLY_PLAN_BY_ID = function (id) {
       trade: trade,
       hours: JSON.parse(JSON.stringify(DEFAULT_HOURS)),
       closures: 'Jours fériés, mercredi après-midi',
-      rules: { transfer: true, draft: true, record: true, autobook: true, voice: true },
+      rules: { transfer: true, draft: false, record: true, autobook: true, voice: true },
       autonomy: { calls: profile.autonomy.calls, emails: profile.autonomy.emails, agenda: profile.autonomy.agenda },
       greeting: '',
       notif: { sms: true, push: true, email: false },
       retentionDays: 90,
       summaryFreq: 'daily',
       voiceEnabled: true,
-      confirmLevel: 'sensitive',
+      /* Aucune confirmation orale avant exécution — choix produit assumé.
+         Le réglage reste disponible pour qui préfère relire avant envoi. */
+      confirmLevel: 'none',
       chatSpeaks: true,
       /* Voix d'Ally : identifiant de la voix du navigateur, débit, hauteur. */
       voice: { uri: '', rate: 1, pitch: 1 },
+      planId: 'cabinet',
       plan: '',
       subscription: null,
       links: { gmail: false, outlook: false, gcal: false, phone: false, sms: true },
@@ -2576,8 +2609,17 @@ window.ALLY_PLAN_BY_ID = function (id) {
       return state.data;
     },
 
-    /* Formule d'abonnement : celle choisie, sinon celle du métier. */
-    plan: function () { return state.plan || this.profile().plan; },
+    /* Formule d'abonnement et capacités qu'elle débloque. */
+    plan: function () { return state.plan || window.ALLY_PLAN_BY_ID(state.planId).name; },
+
+    planData: function () { return window.ALLY_PLAN_BY_ID(state.planId); },
+
+    /* Une capacité absente de la formule est masquée, pas désactivée en
+       silence : l'interface propose alors la montée en gamme. */
+    can: function (capability) {
+      var caps = this.planData().caps;
+      return !!caps[capability];
+    },
 
     /* Journalise un ordre vocal ou une action d'Ally. */
     log: function (order, result, done) {
@@ -3004,6 +3046,55 @@ window.ALLY_PLAN_BY_ID = function (id) {
           reply: D.calls.length + ' appels aujourd\'hui : ' + names.join(', ') + '.',
           detail: D.calls.filter(function (c) { return c.kind === 'pending'; }).length
             + ' en attente de rappel'
+        };
+      }
+
+      /* ---------- Email adressé à un rendez-vous de l'agenda ----------
+         « Envoie un mail à mon rendez-vous de 15h, dis-lui qu'on décale la
+         signature à vendredi. » Ally retrouve l'interlocuteur dans l'agenda,
+         rédige, et envoie — sans demander de confirmation, par choix produit. */
+      if (hasAny(t, ['envoie', 'envoyer', 'ecris', 'previens', 'previens'])
+          && hasAny(t, ['rendez vous', 'rdv', 'client', 'patient'])) {
+        var at = findTime(t);
+        var target = at
+          ? D.rdv.filter(function (r) { return r.time === at; })[0]
+          : D.rdv[0];
+
+        if (!target) {
+          return {
+            kind: 'answer',
+            reply: at
+              ? 'Je ne trouve aucun rendez-vous à ' + at.replace(':', 'h') + ' dans votre agenda.'
+              : 'Je ne vois aucun rendez-vous auquel écrire.',
+            detail: 'Précisez l\'heure, par exemple « mon rendez-vous de 15h ».'
+          };
+        }
+
+        /* Le message dicté après « dis-lui que » devient le corps de l'email. */
+        var raw = String(input);
+        var m = raw.match(/(?:dis[- ]lui|dites[- ]lui|explique[- ]lui|pour lui dire)\s+(?:qu[e']\s*)?(.+)$/i);
+        var message = m ? m[1].replace(/[.\s]+$/, '') : null;
+
+        var body = message
+          ? 'Bonjour, ' + message + '. Je reste à votre disposition. Bien à vous, '
+            + store.displayName() + '.'
+          : 'Bonjour, je reviens vers vous au sujet de notre rendez-vous. Bien à vous, '
+            + store.displayName() + '.';
+
+        return {
+          kind: 'action', sensitive: false,
+          reply: 'C\'est envoyé à ' + target.client + '. Je lui ai écrit : « '
+            + (message || 'un mot au sujet de votre rendez-vous') + ' ».',
+          detail: 'Rendez-vous de ' + target.time + ' — ' + target.type,
+          apply: function () {
+            D.sent.unshift({
+              id: Date.now(),
+              subject: 'Message de ' + store.displayName(),
+              to: target.client, time: 'À l\'instant', body: body
+            });
+            store.log('Email vocal à ' + target.client, 'Envoyé sans relecture');
+          },
+          follow: ['Résume-moi ma journée', 'Déplace ce rendez-vous']
         };
       }
 
@@ -4053,6 +4144,7 @@ window.ALLY_PLAN_BY_ID = function (id) {
     S.identity.firstName = first.value.trim() || S.identity.firstName;
     S.identity.lastName = last.value.trim();
     S.identity.email = email.value.trim();
+    S.planId = plan.id;
     S.plan = plan.name;
     S.subscription = {
       planId: plan.id, cycle: state.cycle,
@@ -4099,7 +4191,7 @@ window.ALLY_PLAN_BY_ID = function (id) {
     { id: 'transfer', label: 'Transférer les urgences vers mon portable',
       hint: 'Ally reconnaît les appels urgents et vous les passe immédiatement.' },
     { id: 'draft', label: "Aucun envoi d'email sans ma validation",
-      hint: 'Tout contenu métier reste en brouillon jusqu\'à votre accord.', lockedBySecret: true },
+      hint: 'Sinon Ally rédige et envoie directement, sur votre ordre vocal.' },
     { id: 'record', label: 'Enregistrer les appels',
       hint: 'Avec message de consentement diffusé à l\'appelant.' },
     { id: 'autobook', label: 'Laisser Ally poser des rendez-vous seule',
@@ -4289,11 +4381,11 @@ window.ALLY_PLAN_BY_ID = function (id) {
       el.rules.appendChild(row);
     });
 
-    if (p.secret) {
+    if (p.secret && !S.rules.draft) {
       var note = document.createElement('p');
       note.className = 'lock-note';
-      note.textContent = 'Le mode « brouillon à valider » est verrouillé pour ce métier : Ally ne pourra '
-        + 'jamais envoyer un contenu métier sans votre accord.';
+      note.textContent = 'Métier à secret professionnel : Ally enverra vos emails sans relecture. '
+        + 'Activez la validation ci-dessus si vous préférez relire avant envoi.';
       el.rules.appendChild(note);
     }
   }
@@ -4492,7 +4584,7 @@ window.ALLY_PLAN_BY_ID = function (id) {
     el.avatar.textContent = ((S.identity.firstName || '?')[0] + (S.identity.lastName || '?')[0]).toUpperCase();
     el.badgePlan.textContent = store.plan();
     el.notifBadge.hidden = !urgentCall();
-    el.fab.hidden = !S.voiceEnabled;
+    el.fab.hidden = !S.voiceEnabled || !store.can('voiceCommand');
     document.title = 'Espace pro — ' + name() + ' — Ally';
   }
 
@@ -4712,6 +4804,15 @@ window.ALLY_PLAN_BY_ID = function (id) {
       '<strong>' + esc(label) + '</strong>' + (hint ? '<span>' + esc(hint) + '</span>' : '') + '</span>' +
       '<button type="button" class="toggle" role="switch" data-switch="' + group + '.' + key + '"' +
       ' aria-checked="' + checked + '" aria-labelledby="lbl-' + id + '"></button></div>';
+  }
+
+  /* Une capacité absente de la formule se dit, avec la marche à suivre. */
+  function upsell(what, why) {
+    return '<div class="upsell">' +
+      '<p class="upsell-title">' + esc(what) + ' n\'est pas dans votre formule</p>' +
+      '<p class="upsell-why">' + esc(why) + '</p>' +
+      '<button type="button" class="btn btn-primary btn-sm" data-upgrade>Voir les formules</button>' +
+      '</div>';
   }
 
   function emptyState(text) {
@@ -4980,7 +5081,11 @@ window.ALLY_PLAN_BY_ID = function (id) {
           esc(p.clientWord) + 's entendent.</p>' +
       '</div>' +
 
-      '<div class="card"><p class="card-title">Commande vocale</p>' +
+      (store.can('voiceCommand') ? '' : upsell('La commande vocale',
+        'Dire « Hey Ally, envoie un mail à mon rendez-vous de 15h » demande l\'agent IA, '
+        + 'absent de la formule Permanence.')) +
+
+      (store.can('voiceCommand') ? '<div class="card"><p class="card-title">Commande vocale</p>' +
         switchRow('flat', 'voiceEnabled', 'Parler à Ally depuis l\'application',
           'Affiche le bouton micro en bas de l\'écran.') +
         '<p class="note" style="margin-top:12px">Le choix de la voix et son essai se font dans ' +
@@ -4992,16 +5097,16 @@ window.ALLY_PLAN_BY_ID = function (id) {
               ' aria-pressed="' + (S.confirmLevel === pair[0]) + '">' + pair[1] + '</button>';
           }).join('') +
         '</div>' +
-      '</div>' +
+      '</div>' : '') +
 
-      '<div class="card"><p class="card-title">Derniers ordres vocaux</p>' +
+      (store.can('voiceCommand') ? '<div class="card"><p class="card-title">Derniers ordres vocaux</p>' +
         '<div class="voice-log">' + D().voiceLog.map(function (entry) {
           return '<div class="row"><div><p class="row-name">« ' + esc(entry.order) + ' »</p>' +
             '<p class="row-meta">' + esc(entry.when) + ' · ' + esc(entry.result) + '</p></div>' +
             '<span class="voice-status ' + entry.state + '">' +
             (entry.state === 'done' ? 'Exécuté' : 'À valider') + '</span></div>';
         }).join('') + '</div>' +
-      '</div>' +
+      '</div>' : '') +
 
       '<div class="card"><p class="card-title">Contacts prioritaires</p>' +
         '<p class="note" style="margin-bottom:14px">Ally vous transfère ces appels immédiatement.</p>' +
@@ -5013,7 +5118,9 @@ window.ALLY_PLAN_BY_ID = function (id) {
         }).join('') +
       '</div>' +
 
-      '<div class="card"><p class="card-title">Base de connaissances</p>' +
+      (store.can('knowledge')
+        ? '<div class="card"><p class="card-title">Base de connaissances' +
+          (store.planData().caps.knowledge === 'advanced' ? ' <span class="tag">avancée</span>' : '') + '</p>' +
         '<p class="note" style="margin-bottom:14px">Ce qu\'Ally peut répondre seule, sans vous solliciter.</p>' +
         '<div class="faq-list">' + D().faq.map(function (item) {
           return '<div class="faq"><div class="faq-top"><strong>' + esc(item.q) + '</strong>' +
@@ -5031,7 +5138,11 @@ window.ALLY_PLAN_BY_ID = function (id) {
           '</div>' +
         '</form>' +
         '<button type="button" class="add-row" id="faq-open" style="margin-top:14px">+ Ajouter une entrée</button>' +
-      '</div></div>';
+      '</div>'
+        : upsell('La base de connaissances',
+            'Elle permet à Ally de répondre seule aux questions courantes de vos ' +
+            P().clientWord + 's. Disponible à partir de la formule Cabinet.')) +
+      '</div>';
   }
 
   /* ================================ COMPTE ================================ */
@@ -5354,6 +5465,10 @@ window.ALLY_PLAN_BY_ID = function (id) {
         store.save();
         renderPanel();
       });
+    });
+
+    panel.querySelectorAll('[data-upgrade]').forEach(function (button) {
+      button.addEventListener('click', function () { ui.account = 'plan'; setTab('account'); });
     });
 
     // Connexions : bascule d'état, simulée mais persistée.

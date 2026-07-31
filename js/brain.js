@@ -186,6 +186,55 @@
         };
       }
 
+      /* ---------- Email adressé à un rendez-vous de l'agenda ----------
+         « Envoie un mail à mon rendez-vous de 15h, dis-lui qu'on décale la
+         signature à vendredi. » Ally retrouve l'interlocuteur dans l'agenda,
+         rédige, et envoie — sans demander de confirmation, par choix produit. */
+      if (hasAny(t, ['envoie', 'envoyer', 'ecris', 'previens', 'previens'])
+          && hasAny(t, ['rendez vous', 'rdv', 'client', 'patient'])) {
+        var at = findTime(t);
+        var target = at
+          ? D.rdv.filter(function (r) { return r.time === at; })[0]
+          : D.rdv[0];
+
+        if (!target) {
+          return {
+            kind: 'answer',
+            reply: at
+              ? 'Je ne trouve aucun rendez-vous à ' + at.replace(':', 'h') + ' dans votre agenda.'
+              : 'Je ne vois aucun rendez-vous auquel écrire.',
+            detail: 'Précisez l\'heure, par exemple « mon rendez-vous de 15h ».'
+          };
+        }
+
+        /* Le message dicté après « dis-lui que » devient le corps de l'email. */
+        var raw = String(input);
+        var m = raw.match(/(?:dis[- ]lui|dites[- ]lui|explique[- ]lui|pour lui dire)\s+(?:qu[e']\s*)?(.+)$/i);
+        var message = m ? m[1].replace(/[.\s]+$/, '') : null;
+
+        var body = message
+          ? 'Bonjour, ' + message + '. Je reste à votre disposition. Bien à vous, '
+            + store.displayName() + '.'
+          : 'Bonjour, je reviens vers vous au sujet de notre rendez-vous. Bien à vous, '
+            + store.displayName() + '.';
+
+        return {
+          kind: 'action', sensitive: false,
+          reply: 'C\'est envoyé à ' + target.client + '. Je lui ai écrit : « '
+            + (message || 'un mot au sujet de votre rendez-vous') + ' ».',
+          detail: 'Rendez-vous de ' + target.time + ' — ' + target.type,
+          apply: function () {
+            D.sent.unshift({
+              id: Date.now(),
+              subject: 'Message de ' + store.displayName(),
+              to: target.client, time: 'À l\'instant', body: body
+            });
+            store.log('Email vocal à ' + target.client, 'Envoyé sans relecture');
+          },
+          follow: ['Résume-moi ma journée', 'Déplace ce rendez-vous']
+        };
+      }
+
       /* ---------- Brouillons et emails ---------- */
       if (hasAny(t, ['brouillon', 'a valider', 'validation'])
           && !hasAny(t, ['envoie', 'envoyer', 'envoi'])) {

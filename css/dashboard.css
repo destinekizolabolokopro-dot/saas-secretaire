@@ -688,3 +688,13 @@
   .link-row { flex-wrap: wrap; }
   .link-row .btn { width: 100%; }
 }
+
+/* Capacité absente de la formule : on l'explique et on propose la suite. */
+.upsell {
+  background: oklch(0.3 0.1 90 / 0.12); border: 1px dashed oklch(0.8 0.1 90 / 0.35);
+  border-radius: var(--r); padding: 20px 22px;
+  display: flex; flex-direction: column; gap: 8px; align-items: flex-start;
+}
+.upsell-title { font-size: 15px; font-weight: 600; color: var(--yellow); }
+.upsell-why { font-size: 13px; line-height: 1.6; color: var(--txt-3); }
+.upsell .btn { margin-top: 6px; }
