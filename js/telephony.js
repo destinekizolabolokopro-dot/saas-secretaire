@@ -12,6 +12,12 @@
       .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
   }
 
+  /* Num\u00e9ro sur lequel les renvois pointent. R\u00e9serv\u00e9 \u00e0 la mise en service :
+     le professionnel garde le sien, il ne le communique jamais. */
+  function allyNumber() {
+    return store.state.subscription ? '09 72 XX XX 41' : '09 72 XX XX 00';
+  }
+
   /* Phrase courte pour essayer une voix, personnalisée au cabinet. */
   function sampleLine() {
     var S = store.state;
@@ -70,8 +76,9 @@
             '<span class="line-pulse" aria-hidden="true"></span>' +
             '<div>' +
               '<p class="line-title">Ligne active</p>' +
-              '<p class="line-sub">Ally décroche à votre place en dehors de vos disponibilités, ' +
-                'et quand vous êtes déjà en ligne.</p>' +
+              '<p class="line-sub">Vous d\u00e9crochez d\'abord. Ally prend le relais apr\u00e8s ' +
+                '4 sonneries, quand vous \u00eates d\u00e9j\u00e0 en ligne, ou hors de vos horaires. ' +
+                'Elle ne rappelle jamais elle-m\u00eame : elle vous pose le message \u00e0 traiter.</p>' +
             '</div>' +
           '</div>' +
           '<div class="line-stats">' +
@@ -79,6 +86,40 @@
             '<div><strong>' + p.stats.avoided + '</strong><span>appels sauvés</span></div>' +
             '<div><strong>' + p.stats.saved + '</strong><span>gagnées cette semaine</span></div>' +
           '</div>' +
+        '</div>' +
+
+        /* ---- Mise en service ---- */
+        '<div class="card">' +
+          '<p class="card-title">Mise en service de votre ligne</p>' +
+          '<p class="note" style="margin-bottom:18px">Vous gardez votre num\u00e9ro actuel. ' +
+            'Trois renvois conditionnels suffisent : Ally ne prend l\'appel que si vous ne ' +
+            'r\u00e9pondez pas, si vous \u00eates d\u00e9j\u00e0 en ligne, ou si vous \u00eates injoignable.</p>' +
+
+          '<div class="steps-list">' +
+            [['Sans r\u00e9ponse apr\u00e8s 4 sonneries',
+              '**61*' + allyNumber() + '*11*20#',
+              'Vous d\u00e9crochez si vous pouvez. Sinon Ally prend le relais au bout de 20 secondes.'],
+             ['Quand vous \u00eates d\u00e9j\u00e0 en ligne',
+              '**67*' + allyNumber() + '#',
+              'Le deuxi\u00e8me appelant tombe sur Ally au lieu de la messagerie.'],
+             ['Quand vous \u00eates injoignable',
+              '**62*' + allyNumber() + '#',
+              'Tunnel, avion, batterie vide : la ligne r\u00e9pond quand m\u00eame.']
+            ].map(function (step, i) {
+              return '<div class="serve-step">' +
+                '<span class="script-num">0' + (i + 1) + '</span>' +
+                '<div class="serve-main">' +
+                  '<strong>' + esc(step[0]) + '</strong>' +
+                  '<code class="serve-code">' + esc(step[1]) + '</code>' +
+                  '<span>' + esc(step[2]) + '</span>' +
+                '</div>' +
+                '<button type="button" class="btn btn-ghost btn-sm" data-copy="' + esc(step[1]) + '">Copier</button>' +
+              '</div>';
+            }).join('') +
+          '</div>' +
+
+          '<p class="note serve-foot">Pour tout d\u00e9sactiver, composez <code>##002#</code>. ' +
+            'Vos appels reviennent imm\u00e9diatement sur votre ligne, sans nous pr\u00e9venir.</p>' +
         '</div>' +
 
         /* ---- Voix d'Ally ---- */
@@ -107,7 +148,7 @@
           '</div>' +
         '</div>' +
 
-        /* ---- Script d'appel ---- */
+      /* ---- Script d'appel ---- */
         '<div class="card">' +
           '<div class="script-head">' +
             '<div>' +
@@ -241,6 +282,16 @@
 
       var stopBtn = panel.querySelector('#stop-voice');
       if (stopBtn) stopBtn.addEventListener('click', function () { voice.stopSpeaking(); });
+
+      /* ---- Codes de renvoi ---- */
+      panel.querySelectorAll('[data-copy]').forEach(function (button) {
+        button.addEventListener('click', function () {
+          var code = button.getAttribute('data-copy');
+          if (navigator.clipboard) navigator.clipboard.writeText(code);
+          button.textContent = 'Copi\u00e9';
+          window.setTimeout(function () { button.textContent = 'Copier'; }, 1600);
+        });
+      });
 
       /* ---- Script d'appel ---- */
       panel.querySelectorAll('[data-script]').forEach(function (area) {

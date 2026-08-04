@@ -39,6 +39,30 @@ Téléphonie (Retell)  →  webhook  →  API Ally  →  base de données (UE)
 
 L'API est le seul endroit qui détient les secrets. Le front ne parle qu'à elle.
 
+## Décisions produit arrêtées
+
+**Le professionnel garde son numéro.** Pas de portage, pas de nouveau numéro à
+communiquer. Il pose trois renvois conditionnels vers la ligne Ally :
+
+| Cas | Code | Effet |
+| --- | --- | --- |
+| Sans réponse après 20 s | `**61*<ligne>*11*20#` | Il décroche s'il peut, sinon Ally prend |
+| Déjà en ligne | `**67*<ligne>#` | Le deuxième appelant ne tombe plus sur la messagerie |
+| Injoignable | `**62*<ligne>#` | La ligne répond même hors réseau |
+
+`##002#` annule tout, sans passer par nous. C'est un argument de vente : il
+peut arrêter du jour au lendemain, donc il ose essayer.
+
+**Ally ne décroche jamais en premier.** Renvoi conditionnel, jamais
+inconditionnel : le professionnel garde le contact direct avec ses clients, et
+Ally n'attrape que ce qu'il aurait manqué.
+
+**Ally ne rappelle pas.** Aucun appel sortant. Elle prend le message, le
+résume, et le pose dans les actions à traiter avec le numéro. Deux raisons :
+l'appel sortant coûte plus cher, et une IA qui appelle sans prévenir passe mal
+chez la clientèle d'un avocat. À revoir plus tard si le besoin remonte du
+terrain.
+
 ## Points bloquants à traiter tôt
 
 **OAuth Google.** Lire une boîte Gmail et écrire dans un agenda demande une
