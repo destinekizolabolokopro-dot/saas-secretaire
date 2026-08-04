@@ -378,12 +378,19 @@
       }
     }
 
-    var used = p.quota.calls[0] + D().sent.length;
-    var ratio = used / p.quota.calls[1];
-    if (ratio > 0.8) {
-      points.push({ level: 'danger', text: 'Forfait bientôt atteint : ' + used + ' appels sur ' +
-        p.quota.calls[1] + '. Pensez à passer à la formule supérieure.' });
-    }
+    var usage = store.usage();
+    [['calls', 'appels'], ['emails', 'emails']].forEach(function (pair) {
+      var u = usage[pair[0]];
+      var ratio = u.used / u.limit;
+      if (ratio >= 1) {
+        points.push({ level: 'danger', text: 'Forfait ' + pair[1] + ' dépassé : ' + u.used +
+          ' sur ' + u.limit + '. Les dépassements sont facturés à l\'unité.' });
+      } else if (ratio > 0.8) {
+        points.push({ level: 'danger', text: 'Forfait ' + pair[1] + ' bientôt atteint : ' +
+          u.used + ' sur ' + u.limit + ' (' + Math.round(ratio * 100) + ' %). ' +
+          'La formule supérieure vous laisserait de la marge.' });
+      }
+    });
 
     if (!S.links.gcal) {
       points.push({ level: 'info', text: 'Google Calendar n\'est pas connecté : Ally ne voit pas vos vraies disponibilités.' });
@@ -684,8 +691,8 @@
   /* ================================ COMPTE ================================ */
   function accountPlan() {
     var p = P();
-    var q = p.quota;
-    var pct = function (pair) { return Math.round((pair[0] / pair[1]) * 100); };
+    var usage = store.usage();
+    var pct = function (u) { return Math.min(100, Math.round((u.used / u.limit) * 100)); };
     return '<div class="cols cols-11">' +
       '<div class="plan-card">' +
         '<p class="plan-kicker">Formule actuelle</p>' +
@@ -697,11 +704,11 @@
             esc(S.subscription.trialEndsOn) + '</p>'
           : '') +
         '<div class="meter"><div class="meter-head"><span>Appels traités</span><span>' +
-          q.calls[0] + ' / ' + q.calls[1] + '</span></div>' +
-          '<div class="meter-track"><div class="meter-fill accent" style="width:' + pct(q.calls) + '%"></div></div></div>' +
+          usage.calls.used + ' / ' + usage.calls.limit + '</span></div>' +
+          '<div class="meter-track"><div class="meter-fill accent" style="width:' + pct(usage.calls) + '%"></div></div></div>' +
         '<div class="meter"><div class="meter-head"><span>Emails traités</span><span>' +
-          q.emails[0] + ' / ' + q.emails[1] + '</span></div>' +
-          '<div class="meter-track"><div class="meter-fill cyan" style="width:' + pct(q.emails) + '%"></div></div></div>' +
+          usage.emails.used + ' / ' + usage.emails.limit + '</span></div>' +
+          '<div class="meter-track"><div class="meter-fill cyan" style="width:' + pct(usage.emails) + '%"></div></div></div>' +
         '<button type="button" class="btn btn-ghost btn-md" id="plan-open">Changer de formule</button>' +
         '<div class="plan-choices" id="plan-choices" hidden>' +
           ['Essai gratuit', p.plan, 'Cabinet illimité'].map(function (label) {

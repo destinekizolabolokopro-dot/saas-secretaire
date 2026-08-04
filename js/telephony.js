@@ -75,7 +75,7 @@
             '</div>' +
           '</div>' +
           '<div class="line-stats">' +
-            '<div><strong>' + (p.quota.calls[0] + D.sent.length) + '</strong><span>appels traités</span></div>' +
+            '<div><strong>' + store.usage().calls.used + '</strong><span>appels traités</span></div>' +
             '<div><strong>' + p.stats.avoided + '</strong><span>appels sauvés</span></div>' +
             '<div><strong>' + p.stats.saved + '</strong><span>gagnées cette semaine</span></div>' +
           '</div>' +

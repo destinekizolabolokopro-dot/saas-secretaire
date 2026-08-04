@@ -151,6 +151,21 @@
       return !!caps[capability];
     },
 
+    /* Consommation du mois : la limite vient de la formule souscrite, jamais
+       du métier. Le métier ne fournit que la consommation déjà réalisée, à
+       laquelle s'ajoute l'activité de la session. */
+    usage: function () {
+      var base = this.profile().quota;
+      var limits = this.planData().quota;
+      var D = this.data();
+      var extraCalls = Math.max(0, D.calls.length - window.ALLY_PROFILES[D.trade].calls.length);
+      var extraMails = Math.max(0, D.sent.length - window.ALLY_PROFILES[D.trade].sent.length);
+      return {
+        calls:  { used: base.calls[0] + extraCalls,  limit: limits.calls },
+        emails: { used: base.emails[0] + extraMails, limit: limits.emails }
+      };
+    },
+
     /* Journalise un ordre vocal ou une action d'Ally. */
     log: function (order, result, done) {
       this.data().voiceLog.unshift({
