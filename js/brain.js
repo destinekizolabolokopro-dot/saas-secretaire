@@ -209,7 +209,8 @@
 
         /* Le message dicté après « dis-lui que » devient le corps de l'email. */
         var raw = String(input);
-        var m = raw.match(/(?:dis[- ]lui|dites[- ]lui|explique[- ]lui|pour lui dire)\s+(?:qu[e']\s*)?(.+)$/i);
+        // L'apostrophe de « qu'on » saute souvent à la dictée : on la rend facultative.
+        var m = raw.match(/(?:dis[- ]lui|dites[- ]lui|explique[- ]lui|pour lui dire)\s+(?:qu[e'’]?\s*)?(.+)$/i);
         var message = m ? m[1].replace(/[.\s]+$/, '') : null;
 
         var body = message
