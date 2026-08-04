@@ -63,6 +63,92 @@ l'appel sortant coûte plus cher, et une IA qui appelle sans prévenir passe mal
 chez la clientèle d'un avocat. À revoir plus tard si le besoin remonte du
 terrain.
 
+## Sécuriser Ally
+
+Le risque n'est pas réparti uniformément. Cinq mesures couvrent l'essentiel,
+le reste est de l'hygiène.
+
+### 1. Ne pas stocker ce dont on n'a pas besoin
+
+C'est le levier le plus fort, et le moins cher. **Ce qu'on n'a pas ne peut pas
+fuiter.**
+
+- Les enregistrements audio sont supprimés après la durée choisie par le
+  professionnel (7 à 365 jours, réglable dans l'espace pro). Par défaut : 30.
+- On ne stocke pas le contenu des emails du cabinet. On garde une référence
+  vers le message chez le fournisseur, pas une copie.
+- Les transcriptions sont réduites à un résumé structuré — motif, décision,
+  suite — pas au verbatim intégral.
+- Aucun numéro de dossier, aucune pièce jointe.
+
+Pour un avocat, cette liste n'est pas une contrainte technique : c'est
+l'argument commercial. Elle doit figurer dans la page Confidentialité.
+
+### 2. Cloisonner les cabinets
+
+La faille classique du SaaS : changer un identifiant dans l'URL et voir les
+données du voisin.
+
+- Chaque requête filtre sur `cabinet_id`, **déduit du jeton de session côté
+  serveur**, jamais d'un paramètre envoyé par le navigateur.
+- Un test automatisé vérifie, pour chaque route, qu'un cabinet A ne peut pas
+  lire une ressource de B. Ce test tourne à chaque déploiement.
+
+### 3. Chiffrer, à trois niveaux
+
+| Niveau | Moyen | Protège de |
+| --- | --- | --- |
+| Transport | HTTPS partout, HSTS | l'écoute réseau |
+| Disque | chiffrement de la base, activé chez l'hébergeur | le vol de matériel |
+| Champ | transcriptions et messages chiffrés applicativement | **le vol de la base elle-même** |
+
+Le troisième est celui qu'on oublie, et le seul qui protège si quelqu'un
+récupère un export de la base. La clé vit dans le gestionnaire de secrets, pas
+dans la base.
+
+### 4. Protéger les secrets et les accès
+
+Les clés d'API fuitées dans un dépôt public sont la première cause de
+compromission de petits SaaS.
+
+- Aucune clé dans le code ni dans Git. Variables d'environnement, et un scan
+  automatique du dépôt à chaque commit.
+- **Double authentification obligatoire** sur les comptes hébergeur, Google,
+  Stripe et GitHub. C'est par là qu'on entre, pas par le code.
+- Jetons Google au périmètre minimal : `calendar.events`, pas l'accès complet
+  au Drive. Si le jeton fuite, le dégât est borné.
+- Signature vérifiée sur les webhooks Retell et Stripe — sinon n'importe qui
+  peut injecter de faux appels et de faux paiements.
+
+### 5. Sauvegarder, et vérifier les sauvegardes
+
+Une sauvegarde jamais restaurée n'existe pas.
+
+- Sauvegardes chiffrées, quotidiennes, dont une copie hors du compte
+  hébergeur — sinon un rançongiciel qui prend le compte prend aussi les
+  sauvegardes.
+- Un test de restauration réel, tous les trimestres, noté quelque part.
+
+### Le reste, à tenir
+
+Requêtes paramétrées, validation des entrées, dépendances à jour
+(Dependabot), limitation du nombre de tentatives sur la connexion, journal
+d'accès conservé, mots de passe hachés avec argon2 ou bcrypt.
+
+### Avant le premier client payant
+
+- **Contrat de sous-traitance** (article 28 RGPD) signé avec l'hébergeur,
+  Retell et Brevo. Un cabinet sérieux le réclamera avant de signer.
+- **RC Pro avec volet cyber.** Quelques centaines d'euros par an, et ça évite
+  qu'un incident coule l'entreprise.
+- **Procédure de notification** écrite à l'avance : 72 heures pour prévenir la
+  CNIL. On ne l'improvise pas le jour J.
+
+### Avant les gros cabinets
+
+Un test d'intrusion par un prestataire externe. C'est ce qu'un cabinet de
+taille demandera, et le rapport devient un argument de vente.
+
 ## Points bloquants à traiter tôt
 
 **OAuth Google.** Lire une boîte Gmail et écrire dans un agenda demande une
