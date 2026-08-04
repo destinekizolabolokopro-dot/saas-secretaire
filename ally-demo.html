@@ -1496,6 +1496,126 @@ input[type="range"] {
   .bar-label { width: 92px; }
 }
 
+/* ============ HALO AMBIANT ============
+   Repris de la structure de l'espace pro comptable : une lueur diffuse dans
+   les angles de la zone de contenu, ici dans le violet et le cyan d'Ally. */
+.main { position: relative; isolation: isolate; }
+.main::before,
+.main::after {
+  content: ''; position: fixed; pointer-events: none; z-index: -1;
+  width: 620px; height: 620px; border-radius: 50%; filter: blur(30px);
+}
+.main::before {
+  top: -180px; right: -140px;
+  background: radial-gradient(circle, oklch(0.5 0.16 296 / 0.20), transparent 70%);
+}
+.main::after {
+  bottom: -220px; left: 180px;
+  background: radial-gradient(circle, oklch(0.55 0.14 200 / 0.14), transparent 70%);
+}
+
+/* ============ BARRE D'ACTIONS ============ */
+.topbar-actions { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin-left: auto; }
+.topbar-actions .act-link {
+  background: none; border: none; padding: 0; cursor: pointer;
+  font-family: inherit; font-size: 12.5px; color: var(--txt-4); white-space: nowrap;
+}
+.topbar-actions .act-link:hover { color: var(--txt-2); }
+.topbar-actions .btn { font-size: 12.5px; padding: 8px 15px; }
+
+/* ============ PIED DE BARRE LATÉRALE ============ */
+.sidebar-foot {
+  margin-top: 14px; padding-top: 14px;
+  border-top: 1px solid var(--hair);
+  display: flex; flex-direction: column; gap: 10px;
+}
+.foot-account {
+  display: flex; align-items: baseline; gap: 8px; justify-content: space-between;
+  font-size: 11px; color: var(--txt-5); min-width: 0;
+}
+.foot-account > span {
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1;
+}
+.foot-account .btn-link { font-size: 11px; flex-shrink: 0; }
+.foot-switch {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 10px; font-size: 11.5px; color: var(--txt-4);
+}
+.toggle-sm { width: 30px; height: 17px; }
+.toggle-sm::after { width: 12px; height: 12px; top: 2.5px; left: 2.5px; }
+.toggle-sm[aria-checked="true"]::after { left: 15.5px; }
+.foot-links { list-style: none; margin: 4px 0 0; padding: 0; display: flex; flex-direction: column; gap: 5px; }
+.foot-links li { font-size: 10.5px; line-height: 1.45; color: var(--txt-5); }
+.foot-dim { color: oklch(0.45 0.01 264); }
+.foot-link {
+  background: none; border: none; padding: 0; cursor: pointer; text-align: left;
+  font-family: inherit; font-size: 10.5px; color: var(--txt-4);
+  text-decoration: underline; text-decoration-color: oklch(1 0 0 / 0.15);
+  text-underline-offset: 2px;
+}
+.foot-link:hover { color: var(--accent-bright); }
+.foot-version { font-size: 10px; color: oklch(0.4 0.01 264); margin-top: 2px; }
+
+/* ============ PALETTE DE COMMANDES ============ */
+.palette-overlay {
+  position: fixed; inset: 0; z-index: 120;
+  background: oklch(0.1 0.02 264 / 0.72); backdrop-filter: blur(6px);
+  display: flex; align-items: flex-start; justify-content: center; padding: 12vh 20px 20px;
+}
+.palette {
+  width: 100%; max-width: 560px;
+  background: oklch(0.18 0.02 264); border: 1px solid var(--bd-3);
+  border-radius: var(--r); overflow: hidden;
+  box-shadow: 0 30px 70px oklch(0.06 0.02 264 / 0.7);
+}
+.palette-input {
+  width: 100%; padding: 18px 20px; border: none; outline: none;
+  background: none; color: var(--txt);
+  font-family: inherit; font-size: 15px;
+  border-bottom: 1px solid var(--hair);
+}
+.palette-input::placeholder { color: var(--txt-5); }
+.palette-list { max-height: 46vh; overflow-y: auto; padding: 6px; }
+.palette-item {
+  display: flex; align-items: center; gap: 12px; width: 100%;
+  padding: 10px 14px; border: none; border-radius: var(--r-sm);
+  background: none; font-family: inherit; text-align: left;
+  color: var(--txt-2); cursor: pointer;
+}
+.palette-item:hover, .palette-item.is-active { background: oklch(0.72 0.19 296 / 0.16); color: var(--txt); }
+.palette-kind {
+  font-size: 10px; text-transform: uppercase; letter-spacing: .07em;
+  color: var(--accent-bright); width: 62px; flex-shrink: 0;
+}
+.palette-label { flex: 1; font-size: 13.5px; min-width: 0; }
+.palette-hint {
+  padding: 10px 20px; border-top: 1px solid var(--hair);
+  font-size: 11px; color: var(--txt-5);
+}
+.palette-empty { padding: 22px; text-align: center; font-size: 13px; color: var(--txt-4); }
+
+/* Tuiles de statistiques : micro-libellé en capitales, comme sur l'autre produit. */
+.stat-label {
+  font-size: 10.5px; text-transform: uppercase; letter-spacing: .09em;
+  color: var(--txt-5);
+}
+
+@media (max-width: 900px) {
+  .topbar-actions { order: 3; width: 100%; margin-left: 0; gap: 12px; }
+  .main::before, .main::after { display: none; }
+}
+
+/* Retour d'action discret. */
+.flash {
+  position: fixed; top: 22px; right: 22px; z-index: 130;
+  padding: 12px 18px; border-radius: var(--pill);
+  background: oklch(0.22 0.04 296); border: 1px solid oklch(0.72 0.19 296 / 0.45);
+  color: var(--txt); font-size: 13px;
+  box-shadow: 0 12px 30px oklch(0.08 0.02 264 / 0.5);
+  transition: opacity .35s ease, transform .35s ease;
+}
+.flash.is-out { opacity: 0; transform: translateY(-8px); }
+
 /* Un seul écran visible à la fois. */
 .screen { display: none; }
 .screen[data-active] { display: block; }
@@ -2013,6 +2133,33 @@ input[type="range"] {
       </span>
       <span class="profile-chevron" aria-hidden="true">›</span>
     </button>
+
+    <div class="sidebar-foot">
+      <p class="foot-account">
+        <span id="foot-email">—</span>
+        <button type="button" class="btn-link" id="foot-logout">Déconnexion</button>
+      </p>
+
+      <div class="foot-switch">
+        <span id="lbl-foot-transfer">Transfert auto des urgences</span>
+        <button type="button" class="toggle toggle-sm" role="switch" id="foot-transfer"
+                aria-labelledby="lbl-foot-transfer"></button>
+      </div>
+      <div class="foot-switch">
+        <span id="lbl-foot-digest">Résumé quotidien par email</span>
+        <button type="button" class="toggle toggle-sm" role="switch" id="foot-digest"
+                aria-labelledby="lbl-foot-digest"></button>
+      </div>
+
+      <ul class="foot-links">
+        <li><span class="foot-dim">Stockage :</span> <span id="foot-storage">navigateur</span></li>
+        <li><button type="button" class="foot-link" id="foot-palette">⌘K — Palette de commandes</button></li>
+        <li><a class="foot-link" href="#" data-goto="landing">← Retour au site public</a></li>
+        <li><button type="button" class="foot-link" id="foot-invite">Inviter un collaborateur (lecture seule)</button></li>
+        <li><button type="button" class="foot-link" id="foot-voice">Voix : <span id="foot-voice-name">par défaut</span> (modifier)</button></li>
+      </ul>
+      <p class="foot-version">Ally — v0.6</p>
+    </div>
   </aside>
 
   <main class="main">
@@ -2021,6 +2168,7 @@ input[type="range"] {
         <h1 id="tab-title">Aujourd'hui</h1>
         <p class="topbar-sub" id="tab-sub"></p>
       </div>
+      <div class="topbar-actions" id="topbar-actions"></div>
       <div class="topbar-tools">
         <button class="icon-btn search-toggle" id="search-toggle" type="button" aria-label="Rechercher" aria-expanded="false">
           <span class="glyph-mag" aria-hidden="true"></span>
@@ -2051,6 +2199,17 @@ input[type="range"] {
   <span class="mic" aria-hidden="true"></span>
   <span>Parler à Ally</span>
 </button>
+
+<div class="palette-overlay" id="palette-overlay" role="dialog" aria-modal="true"
+     aria-label="Palette de commandes" hidden>
+  <div class="palette">
+    <label class="sr-only" for="palette-input">Rechercher une commande</label>
+    <input class="palette-input" id="palette-input" type="text"
+           placeholder="Aller à, exécuter, ou demander à Ally…" autocomplete="off">
+    <div class="palette-list" id="palette-list" role="listbox"></div>
+    <p class="palette-hint">↑↓ pour naviguer · Entrée pour valider · Échap pour fermer</p>
+  </div>
+</div>
 
 <div class="voice-overlay" id="voice-overlay" role="dialog" aria-modal="true" aria-labelledby="voice-title" hidden>
   <div class="voice-panel">
@@ -4380,6 +4539,178 @@ window.ALLY_PLAN_BY_ID = function (id) {
   };
 })();
 
+/* Ally — palette de commandes (⌘K).
+   Un seul champ pour aller n'importe où, déclencher une action, ou poser une
+   question à Ally. C'est ce qui rend un espace pro rapide une fois qu'on le
+   connaît : plus besoin de chercher l'onglet, on tape ce qu'on veut. */
+(function () {
+  'use strict';
+
+  var store = window.ALLY_STORE;
+  var hooks = {};          // fournis par dashboard.js
+  var items = [];
+  var active = 0;
+  var lastFocus = null;
+
+  function esc(v) {
+    return String(v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+  function norm(v) {
+    return String(v).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  }
+
+  var el = {};
+
+  /* Commandes disponibles, recalculées à chaque ouverture pour refléter la
+     formule souscrite et les données du moment. */
+  function build() {
+    var list = [
+      { kind: 'Aller à', label: "Aujourd'hui",    run: function () { hooks.goTab('today'); } },
+      { kind: 'Aller à', label: 'Conversations',  run: function () { hooks.goTab('conversations'); } },
+      { kind: 'Aller à', label: 'Agenda',         run: function () { hooks.goTab('agenda'); } },
+      { kind: 'Aller à', label: 'Téléphonie',     run: function () { hooks.goTab('telephony'); } },
+      { kind: 'Aller à', label: 'Ally',           run: function () { hooks.goTab('ally'); } },
+      { kind: 'Aller à', label: 'Abonnement',     run: function () { hooks.goAccount('plan'); } },
+      { kind: 'Aller à', label: 'Connexions',     run: function () { hooks.goAccount('links'); } },
+      { kind: 'Aller à', label: 'Sécurité',       run: function () { hooks.goAccount('privacy'); } },
+
+      { kind: 'Action', label: 'Valider les brouillons en attente',
+        run: function () { hooks.goTab('conversations', 'validate'); } },
+      { kind: 'Action', label: 'Exporter mes données',  run: function () { hooks.exportData(); } },
+      { kind: 'Action', label: 'Lancer un appel de test',
+        run: function () { hooks.goTab('telephony'); } }
+    ];
+
+    if (store.can('voiceCommand')) {
+      list.splice(8, 0, { kind: 'Action', label: 'Parler à Ally', run: function () { hooks.openVoice(); } });
+    }
+
+    /* Les rendez-vous à venir deviennent des destinations. */
+    var A = window.ALLY_AGENDA;
+    store.data().rdv.filter(function (r) { return r.date >= A.TODAY; })
+      .slice(0, 6).forEach(function (r) {
+        list.push({
+          kind: 'Agenda',
+          label: r.client + ' — ' + A.shortLabel(r.date) + ' ' + r.time,
+          run: function () { A.select(r.date); hooks.goTab('agenda'); }
+        });
+      });
+
+    return list;
+  }
+
+  function render(query) {
+    var q = norm(query || '').trim();
+    var all = build();
+
+    items = q
+      ? all.filter(function (item) {
+          return norm(item.label).indexOf(q) !== -1 || norm(item.kind).indexOf(q) !== -1;
+        })
+      : all;
+
+    /* Rien ne correspond : la saisie devient une question posée à Ally. */
+    if (q && !items.length) {
+      items = [{
+        kind: 'Demander', label: '« ' + query.trim() +' »',
+        run: function () { hooks.ask(query.trim()); }
+      }];
+    }
+
+    active = 0;
+    if (!items.length) {
+      el.list.innerHTML = '<p class="palette-empty">Aucune commande.</p>';
+      return;
+    }
+
+    el.list.innerHTML = items.map(function (item, index) {
+      return '<button type="button" class="palette-item' + (index === 0 ? ' is-active' : '') +
+        '" data-index="' + index + '">' +
+        '<span class="palette-kind">' + esc(item.kind) + '</span>' +
+        '<span class="palette-label">' + esc(item.label) + '</span></button>';
+    }).join('');
+
+    el.list.querySelectorAll('[data-index]').forEach(function (button) {
+      button.addEventListener('click', function () {
+        run(Number(button.getAttribute('data-index')));
+      });
+    });
+  }
+
+  function highlight() {
+    el.list.querySelectorAll('.palette-item').forEach(function (node, index) {
+      node.classList.toggle('is-active', index === active);
+      if (index === active && node.scrollIntoView) {
+        node.scrollIntoView({ block: 'nearest' });
+      }
+    });
+  }
+
+  function run(index) {
+    var item = items[index];
+    close();
+    if (item && item.run) item.run();
+  }
+
+  function open() {
+    lastFocus = document.activeElement;
+    el.overlay.hidden = false;
+    el.input.value = '';
+    render('');
+    el.input.focus();
+  }
+
+  function close() {
+    el.overlay.hidden = true;
+    if (lastFocus && lastFocus.focus) lastFocus.focus();
+  }
+
+  window.ALLY_PALETTE = {
+    init: function (providedHooks) {
+      hooks = providedHooks;
+      el.overlay = document.getElementById('palette-overlay');
+      el.input = document.getElementById('palette-input');
+      el.list = document.getElementById('palette-list');
+      if (!el.overlay) return;
+
+      el.input.addEventListener('input', function () { render(el.input.value); });
+
+      el.input.addEventListener('keydown', function (event) {
+        if (event.key === 'ArrowDown') {
+          event.preventDefault();
+          active = Math.min(active + 1, items.length - 1);
+          highlight();
+        } else if (event.key === 'ArrowUp') {
+          event.preventDefault();
+          active = Math.max(active - 1, 0);
+          highlight();
+        } else if (event.key === 'Enter') {
+          event.preventDefault();
+          run(active);
+        }
+      });
+
+      el.overlay.addEventListener('click', function (event) {
+        if (event.target === el.overlay) close();
+      });
+
+      /* ⌘K sur Mac, Ctrl+K ailleurs. */
+      document.addEventListener('keydown', function (event) {
+        if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
+          event.preventDefault();
+          if (el.overlay.hidden) open(); else close();
+        } else if (event.key === 'Escape' && !el.overlay.hidden) {
+          close();
+        }
+      });
+    },
+    open: open,
+    close: close,
+    isOpen: function () { return el.overlay && !el.overlay.hidden; }
+  };
+})();
+
 /* Ally — landing : scroll-reveal, menu mobile, liste d'attente */
 (function () {
   'use strict';
@@ -5057,6 +5388,92 @@ window.ALLY_PLAN_BY_ID = function (id) {
     return name() + (S.identity.org ? ' — ' + S.identity.org : '');
   }
 
+  /* Actions du haut de page, propres à chaque onglet — comme les liens
+     d'export et les boutons de l'espace pro de référence. */
+  var ACTIONS = {
+    today: [
+      { label: '↓ Exporter le récapitulatif', act: function () { exportJSON('recapitulatif', {
+          date: DATE_LABEL, actions: todoItems(), usage: store.usage() }); } },
+      { label: '✉ Envoyer le résumé du jour', act: function () {
+          store.log('Résumé du jour envoyé', S.identity.email || 'adresse professionnelle');
+          flash('Résumé envoyé à ' + (S.identity.email || 'votre adresse')); } },
+      { primary: true, label: '+ Rendez-vous', act: function () { setTab('agenda'); } }
+    ],
+    conversations: [
+      { label: '↓ Export CSV des appels', act: function () { exportCSV(); } },
+      { primary: true, label: '+ Valider les brouillons', act: function () {
+          ui.filter = 'validate'; renderPanel(); } }
+    ],
+    agenda: [
+      { label: '↓ Exporter l\'agenda', act: function () { exportJSON('agenda', D().rdv); } },
+      { primary: true, label: '+ Rendez-vous', act: function () {
+          var input = document.getElementById('cal-client'); if (input) input.focus(); } }
+    ],
+    telephony: [
+      { label: '▶ Essayer la voix', act: function () {
+          var button = document.getElementById('try-voice'); if (button) button.click(); } },
+      { primary: true, label: 'Lancer un appel test', act: function () {
+          var button = document.getElementById('start-call'); if (button) button.click(); } }
+    ],
+    ally: [
+      { label: '↓ Exporter la configuration', act: function () { exportJSON('configuration', {
+          regles: S.rules, autonomie: S.autonomy, script: store.script(), faq: D().faq }); } },
+      { primary: true, label: '+ Connaissance', act: function () {
+          var button = document.getElementById('faq-open'); if (button) button.click(); } }
+    ],
+    account: []
+  };
+
+  function exportJSON(name, payload) {
+    var blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    var link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = 'ally-' + name + '.json';
+    document.body.appendChild(link); link.click(); document.body.removeChild(link);
+    URL.revokeObjectURL(link.href);
+    flash('Fichier téléchargé');
+  }
+
+  function exportCSV() {
+    var rows = [['Heure', 'Appelant', 'Motif', 'Statut']].concat(
+      calls().map(function (c) { return [c.time, c.caller, c.subject, c.status]; }));
+    var csv = rows.map(function (r) {
+      return r.map(function (cell) { return '"' + String(cell).replace(/"/g, '""') + '"'; }).join(';');
+    }).join('\n');
+    var blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
+    var link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = 'ally-appels.csv';
+    document.body.appendChild(link); link.click(); document.body.removeChild(link);
+    URL.revokeObjectURL(link.href);
+    flash('Export CSV téléchargé');
+  }
+
+  /* Retour discret après une action, en haut à droite. */
+  function flash(text) {
+    var node = document.createElement('div');
+    node.className = 'flash';
+    node.textContent = text;
+    document.body.appendChild(node);
+    window.setTimeout(function () { node.classList.add('is-out'); }, 2200);
+    window.setTimeout(function () { node.remove(); }, 2600);
+  }
+
+  function renderActions() {
+    var box = document.getElementById('topbar-actions');
+    var list = ACTIONS[ui.tab] || [];
+    box.innerHTML = list.map(function (a, i) {
+      return a.primary
+        ? '<button type="button" class="btn btn-primary" data-act="' + i + '">' + esc(a.label) + '</button>'
+        : '<button type="button" class="act-link" data-act="' + i + '">' + esc(a.label) + '</button>';
+    }).join('');
+    box.querySelectorAll('[data-act]').forEach(function (button) {
+      button.addEventListener('click', function () {
+        list[Number(button.getAttribute('data-act'))].act();
+      });
+    });
+  }
+
   /* ---------- En-tête et barre latérale ---------- */
   function renderChrome() {
     var p = P();
@@ -5067,6 +5484,15 @@ window.ALLY_PLAN_BY_ID = function (id) {
     el.notifBadge.hidden = !urgentCall();
     el.fab.hidden = !S.voiceEnabled || !store.can('voiceCommand');
     document.title = 'Espace pro — ' + name() + ' — Ally';
+
+    document.getElementById('foot-email').textContent = S.identity.email || store.fullName();
+    document.getElementById('foot-transfer').setAttribute('aria-checked', String(!!S.rules.transfer));
+    document.getElementById('foot-digest').setAttribute('aria-checked', String(S.notif.email));
+    document.getElementById('foot-storage').textContent =
+      S.subscription ? 'navigateur (compte actif)' : 'navigateur (démonstration)';
+    var v = window.ALLY_VOICE.resolveVoice(S.voice.uri);
+    document.getElementById('foot-voice-name').textContent =
+      v ? v.name.replace(/\s*\(.*\)\s*/, '') : 'par défaut';
   }
 
   function renderNav() {
@@ -5123,6 +5549,7 @@ window.ALLY_PLAN_BY_ID = function (id) {
     el.sub.textContent = SUBS[id]();
 
     renderNav();
+    renderActions();
     renderPanel();
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
@@ -5156,6 +5583,28 @@ window.ALLY_PLAN_BY_ID = function (id) {
     el.searchToggle.setAttribute('aria-expanded', String(open));
     if (open) el.search.focus();
   });
+  /* Bloc utilitaire du pied de barre latérale. */
+  document.getElementById('foot-transfer').addEventListener('click', function () {
+    S.rules.transfer = !S.rules.transfer; store.save(); renderChrome();
+    flash(S.rules.transfer ? 'Urgences transférées sur votre portable' : 'Transfert des urgences désactivé');
+  });
+  document.getElementById('foot-digest').addEventListener('click', function () {
+    S.notif.email = !S.notif.email; store.save(); renderChrome();
+    flash(S.notif.email ? 'Résumé quotidien activé' : 'Résumé quotidien désactivé');
+  });
+  document.getElementById('foot-logout').addEventListener('click', function () {
+    window.ALLY_GOTO('login.html');
+  });
+  document.getElementById('foot-palette').addEventListener('click', function () {
+    window.ALLY_PALETTE.open();
+  });
+  document.getElementById('foot-invite').addEventListener('click', function () {
+    flash('Invitation en lecture seule envoyée (démonstration)');
+  });
+  document.getElementById('foot-voice').addEventListener('click', function () {
+    setTab('telephony');
+  });
+
   /* ---------- Recherche transversale ---------- */
   /* Cherche dans les appels, les emails, les rendez-vous et la base de
      connaissances, et emmène directement sur le bon onglet. */
@@ -6454,7 +6903,16 @@ window.ALLY_PLAN_BY_ID = function (id) {
   });
 
   /* ---------- Démarrage ---------- */
+  window.ALLY_PALETTE.init({
+    goTab: function (tab, filter) { if (filter) ui.filter = filter; setTab(tab); },
+    goAccount: function (section) { ui.account = section; setTab('account'); },
+    openVoice: openVoice,
+    exportData: function () { exportJSON('compte', { identite: S.identity, donnees: D() }); },
+    ask: function (question) { openVoice(); window.setTimeout(function () { handle(question); }, 120); }
+  });
+
   renderChrome();
+  renderActions();
   setTab('today');
 
   /* Le fichier de démonstration autonome n'a pas de rechargement de page :

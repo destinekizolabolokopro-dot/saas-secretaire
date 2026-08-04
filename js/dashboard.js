@@ -82,6 +82,92 @@
     return name() + (S.identity.org ? ' — ' + S.identity.org : '');
   }
 
+  /* Actions du haut de page, propres à chaque onglet — comme les liens
+     d'export et les boutons de l'espace pro de référence. */
+  var ACTIONS = {
+    today: [
+      { label: '↓ Exporter le récapitulatif', act: function () { exportJSON('recapitulatif', {
+          date: DATE_LABEL, actions: todoItems(), usage: store.usage() }); } },
+      { label: '✉ Envoyer le résumé du jour', act: function () {
+          store.log('Résumé du jour envoyé', S.identity.email || 'adresse professionnelle');
+          flash('Résumé envoyé à ' + (S.identity.email || 'votre adresse')); } },
+      { primary: true, label: '+ Rendez-vous', act: function () { setTab('agenda'); } }
+    ],
+    conversations: [
+      { label: '↓ Export CSV des appels', act: function () { exportCSV(); } },
+      { primary: true, label: '+ Valider les brouillons', act: function () {
+          ui.filter = 'validate'; renderPanel(); } }
+    ],
+    agenda: [
+      { label: '↓ Exporter l\'agenda', act: function () { exportJSON('agenda', D().rdv); } },
+      { primary: true, label: '+ Rendez-vous', act: function () {
+          var input = document.getElementById('cal-client'); if (input) input.focus(); } }
+    ],
+    telephony: [
+      { label: '▶ Essayer la voix', act: function () {
+          var button = document.getElementById('try-voice'); if (button) button.click(); } },
+      { primary: true, label: 'Lancer un appel test', act: function () {
+          var button = document.getElementById('start-call'); if (button) button.click(); } }
+    ],
+    ally: [
+      { label: '↓ Exporter la configuration', act: function () { exportJSON('configuration', {
+          regles: S.rules, autonomie: S.autonomy, script: store.script(), faq: D().faq }); } },
+      { primary: true, label: '+ Connaissance', act: function () {
+          var button = document.getElementById('faq-open'); if (button) button.click(); } }
+    ],
+    account: []
+  };
+
+  function exportJSON(name, payload) {
+    var blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    var link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = 'ally-' + name + '.json';
+    document.body.appendChild(link); link.click(); document.body.removeChild(link);
+    URL.revokeObjectURL(link.href);
+    flash('Fichier téléchargé');
+  }
+
+  function exportCSV() {
+    var rows = [['Heure', 'Appelant', 'Motif', 'Statut']].concat(
+      calls().map(function (c) { return [c.time, c.caller, c.subject, c.status]; }));
+    var csv = rows.map(function (r) {
+      return r.map(function (cell) { return '"' + String(cell).replace(/"/g, '""') + '"'; }).join(';');
+    }).join('\n');
+    var blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
+    var link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = 'ally-appels.csv';
+    document.body.appendChild(link); link.click(); document.body.removeChild(link);
+    URL.revokeObjectURL(link.href);
+    flash('Export CSV téléchargé');
+  }
+
+  /* Retour discret après une action, en haut à droite. */
+  function flash(text) {
+    var node = document.createElement('div');
+    node.className = 'flash';
+    node.textContent = text;
+    document.body.appendChild(node);
+    window.setTimeout(function () { node.classList.add('is-out'); }, 2200);
+    window.setTimeout(function () { node.remove(); }, 2600);
+  }
+
+  function renderActions() {
+    var box = document.getElementById('topbar-actions');
+    var list = ACTIONS[ui.tab] || [];
+    box.innerHTML = list.map(function (a, i) {
+      return a.primary
+        ? '<button type="button" class="btn btn-primary" data-act="' + i + '">' + esc(a.label) + '</button>'
+        : '<button type="button" class="act-link" data-act="' + i + '">' + esc(a.label) + '</button>';
+    }).join('');
+    box.querySelectorAll('[data-act]').forEach(function (button) {
+      button.addEventListener('click', function () {
+        list[Number(button.getAttribute('data-act'))].act();
+      });
+    });
+  }
+
   /* ---------- En-tête et barre latérale ---------- */
   function renderChrome() {
     var p = P();
@@ -92,6 +178,15 @@
     el.notifBadge.hidden = !urgentCall();
     el.fab.hidden = !S.voiceEnabled || !store.can('voiceCommand');
     document.title = 'Espace pro — ' + name() + ' — Ally';
+
+    document.getElementById('foot-email').textContent = S.identity.email || store.fullName();
+    document.getElementById('foot-transfer').setAttribute('aria-checked', String(!!S.rules.transfer));
+    document.getElementById('foot-digest').setAttribute('aria-checked', String(S.notif.email));
+    document.getElementById('foot-storage').textContent =
+      S.subscription ? 'navigateur (compte actif)' : 'navigateur (démonstration)';
+    var v = window.ALLY_VOICE.resolveVoice(S.voice.uri);
+    document.getElementById('foot-voice-name').textContent =
+      v ? v.name.replace(/\s*\(.*\)\s*/, '') : 'par défaut';
   }
 
   function renderNav() {
@@ -148,6 +243,7 @@
     el.sub.textContent = SUBS[id]();
 
     renderNav();
+    renderActions();
     renderPanel();
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
@@ -181,6 +277,28 @@
     el.searchToggle.setAttribute('aria-expanded', String(open));
     if (open) el.search.focus();
   });
+  /* Bloc utilitaire du pied de barre latérale. */
+  document.getElementById('foot-transfer').addEventListener('click', function () {
+    S.rules.transfer = !S.rules.transfer; store.save(); renderChrome();
+    flash(S.rules.transfer ? 'Urgences transférées sur votre portable' : 'Transfert des urgences désactivé');
+  });
+  document.getElementById('foot-digest').addEventListener('click', function () {
+    S.notif.email = !S.notif.email; store.save(); renderChrome();
+    flash(S.notif.email ? 'Résumé quotidien activé' : 'Résumé quotidien désactivé');
+  });
+  document.getElementById('foot-logout').addEventListener('click', function () {
+    window.location.href = 'login.html';
+  });
+  document.getElementById('foot-palette').addEventListener('click', function () {
+    window.ALLY_PALETTE.open();
+  });
+  document.getElementById('foot-invite').addEventListener('click', function () {
+    flash('Invitation en lecture seule envoyée (démonstration)');
+  });
+  document.getElementById('foot-voice').addEventListener('click', function () {
+    setTab('telephony');
+  });
+
   /* ---------- Recherche transversale ---------- */
   /* Cherche dans les appels, les emails, les rendez-vous et la base de
      connaissances, et emmène directement sur le bon onglet. */
@@ -1479,7 +1597,16 @@
   });
 
   /* ---------- Démarrage ---------- */
+  window.ALLY_PALETTE.init({
+    goTab: function (tab, filter) { if (filter) ui.filter = filter; setTab(tab); },
+    goAccount: function (section) { ui.account = section; setTab('account'); },
+    openVoice: openVoice,
+    exportData: function () { exportJSON('compte', { identite: S.identity, donnees: D() }); },
+    ask: function (question) { openVoice(); window.setTimeout(function () { handle(question); }, 120); }
+  });
+
   renderChrome();
+  renderActions();
   setTab('today');
 
   /* Le fichier de démonstration autonome n'a pas de rechargement de page :

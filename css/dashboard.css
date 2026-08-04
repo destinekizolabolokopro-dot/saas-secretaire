@@ -784,3 +784,123 @@
   .cal-title { min-width: 110px; font-size: 15px; }
   .bar-label { width: 92px; }
 }
+
+/* ============ HALO AMBIANT ============
+   Repris de la structure de l'espace pro comptable : une lueur diffuse dans
+   les angles de la zone de contenu, ici dans le violet et le cyan d'Ally. */
+.main { position: relative; isolation: isolate; }
+.main::before,
+.main::after {
+  content: ''; position: fixed; pointer-events: none; z-index: -1;
+  width: 620px; height: 620px; border-radius: 50%; filter: blur(30px);
+}
+.main::before {
+  top: -180px; right: -140px;
+  background: radial-gradient(circle, oklch(0.5 0.16 296 / 0.20), transparent 70%);
+}
+.main::after {
+  bottom: -220px; left: 180px;
+  background: radial-gradient(circle, oklch(0.55 0.14 200 / 0.14), transparent 70%);
+}
+
+/* ============ BARRE D'ACTIONS ============ */
+.topbar-actions { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin-left: auto; }
+.topbar-actions .act-link {
+  background: none; border: none; padding: 0; cursor: pointer;
+  font-family: inherit; font-size: 12.5px; color: var(--txt-4); white-space: nowrap;
+}
+.topbar-actions .act-link:hover { color: var(--txt-2); }
+.topbar-actions .btn { font-size: 12.5px; padding: 8px 15px; }
+
+/* ============ PIED DE BARRE LATÉRALE ============ */
+.sidebar-foot {
+  margin-top: 14px; padding-top: 14px;
+  border-top: 1px solid var(--hair);
+  display: flex; flex-direction: column; gap: 10px;
+}
+.foot-account {
+  display: flex; align-items: baseline; gap: 8px; justify-content: space-between;
+  font-size: 11px; color: var(--txt-5); min-width: 0;
+}
+.foot-account > span {
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1;
+}
+.foot-account .btn-link { font-size: 11px; flex-shrink: 0; }
+.foot-switch {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 10px; font-size: 11.5px; color: var(--txt-4);
+}
+.toggle-sm { width: 30px; height: 17px; }
+.toggle-sm::after { width: 12px; height: 12px; top: 2.5px; left: 2.5px; }
+.toggle-sm[aria-checked="true"]::after { left: 15.5px; }
+.foot-links { list-style: none; margin: 4px 0 0; padding: 0; display: flex; flex-direction: column; gap: 5px; }
+.foot-links li { font-size: 10.5px; line-height: 1.45; color: var(--txt-5); }
+.foot-dim { color: oklch(0.45 0.01 264); }
+.foot-link {
+  background: none; border: none; padding: 0; cursor: pointer; text-align: left;
+  font-family: inherit; font-size: 10.5px; color: var(--txt-4);
+  text-decoration: underline; text-decoration-color: oklch(1 0 0 / 0.15);
+  text-underline-offset: 2px;
+}
+.foot-link:hover { color: var(--accent-bright); }
+.foot-version { font-size: 10px; color: oklch(0.4 0.01 264); margin-top: 2px; }
+
+/* ============ PALETTE DE COMMANDES ============ */
+.palette-overlay {
+  position: fixed; inset: 0; z-index: 120;
+  background: oklch(0.1 0.02 264 / 0.72); backdrop-filter: blur(6px);
+  display: flex; align-items: flex-start; justify-content: center; padding: 12vh 20px 20px;
+}
+.palette {
+  width: 100%; max-width: 560px;
+  background: oklch(0.18 0.02 264); border: 1px solid var(--bd-3);
+  border-radius: var(--r); overflow: hidden;
+  box-shadow: 0 30px 70px oklch(0.06 0.02 264 / 0.7);
+}
+.palette-input {
+  width: 100%; padding: 18px 20px; border: none; outline: none;
+  background: none; color: var(--txt);
+  font-family: inherit; font-size: 15px;
+  border-bottom: 1px solid var(--hair);
+}
+.palette-input::placeholder { color: var(--txt-5); }
+.palette-list { max-height: 46vh; overflow-y: auto; padding: 6px; }
+.palette-item {
+  display: flex; align-items: center; gap: 12px; width: 100%;
+  padding: 10px 14px; border: none; border-radius: var(--r-sm);
+  background: none; font-family: inherit; text-align: left;
+  color: var(--txt-2); cursor: pointer;
+}
+.palette-item:hover, .palette-item.is-active { background: oklch(0.72 0.19 296 / 0.16); color: var(--txt); }
+.palette-kind {
+  font-size: 10px; text-transform: uppercase; letter-spacing: .07em;
+  color: var(--accent-bright); width: 62px; flex-shrink: 0;
+}
+.palette-label { flex: 1; font-size: 13.5px; min-width: 0; }
+.palette-hint {
+  padding: 10px 20px; border-top: 1px solid var(--hair);
+  font-size: 11px; color: var(--txt-5);
+}
+.palette-empty { padding: 22px; text-align: center; font-size: 13px; color: var(--txt-4); }
+
+/* Tuiles de statistiques : micro-libellé en capitales, comme sur l'autre produit. */
+.stat-label {
+  font-size: 10.5px; text-transform: uppercase; letter-spacing: .09em;
+  color: var(--txt-5);
+}
+
+@media (max-width: 900px) {
+  .topbar-actions { order: 3; width: 100%; margin-left: 0; gap: 12px; }
+  .main::before, .main::after { display: none; }
+}
+
+/* Retour d'action discret. */
+.flash {
+  position: fixed; top: 22px; right: 22px; z-index: 130;
+  padding: 12px 18px; border-radius: var(--pill);
+  background: oklch(0.22 0.04 296); border: 1px solid oklch(0.72 0.19 296 / 0.45);
+  color: var(--txt); font-size: 13px;
+  box-shadow: 0 12px 30px oklch(0.08 0.02 264 / 0.5);
+  transition: opacity .35s ease, transform .35s ease;
+}
+.flash.is-out { opacity: 0; transform: translateY(-8px); }
