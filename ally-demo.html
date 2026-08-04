@@ -3131,6 +3131,65 @@ window.ALLY_PLAN_BY_ID = function (id) {
         };
       }
 
+      /* ---------- Création de rendez-vous ----------
+         « Crée un rendez-vous avec M. Dupont vendredi à 10h ». Les verbes sont
+         larges à dessein : personne ne dicte deux fois de la même façon. */
+      var CREATE_VERBS = ['cree', 'creer', 'ajoute', 'rajoute', 'prends', 'prend',
+        'note', 'noter', 'planifie', 'programme', 'reserve', 'fixe', 'cale',
+        'inscris', 'mets', 'bloque moi', 'organise'];
+
+      if (hasAny(t, CREATE_VERBS)
+          && hasAny(t, ['rendez vous', 'rdv', 'consultation', 'creneau', 'visite', 'audience'])
+          && !hasAny(t, ['deplace', 'decale', 'bouge', 'annule', 'supprime'])) {
+
+        var nt = findTime(t);
+        var nd = findDay(t);
+
+        /* Le nom vient après « avec ». On le reprend tel qu'écrit, sans
+           normalisation, pour garder la casse et les accents. */
+        var who = null;
+        var withMatch = String(input).match(
+          /\bavec\s+(.+?)(?:\s+(?:lundi|mardi|mercredi|jeudi|vendredi|samedi|dimanche|demain|apr[eè]s[- ]demain|[àa]\s*\d)|[,;]|$)/i);
+        if (withMatch) who = withMatch[1].replace(/[\s.,;]+$/, '').trim();
+
+        if (!nt) {
+          return {
+            kind: 'answer',
+            reply: 'À quelle heure ? Dites-moi par exemple « crée un rendez-vous '
+              + (who ? 'avec ' + who + ' ' : '') + (nd || 'vendredi') + ' à 10h ».',
+            detail: 'Il me faut au moins une heure pour poser le créneau.'
+          };
+        }
+
+        var label = nd
+          ? (nd === 'demain' ? 'Demain'
+             : nd === 'après-demain' ? 'Après-dem.'
+             : nd.charAt(0).toUpperCase() + nd.slice(1, 3) + '.')
+          : 'Auj.';
+
+        var client = who || 'Nouveau ' + p.clientWord;
+        var kindLabel = hasAny(t, ['consultation']) ? 'Consultation'
+          : hasAny(t, ['visite']) ? 'Visite'
+          : hasAny(t, ['audience']) ? 'Audience'
+          : 'Rendez-vous';
+
+        return {
+          kind: 'action', sensitive: false,
+          reply: 'C\'est posé : ' + client + ', ' + label.toLowerCase().replace('.', '')
+            + ' à ' + nt.replace(':', 'h') + '.',
+          detail: kindLabel + ' — ajouté à votre agenda',
+          apply: function () {
+            D.rdv.push({
+              id: Date.now(), day: label, client: client,
+              type: kindLabel, time: nt
+            });
+            store.log('Création de rendez-vous — ' + client,
+              label + ' ' + nt.replace(':', 'h'));
+          },
+          follow: ['Quel est mon prochain rendez-vous ?', 'Résume-moi ma journée']
+        };
+      }
+
       /* ---------- Agenda : consultation ---------- */
       if (hasAny(t, ['prochain rendez vous', 'prochain rdv', 'prochain rendez'])) {
         var next = D.rdv[0];
@@ -3144,7 +3203,8 @@ window.ALLY_PLAN_BY_ID = function (id) {
 
       if (hasAny(t, ['agenda', 'rendez vous', 'rdv', 'planning'])
           && hasAny(t, ['combien', 'quoi', 'journee', 'aujourd hui', 'demain', 'programme', 'ai je'])
-          && !hasAny(t, ['deplace', 'decale', 'bouge', 'bloque', 'annule', 'ajoute', 'cale'])) {
+          && !hasAny(t, ['deplace', 'decale', 'bouge', 'bloque', 'annule'])
+          && !hasAny(t, CREATE_VERBS)) {
         var today = D.rdv.filter(function (r) { return r.day === 'Auj.'; });
         return {
           kind: 'answer',
@@ -3191,17 +3251,6 @@ window.ALLY_PLAN_BY_ID = function (id) {
           confirm: 'J\'annule ce rendez-vous et je préviens l\'intéressé, vous confirmez ?',
           reply: 'Le rendez-vous est annulé, la personne est prévenue.',
           detail: 'Créneau libéré'
-        };
-      }
-
-      if (hasAny(t, ['ajoute', 'cale', 'creneau', 'nouveau rendez'])) {
-        var nd = findDay(t), nt = findTime(t);
-        return {
-          kind: 'action', sensitive: true,
-          confirm: 'Je pose un rendez-vous' + (nd ? ' ' + nd : '') + (nt ? ' à ' + nt.replace(':', 'h') : '')
-            + ', vous confirmez ?',
-          reply: 'C\'est noté' + (nd ? ', ' + nd : '') + (nt ? ' à ' + nt.replace(':', 'h') : '') + '.',
-          detail: 'Créneau vérifié contre vos disponibilités'
         };
       }
 
