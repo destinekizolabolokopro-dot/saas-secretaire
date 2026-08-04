@@ -110,14 +110,15 @@
         if (/^(et|puis|ensuite)\b/.test(t) || t.length < 16) {
           if (ctx.intent === 'agenda') {
             var day = has(t, ['demain']) ? 'demain' : null;
+            var A = window.ALLY_AGENDA;
             var list = day
-              ? D.rdv.filter(function (x) { return x.day !== 'Auj.'; }).slice(0, 2)
-              : D.rdv.filter(function (x) { return x.day === 'Auj.'; });
+              ? A.rdvOn(A.addDays(A.TODAY, 1))
+              : A.rdvOn(A.TODAY);
             return this.wrap({
               kind: 'answer',
               reply: list.length
-                ? (day ? 'Ensuite : ' : 'Aujourd\'hui : ') + list.map(function (x) {
-                    return x.client + ' à ' + x.time + (day ? ' ' + x.day.toLowerCase() : '');
+                ? (day ? 'Demain : ' : 'Aujourd\'hui : ') + list.map(function (x) {
+                    return x.client + ' à ' + x.time;
                   }).join(', ') + '.'
                 : 'Rien de prévu sur cette période.',
               follow: ['Bloque mon agenda vendredi après-midi', 'Résume-moi ma journée']
@@ -154,7 +155,7 @@
     brief: function () {
       var store = window.ALLY_STORE;
       var D = store.data();
-      var today = D.rdv.filter(function (r) { return r.day === 'Auj.'; });
+      var today = window.ALLY_AGENDA.rdvOn(window.ALLY_AGENDA.TODAY);
       var urgent = D.calls.filter(function (c) { return c.kind === 'urgent'; });
       var bits = [];
 

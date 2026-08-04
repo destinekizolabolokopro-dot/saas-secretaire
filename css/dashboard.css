@@ -698,3 +698,89 @@
 .upsell-title { font-size: 15px; font-weight: 600; color: var(--yellow); }
 .upsell-why { font-size: 13px; line-height: 1.6; color: var(--txt-3); }
 .upsell .btn { margin-top: 6px; }
+
+/* ============ CALENDRIER MENSUEL ============ */
+.cal-card { padding: 22px 24px; }
+.cal-head {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 16px; flex-wrap: wrap; margin-bottom: 18px;
+}
+.cal-nav { display: flex; align-items: center; gap: 12px; }
+.cal-arrow {
+  width: 30px; height: 30px; border-radius: 8px; flex-shrink: 0;
+  background: var(--s4); border: 1px solid var(--bd-2);
+  color: var(--txt-3); font-family: inherit; font-size: 14px; cursor: pointer;
+}
+.cal-arrow:hover { color: var(--txt); border-color: var(--bd-3); }
+.cal-title {
+  font-family: var(--ff-h); font-size: 17px; font-weight: 700;
+  min-width: 150px; text-align: center; text-transform: capitalize;
+}
+.cal-dow {
+  display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px;
+  margin-bottom: 6px;
+}
+.cal-dow span {
+  font-size: 11px; letter-spacing: .08em; color: var(--txt-5);
+  text-align: center; padding-bottom: 4px;
+}
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+.cal-cell {
+  display: flex; flex-direction: column; gap: 4px; align-items: stretch;
+  min-height: 88px; padding: 7px 8px; border-radius: var(--r-sm);
+  background: var(--s1); border: 1px solid var(--bd);
+  font-family: inherit; text-align: left; color: var(--txt-2); cursor: pointer;
+  transition: border-color .15s, background .15s;
+  overflow: hidden;
+}
+.cal-cell:hover { border-color: var(--bd-3); background: var(--s4); }
+.cal-cell.is-outside { opacity: .35; }
+.cal-cell.is-today { border-color: oklch(0.75 0.15 200 / 0.55); }
+.cal-cell.is-selected {
+  border-color: var(--accent-bright);
+  background: oklch(0.72 0.19 296 / 0.12);
+}
+.cal-cell.is-blocked { background: repeating-linear-gradient(135deg, var(--s1), var(--s1) 6px, var(--s0) 6px, var(--s0) 12px); }
+.cal-num { font-size: 12px; color: var(--txt-4); font-variant-numeric: tabular-nums; }
+.cal-cell.is-today .cal-num { color: var(--cyan); font-weight: 700; }
+.cal-events { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.cal-event {
+  font-size: 10.5px; line-height: 1.35; padding: 2px 5px; border-radius: 4px;
+  background: oklch(0.72 0.19 296 / 0.18); color: oklch(0.9 0.06 296);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.cal-event b { font-weight: 700; }
+.cal-more { font-size: 10px; color: var(--txt-5); }
+.cal-block { font-size: 10px; color: var(--yellow); }
+
+/* ============ BARRES DE RÉPARTITION ============ */
+.bars { display: flex; flex-direction: column; gap: 12px; }
+.bar-row { display: flex; align-items: center; gap: 12px; }
+.bar-label { font-size: 12px; color: var(--txt-3); width: 128px; flex-shrink: 0; }
+.bar-track {
+  flex: 1; height: 8px; border-radius: var(--pill);
+  background: oklch(1 0 0 / 0.07); overflow: hidden;
+}
+.bar-fill { display: block; height: 100%; border-radius: var(--pill); background: var(--cyan); }
+.bar-fill.danger { background: var(--danger); }
+.bar-fill.warn { background: var(--yellow); }
+.bar-value {
+  font-size: 12px; color: var(--txt-4); width: 26px; text-align: right;
+  flex-shrink: 0; font-variant-numeric: tabular-nums;
+}
+
+/* ============ POINTS D'ATTENTION ============ */
+.watch { display: flex; flex-direction: column; gap: 12px; }
+.watch-item { display: flex; align-items: flex-start; gap: 10px; font-size: 13px; line-height: 1.55; }
+.watch-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; margin-top: 6px; }
+.watch-item.danger .watch-dot { background: var(--danger); }
+.watch-item.warn .watch-dot { background: var(--yellow); }
+.watch-item.info .watch-dot { background: var(--cyan); }
+.watch-item.danger span:last-child { color: var(--txt-2); }
+
+@media (max-width: 900px) {
+  .cal-cell { min-height: 62px; padding: 5px; }
+  .cal-event { font-size: 9px; padding: 1px 3px; }
+  .cal-title { min-width: 110px; font-size: 15px; }
+  .bar-label { width: 92px; }
+}

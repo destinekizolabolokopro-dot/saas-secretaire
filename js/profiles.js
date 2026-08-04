@@ -49,11 +49,11 @@ window.ALLY_PROFILES = {
       { id: 3, subject: "Confirmation d'annulation", to: 'roussel.m@email.fr', time: 'Lundi 16:14' }
     ],
     rdv: [
-      { id: 1, day: 'Auj.',   client: 'Mme Aubert',   type: 'Consultation',          time: '14:00' },
-      { id: 2, day: 'Auj.',   client: 'M. Chevalier', type: 'Suivi de dossier',      time: '16:30' },
-      { id: 3, day: 'Jeu 30', client: 'Sté Meridian', type: 'Première consultation', time: '09:30' },
-      { id: 4, day: 'Ven 31', client: 'M. Petit',     type: 'Suivi de dossier',      time: '14:00' },
-      { id: 5, day: 'Lun 03', client: 'Mme Roussel',  type: 'Consultation',          time: '11:00' }
+      { id: 1, date: '2026-07-28',   client: 'Mme Aubert',   type: 'Consultation',          time: '14:00' },
+      { id: 2, date: '2026-07-28',   client: 'M. Chevalier', type: 'Suivi de dossier',      time: '16:30' },
+      { id: 3, date: '2026-07-30', client: 'Sté Meridian', type: 'Première consultation', time: '09:30' },
+      { id: 4, date: '2026-07-31', client: 'M. Petit',     type: 'Suivi de dossier',      time: '14:00' },
+      { id: 5, date: '2026-08-03', client: 'Mme Roussel',  type: 'Consultation',          time: '11:00' }
     ],
     agendaRules: 'Fermé les jours fériés, absences déclarées et le mercredi après-midi.',
     agendaLast: 'RDV de M. Petit déplacé au 31/07 à 14h.',
@@ -134,11 +134,11 @@ window.ALLY_PROFILES = {
       { id: 3, subject: "Confirmation d'annulation", to: 'morvan.l@email.fr', time: 'Lundi 14:22' }
     ],
     rdv: [
-      { id: 1, day: 'Auj.',   client: 'Mme Fontaine', type: 'Suivi chronique',      time: '14:00' },
-      { id: 2, day: 'Auj.',   client: 'M. Ferrand',   type: 'Consultation',         time: '15:30' },
-      { id: 3, day: 'Jeu 30', client: 'Mme Kaci',     type: 'Première consultation', time: '09:00' },
-      { id: 4, day: 'Ven 31', client: 'Enfant Morvan', type: 'Vaccination',         time: '11:15' },
-      { id: 5, day: 'Lun 03', client: 'M. Bassène',   type: 'Contrôle',             time: '10:00' }
+      { id: 1, date: '2026-07-28',   client: 'Mme Fontaine', type: 'Suivi chronique',      time: '14:00' },
+      { id: 2, date: '2026-07-28',   client: 'M. Ferrand',   type: 'Consultation',         time: '15:30' },
+      { id: 3, date: '2026-07-30', client: 'Mme Kaci',     type: 'Première consultation', time: '09:00' },
+      { id: 4, date: '2026-07-31', client: 'Enfant Morvan', type: 'Vaccination',         time: '11:15' },
+      { id: 5, date: '2026-08-03', client: 'M. Bassène',   type: 'Contrôle',             time: '10:00' }
     ],
     agendaRules: 'Fermé les jours fériés et le samedi. Créneaux d\'urgence réservés de 08h à 09h.',
     agendaLast: 'Consultation de Mme Kaci avancée au 30/07 à 09h00.',
@@ -219,11 +219,11 @@ window.ALLY_PROFILES = {
       { id: 3, subject: 'Rappel — intervention demain 07h30', to: 'contact@syndic-bellecour.fr', time: 'Lundi 17:45' }
     ],
     rdv: [
-      { id: 1, day: 'Auj.',   client: 'Syndic Bellecour', type: 'Intervention urgence', time: '13:30' },
-      { id: 2, day: 'Auj.',   client: 'Chantier Lavoisier', type: 'Pose carrelage',     time: '15:00' },
-      { id: 3, day: 'Jeu 30', client: 'Mme Ollivier',    type: 'Visite technique',     time: '08:30' },
-      { id: 4, day: 'Ven 31', client: 'M. Renaud',       type: 'Visite technique',     time: '08:00' },
-      { id: 5, day: 'Lun 03', client: 'Chantier Guillon', type: 'Début de chantier',    time: '07:30' }
+      { id: 1, date: '2026-07-28',   client: 'Syndic Bellecour', type: 'Intervention urgence', time: '13:30' },
+      { id: 2, date: '2026-07-28',   client: 'Chantier Lavoisier', type: 'Pose carrelage',     time: '15:00' },
+      { id: 3, date: '2026-07-30', client: 'Mme Ollivier',    type: 'Visite technique',     time: '08:30' },
+      { id: 4, date: '2026-07-31', client: 'M. Renaud',       type: 'Visite technique',     time: '08:00' },
+      { id: 5, date: '2026-08-03', client: 'Chantier Guillon', type: 'Début de chantier',    time: '07:30' }
     ],
     agendaRules: 'Sur chantier du lundi au vendredi 7h30-17h. Devis et visites le matin uniquement.',
     agendaLast: 'Visite technique de Mme Ollivier avancée au 30/07 à 08h30.',
@@ -302,11 +302,11 @@ window.ALLY_PROFILES = {
       { id: 3, subject: 'Compte rendu d\'atelier', to: 'vasseur@groupe-vs.fr', time: 'Lundi 19:05' }
     ],
     rdv: [
-      { id: 1, day: 'Auj.',   client: 'M. Vasseur',    type: 'Point de mission',    time: '14:00' },
-      { id: 2, day: 'Auj.',   client: 'Atelier Novaris', type: 'Atelier cadrage',   time: '16:00' },
-      { id: 3, day: 'Jeu 30', client: 'Sté Novaris',   type: 'Rendez-vous cadrage', time: '11:00' },
-      { id: 4, day: 'Ven 31', client: 'Mme Delaunay',  type: 'Premier échange',     time: '09:30' },
-      { id: 5, day: 'Lun 03', client: 'Groupe VS',     type: 'Comité de pilotage',  time: '10:00' }
+      { id: 1, date: '2026-07-28',   client: 'M. Vasseur',    type: 'Point de mission',    time: '14:00' },
+      { id: 2, date: '2026-07-28',   client: 'Atelier Novaris', type: 'Atelier cadrage',   time: '16:00' },
+      { id: 3, date: '2026-07-30', client: 'Sté Novaris',   type: 'Rendez-vous cadrage', time: '11:00' },
+      { id: 4, date: '2026-07-31', client: 'Mme Delaunay',  type: 'Premier échange',     time: '09:30' },
+      { id: 5, date: '2026-08-03', client: 'Groupe VS',     type: 'Comité de pilotage',  time: '10:00' }
     ],
     agendaRules: 'Rendez-vous du lundi au vendredi 9h-19h. Vendredi après-midi réservé à la production.',
     agendaLast: 'Comité de pilotage Groupe VS déplacé au 03/08 à 10h.',

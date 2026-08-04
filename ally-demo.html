@@ -1410,6 +1410,92 @@ input[type="range"] {
 .upsell-why { font-size: 13px; line-height: 1.6; color: var(--txt-3); }
 .upsell .btn { margin-top: 6px; }
 
+/* ============ CALENDRIER MENSUEL ============ */
+.cal-card { padding: 22px 24px; }
+.cal-head {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 16px; flex-wrap: wrap; margin-bottom: 18px;
+}
+.cal-nav { display: flex; align-items: center; gap: 12px; }
+.cal-arrow {
+  width: 30px; height: 30px; border-radius: 8px; flex-shrink: 0;
+  background: var(--s4); border: 1px solid var(--bd-2);
+  color: var(--txt-3); font-family: inherit; font-size: 14px; cursor: pointer;
+}
+.cal-arrow:hover { color: var(--txt); border-color: var(--bd-3); }
+.cal-title {
+  font-family: var(--ff-h); font-size: 17px; font-weight: 700;
+  min-width: 150px; text-align: center; text-transform: capitalize;
+}
+.cal-dow {
+  display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px;
+  margin-bottom: 6px;
+}
+.cal-dow span {
+  font-size: 11px; letter-spacing: .08em; color: var(--txt-5);
+  text-align: center; padding-bottom: 4px;
+}
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+.cal-cell {
+  display: flex; flex-direction: column; gap: 4px; align-items: stretch;
+  min-height: 88px; padding: 7px 8px; border-radius: var(--r-sm);
+  background: var(--s1); border: 1px solid var(--bd);
+  font-family: inherit; text-align: left; color: var(--txt-2); cursor: pointer;
+  transition: border-color .15s, background .15s;
+  overflow: hidden;
+}
+.cal-cell:hover { border-color: var(--bd-3); background: var(--s4); }
+.cal-cell.is-outside { opacity: .35; }
+.cal-cell.is-today { border-color: oklch(0.75 0.15 200 / 0.55); }
+.cal-cell.is-selected {
+  border-color: var(--accent-bright);
+  background: oklch(0.72 0.19 296 / 0.12);
+}
+.cal-cell.is-blocked { background: repeating-linear-gradient(135deg, var(--s1), var(--s1) 6px, var(--s0) 6px, var(--s0) 12px); }
+.cal-num { font-size: 12px; color: var(--txt-4); font-variant-numeric: tabular-nums; }
+.cal-cell.is-today .cal-num { color: var(--cyan); font-weight: 700; }
+.cal-events { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.cal-event {
+  font-size: 10.5px; line-height: 1.35; padding: 2px 5px; border-radius: 4px;
+  background: oklch(0.72 0.19 296 / 0.18); color: oklch(0.9 0.06 296);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.cal-event b { font-weight: 700; }
+.cal-more { font-size: 10px; color: var(--txt-5); }
+.cal-block { font-size: 10px; color: var(--yellow); }
+
+/* ============ BARRES DE RÉPARTITION ============ */
+.bars { display: flex; flex-direction: column; gap: 12px; }
+.bar-row { display: flex; align-items: center; gap: 12px; }
+.bar-label { font-size: 12px; color: var(--txt-3); width: 128px; flex-shrink: 0; }
+.bar-track {
+  flex: 1; height: 8px; border-radius: var(--pill);
+  background: oklch(1 0 0 / 0.07); overflow: hidden;
+}
+.bar-fill { display: block; height: 100%; border-radius: var(--pill); background: var(--cyan); }
+.bar-fill.danger { background: var(--danger); }
+.bar-fill.warn { background: var(--yellow); }
+.bar-value {
+  font-size: 12px; color: var(--txt-4); width: 26px; text-align: right;
+  flex-shrink: 0; font-variant-numeric: tabular-nums;
+}
+
+/* ============ POINTS D'ATTENTION ============ */
+.watch { display: flex; flex-direction: column; gap: 12px; }
+.watch-item { display: flex; align-items: flex-start; gap: 10px; font-size: 13px; line-height: 1.55; }
+.watch-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; margin-top: 6px; }
+.watch-item.danger .watch-dot { background: var(--danger); }
+.watch-item.warn .watch-dot { background: var(--yellow); }
+.watch-item.info .watch-dot { background: var(--cyan); }
+.watch-item.danger span:last-child { color: var(--txt-2); }
+
+@media (max-width: 900px) {
+  .cal-cell { min-height: 62px; padding: 5px; }
+  .cal-event { font-size: 9px; padding: 1px 3px; }
+  .cal-title { min-width: 110px; font-size: 15px; }
+  .bar-label { width: 92px; }
+}
+
 /* Un seul écran visible à la fois. */
 .screen { display: none; }
 .screen[data-active] { display: block; }
@@ -2073,11 +2159,11 @@ window.ALLY_PROFILES = {
       { id: 3, subject: "Confirmation d'annulation", to: 'roussel.m@email.fr', time: 'Lundi 16:14' }
     ],
     rdv: [
-      { id: 1, day: 'Auj.',   client: 'Mme Aubert',   type: 'Consultation',          time: '14:00' },
-      { id: 2, day: 'Auj.',   client: 'M. Chevalier', type: 'Suivi de dossier',      time: '16:30' },
-      { id: 3, day: 'Jeu 30', client: 'Sté Meridian', type: 'Première consultation', time: '09:30' },
-      { id: 4, day: 'Ven 31', client: 'M. Petit',     type: 'Suivi de dossier',      time: '14:00' },
-      { id: 5, day: 'Lun 03', client: 'Mme Roussel',  type: 'Consultation',          time: '11:00' }
+      { id: 1, date: '2026-07-28',   client: 'Mme Aubert',   type: 'Consultation',          time: '14:00' },
+      { id: 2, date: '2026-07-28',   client: 'M. Chevalier', type: 'Suivi de dossier',      time: '16:30' },
+      { id: 3, date: '2026-07-30', client: 'Sté Meridian', type: 'Première consultation', time: '09:30' },
+      { id: 4, date: '2026-07-31', client: 'M. Petit',     type: 'Suivi de dossier',      time: '14:00' },
+      { id: 5, date: '2026-08-03', client: 'Mme Roussel',  type: 'Consultation',          time: '11:00' }
     ],
     agendaRules: 'Fermé les jours fériés, absences déclarées et le mercredi après-midi.',
     agendaLast: 'RDV de M. Petit déplacé au 31/07 à 14h.',
@@ -2158,11 +2244,11 @@ window.ALLY_PROFILES = {
       { id: 3, subject: "Confirmation d'annulation", to: 'morvan.l@email.fr', time: 'Lundi 14:22' }
     ],
     rdv: [
-      { id: 1, day: 'Auj.',   client: 'Mme Fontaine', type: 'Suivi chronique',      time: '14:00' },
-      { id: 2, day: 'Auj.',   client: 'M. Ferrand',   type: 'Consultation',         time: '15:30' },
-      { id: 3, day: 'Jeu 30', client: 'Mme Kaci',     type: 'Première consultation', time: '09:00' },
-      { id: 4, day: 'Ven 31', client: 'Enfant Morvan', type: 'Vaccination',         time: '11:15' },
-      { id: 5, day: 'Lun 03', client: 'M. Bassène',   type: 'Contrôle',             time: '10:00' }
+      { id: 1, date: '2026-07-28',   client: 'Mme Fontaine', type: 'Suivi chronique',      time: '14:00' },
+      { id: 2, date: '2026-07-28',   client: 'M. Ferrand',   type: 'Consultation',         time: '15:30' },
+      { id: 3, date: '2026-07-30', client: 'Mme Kaci',     type: 'Première consultation', time: '09:00' },
+      { id: 4, date: '2026-07-31', client: 'Enfant Morvan', type: 'Vaccination',         time: '11:15' },
+      { id: 5, date: '2026-08-03', client: 'M. Bassène',   type: 'Contrôle',             time: '10:00' }
     ],
     agendaRules: 'Fermé les jours fériés et le samedi. Créneaux d\'urgence réservés de 08h à 09h.',
     agendaLast: 'Consultation de Mme Kaci avancée au 30/07 à 09h00.',
@@ -2243,11 +2329,11 @@ window.ALLY_PROFILES = {
       { id: 3, subject: 'Rappel — intervention demain 07h30', to: 'contact@syndic-bellecour.fr', time: 'Lundi 17:45' }
     ],
     rdv: [
-      { id: 1, day: 'Auj.',   client: 'Syndic Bellecour', type: 'Intervention urgence', time: '13:30' },
-      { id: 2, day: 'Auj.',   client: 'Chantier Lavoisier', type: 'Pose carrelage',     time: '15:00' },
-      { id: 3, day: 'Jeu 30', client: 'Mme Ollivier',    type: 'Visite technique',     time: '08:30' },
-      { id: 4, day: 'Ven 31', client: 'M. Renaud',       type: 'Visite technique',     time: '08:00' },
-      { id: 5, day: 'Lun 03', client: 'Chantier Guillon', type: 'Début de chantier',    time: '07:30' }
+      { id: 1, date: '2026-07-28',   client: 'Syndic Bellecour', type: 'Intervention urgence', time: '13:30' },
+      { id: 2, date: '2026-07-28',   client: 'Chantier Lavoisier', type: 'Pose carrelage',     time: '15:00' },
+      { id: 3, date: '2026-07-30', client: 'Mme Ollivier',    type: 'Visite technique',     time: '08:30' },
+      { id: 4, date: '2026-07-31', client: 'M. Renaud',       type: 'Visite technique',     time: '08:00' },
+      { id: 5, date: '2026-08-03', client: 'Chantier Guillon', type: 'Début de chantier',    time: '07:30' }
     ],
     agendaRules: 'Sur chantier du lundi au vendredi 7h30-17h. Devis et visites le matin uniquement.',
     agendaLast: 'Visite technique de Mme Ollivier avancée au 30/07 à 08h30.',
@@ -2326,11 +2412,11 @@ window.ALLY_PROFILES = {
       { id: 3, subject: 'Compte rendu d\'atelier', to: 'vasseur@groupe-vs.fr', time: 'Lundi 19:05' }
     ],
     rdv: [
-      { id: 1, day: 'Auj.',   client: 'M. Vasseur',    type: 'Point de mission',    time: '14:00' },
-      { id: 2, day: 'Auj.',   client: 'Atelier Novaris', type: 'Atelier cadrage',   time: '16:00' },
-      { id: 3, day: 'Jeu 30', client: 'Sté Novaris',   type: 'Rendez-vous cadrage', time: '11:00' },
-      { id: 4, day: 'Ven 31', client: 'Mme Delaunay',  type: 'Premier échange',     time: '09:30' },
-      { id: 5, day: 'Lun 03', client: 'Groupe VS',     type: 'Comité de pilotage',  time: '10:00' }
+      { id: 1, date: '2026-07-28',   client: 'M. Vasseur',    type: 'Point de mission',    time: '14:00' },
+      { id: 2, date: '2026-07-28',   client: 'Atelier Novaris', type: 'Atelier cadrage',   time: '16:00' },
+      { id: 3, date: '2026-07-30', client: 'Sté Novaris',   type: 'Rendez-vous cadrage', time: '11:00' },
+      { id: 4, date: '2026-07-31', client: 'Mme Delaunay',  type: 'Premier échange',     time: '09:30' },
+      { id: 5, date: '2026-08-03', client: 'Groupe VS',     type: 'Comité de pilotage',  time: '10:00' }
     ],
     agendaRules: 'Rendez-vous du lundi au vendredi 9h-19h. Vendredi après-midi réservé à la production.',
     agendaLast: 'Comité de pilotage Groupe VS déplacé au 03/08 à 10h.',
@@ -2861,6 +2947,315 @@ window.ALLY_PLAN_BY_ID = function (id) {
   };
 })();
 
+/* Ally — agenda : calendrier mensuel manipulable.
+   Une grille du mois plutôt qu'une liste : le professionnel voit sa charge
+   d'un coup d'œil, repère les journées pleines et les trous. Chaque case
+   accepte les rendez-vous et les créneaux bloqués, et Ally écrit dedans quand
+   on lui parle. */
+(function () {
+  'use strict';
+
+  var store = window.ALLY_STORE;
+
+  /* La démonstration est figée au mardi 28 juillet 2026, comme le reste. */
+  var TODAY = '2026-07-28';
+
+  var MONTHS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet',
+    'août', 'septembre', 'octobre', 'novembre', 'décembre'];
+  var DOW = ['LUN', 'MAR', 'MER', 'JEU', 'VEN', 'SAM', 'DIM'];
+  var DAY_WORDS = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi',
+    'vendredi', 'samedi'];
+
+  function esc(v) {
+    return String(v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  /* ---------- Dates ---------- */
+  function toISO(date) {
+    var m = date.getMonth() + 1, d = date.getDate();
+    return date.getFullYear() + '-' + (m < 10 ? '0' : '') + m + '-' + (d < 10 ? '0' : '') + d;
+  }
+  function fromISO(iso) {
+    var parts = String(iso).split('-');
+    return new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+  }
+  function addDays(iso, n) {
+    var d = fromISO(iso);
+    d.setDate(d.getDate() + n);
+    return toISO(d);
+  }
+
+  /* Étiquette courte : « Auj. », « Dem. », sinon « Jeu 30 ». */
+  function shortLabel(iso) {
+    if (iso === TODAY) return 'Auj.';
+    if (iso === addDays(TODAY, 1)) return 'Dem.';
+    var d = fromISO(iso);
+    var name = DAY_WORDS[d.getDay()];
+    return name.charAt(0).toUpperCase() + name.slice(1, 3) + ' ' + d.getDate();
+  }
+
+  function longLabel(iso) {
+    var d = fromISO(iso);
+    return DAY_WORDS[d.getDay()] + ' ' + d.getDate() + ' ' + MONTHS[d.getMonth()];
+  }
+
+  /* Traduit « demain », « vendredi », « le 12 » en date réelle, toujours
+     vers le futur : dire « vendredi » un mardi vise le vendredi qui vient. */
+  function resolveDate(word, ref) {
+    var base = ref || TODAY;
+    if (!word) return base;
+    var w = String(word).toLowerCase();
+
+    if (w.indexOf('après-demain') !== -1 || w.indexOf('apres-demain') !== -1) return addDays(base, 2);
+    if (w.indexOf('demain') !== -1) return addDays(base, 1);
+    if (w.indexOf("aujourd") !== -1) return base;
+
+    for (var i = 0; i < DAY_WORDS.length; i++) {
+      if (w.indexOf(DAY_WORDS[i]) !== -1) {
+        var current = fromISO(base).getDay();
+        var delta = (i - current + 7) % 7;
+        if (delta === 0) delta = 7;           // « mardi » un mardi = la semaine prochaine
+        return addDays(base, delta);
+      }
+    }
+    return base;
+  }
+
+  /* ---------- Contenu d'une journée ---------- */
+  function rdvOn(iso) {
+    return store.data().rdv.filter(function (r) { return r.date === iso; })
+      .sort(function (a, b) { return a.time < b.time ? -1 : 1; });
+  }
+  function blockedOn(iso) {
+    return store.data().blocked.filter(function (b) { return b.date === iso; });
+  }
+
+  var view = { month: '2026-07', selected: TODAY };
+
+  function monthMatrix(ym) {
+    var parts = ym.split('-');
+    var first = new Date(Number(parts[0]), Number(parts[1]) - 1, 1);
+    var offset = (first.getDay() + 6) % 7;              // lundi en tête
+    var start = addDays(toISO(first), -offset);
+    var cells = [];
+    for (var i = 0; i < 42; i++) cells.push(addDays(start, i));
+    // On coupe la dernière semaine si elle déborde entièrement sur le mois suivant.
+    if (cells[35].slice(0, 7) !== ym) cells = cells.slice(0, 35);
+    return cells;
+  }
+
+  window.ALLY_AGENDA = {
+    TODAY: TODAY,
+    toISO: toISO, fromISO: fromISO, addDays: addDays,
+    shortLabel: shortLabel, longLabel: longLabel, resolveDate: resolveDate,
+    rdvOn: rdvOn,
+
+    /* ---------------------------- VUE ---------------------------- */
+    view: function () {
+      var ym = view.month;
+      var parts = ym.split('-');
+      var title = MONTHS[Number(parts[1]) - 1] + ' ' + parts[0];
+      var cells = monthMatrix(ym);
+      var D = store.data();
+
+      var grid = cells.map(function (iso) {
+        var outside = iso.slice(0, 7) !== ym;
+        var events = rdvOn(iso);
+        var blocks = blockedOn(iso);
+        var classes = ['cal-cell'];
+        if (outside) classes.push('is-outside');
+        if (iso === TODAY) classes.push('is-today');
+        if (iso === view.selected) classes.push('is-selected');
+        if (blocks.length) classes.push('is-blocked');
+
+        return '<button type="button" class="' + classes.join(' ') + '" data-day="' + iso + '"' +
+          ' aria-label="' + esc(longLabel(iso)) + ', ' + events.length + ' rendez-vous">' +
+          '<span class="cal-num">' + fromISO(iso).getDate() + '</span>' +
+          '<span class="cal-events">' +
+            events.slice(0, 3).map(function (r) {
+              return '<span class="cal-event"><b>' + esc(r.time) + '</b> ' + esc(r.client) + '</span>';
+            }).join('') +
+            (events.length > 3 ? '<span class="cal-more">+' + (events.length - 3) + '</span>' : '') +
+            (blocks.length ? '<span class="cal-block">' + esc(blocks[0].half) + ' bloqué</span>' : '') +
+          '</span></button>';
+      }).join('');
+
+      var dayRdv = rdvOn(view.selected);
+      var dayBlocks = blockedOn(view.selected);
+
+      return '<div class="stack">' +
+
+        '<div class="card cal-card">' +
+          '<div class="cal-head">' +
+            '<div class="cal-nav">' +
+              '<button type="button" class="cal-arrow" data-month="prev" aria-label="Mois précédent">←</button>' +
+              '<p class="cal-title">' + esc(title) + '</p>' +
+              '<button type="button" class="cal-arrow" data-month="next" aria-label="Mois suivant">→</button>' +
+              '<button type="button" class="btn-link" data-month="today">Aujourd\'hui</button>' +
+            '</div>' +
+            '<p class="note">Dites à Ally « crée un rendez-vous vendredi à 10h », la case se remplit.</p>' +
+          '</div>' +
+          '<div class="cal-dow">' + DOW.map(function (d) {
+            return '<span>' + d + '</span>';
+          }).join('') + '</div>' +
+          '<div class="cal-grid">' + grid + '</div>' +
+        '</div>' +
+
+        '<div class="cols cols-14">' +
+          '<div class="card">' +
+            '<div class="script-head">' +
+              '<div><p class="card-title" style="margin-bottom:2px">' + esc(longLabel(view.selected)) + '</p>' +
+              '<p class="note">' + dayRdv.length + ' rendez-vous' +
+                (dayBlocks.length ? ' · ' + esc(dayBlocks[0].half) + ' bloqué' : '') + '</p></div>' +
+              '<button type="button" class="btn btn-ghost btn-sm" id="cal-block">' +
+                (dayBlocks.length ? 'Débloquer' : 'Bloquer la journée') + '</button>' +
+            '</div>' +
+            (dayRdv.length
+              ? dayRdv.map(function (r) {
+                  return '<div class="rdv">' +
+                    '<span class="rdv-day">' + esc(r.time) + '</span>' +
+                    '<div class="rdv-main"><p class="row-name">' + esc(r.client) + '</p>' +
+                    '<p class="row-meta">' + esc(r.type) + '</p></div>' +
+                    '<button type="button" class="btn-link" data-rdv-move="' + r.id + '">Reporter</button>' +
+                    '<button type="button" class="btn-link danger" data-rdv-cancel="' + r.id + '">Annuler</button>' +
+                    '</div>';
+                }).join('')
+              : '<div class="empty">Journée libre.</div>') +
+            '<form class="block-form" id="cal-add" style="margin-top:16px">' +
+              '<label class="sr-only" for="cal-client">Nom</label>' +
+              '<input class="field" id="cal-client" placeholder="Nom du ' + esc(store.profile().clientWord) + '">' +
+              '<label class="sr-only" for="cal-time">Heure</label>' +
+              '<input class="field" id="cal-time" type="time" value="09:00" style="max-width:130px">' +
+              '<button type="submit" class="btn btn-primary btn-sm">Ajouter</button>' +
+            '</form>' +
+          '</div>' +
+
+          '<div class="stack">' +
+            '<div class="card"><p class="card-title">Charge du mois</p>' +
+              this.loadBars(ym) +
+            '</div>' +
+            '<div class="card"><p class="card-title">Synchronisation</p>' +
+              '<div class="sync-row"><span>Google Calendar</span><span class="sync-dot" aria-hidden="true"></span></div>' +
+              '<p class="note" style="margin-top:14px">' + esc(store.profile().agendaRules) + '</p>' +
+            '</div>' +
+            (D.blocked.length
+              ? '<div class="card"><p class="card-title">Créneaux bloqués</p>' +
+                D.blocked.map(function (b) {
+                  return '<div class="row"><span style="font-size:14px">' + esc(shortLabel(b.date)) +
+                    ' · ' + esc(b.half) + '</span>' +
+                    '<button type="button" class="btn-link" data-unblock="' + b.id + '">Débloquer</button></div>';
+                }).join('') + '</div>'
+              : '') +
+          '</div>' +
+        '</div></div>';
+    },
+
+    /* Répartition hebdomadaire, en barres — on repère la semaine chargée. */
+    loadBars: function (ym) {
+      var weeks = {};
+      store.data().rdv.forEach(function (r) {
+        if (r.date.slice(0, 7) !== ym) return;
+        var d = fromISO(r.date);
+        var monday = addDays(r.date, -((d.getDay() + 6) % 7));
+        weeks[monday] = (weeks[monday] || 0) + 1;
+      });
+
+      var keys = Object.keys(weeks).sort();
+      if (!keys.length) return '<div class="empty">Aucun rendez-vous ce mois-ci.</div>';
+      var max = Math.max.apply(null, keys.map(function (k) { return weeks[k]; }));
+
+      return '<div class="bars">' + keys.map(function (k) {
+        var d = fromISO(k);
+        return '<div class="bar-row">' +
+          '<span class="bar-label">sem. ' + d.getDate() + ' ' + MONTHS[d.getMonth()].slice(0, 4) + '</span>' +
+          '<span class="bar-track"><span class="bar-fill" style="width:' +
+            Math.round((weeks[k] / max) * 100) + '%"></span></span>' +
+          '<span class="bar-value">' + weeks[k] + '</span>' +
+          '</div>';
+      }).join('') + '</div>';
+    },
+
+    /* ---------------------------- LIAISONS ---------------------------- */
+    bind: function (panel, refresh) {
+      panel.querySelectorAll('[data-day]').forEach(function (cell) {
+        cell.addEventListener('click', function () {
+          view.selected = cell.getAttribute('data-day');
+          view.month = view.selected.slice(0, 7);
+          refresh();
+        });
+      });
+
+      panel.querySelectorAll('[data-month]').forEach(function (button) {
+        button.addEventListener('click', function () {
+          var dir = button.getAttribute('data-month');
+          if (dir === 'today') { view.month = TODAY.slice(0, 7); view.selected = TODAY; }
+          else {
+            var parts = view.month.split('-');
+            var d = new Date(Number(parts[0]), Number(parts[1]) - 1 + (dir === 'next' ? 1 : -1), 1);
+            view.month = toISO(d).slice(0, 7);
+          }
+          refresh();
+        });
+      });
+
+      var addForm = panel.querySelector('#cal-add');
+      if (addForm) {
+        addForm.addEventListener('submit', function (event) {
+          event.preventDefault();
+          var client = document.getElementById('cal-client').value.trim();
+          var time = document.getElementById('cal-time').value;
+          if (!time) return;
+          store.data().rdv.push({
+            id: Date.now(), date: view.selected,
+            client: client || 'Nouveau ' + store.profile().clientWord,
+            type: 'Rendez-vous', time: time
+          });
+          store.log('Rendez-vous ajouté depuis le calendrier',
+            (client || 'Nouveau client') + ' — ' + longLabel(view.selected) + ' ' + time);
+          store.save();
+          refresh();
+        });
+      }
+
+      var blockBtn = panel.querySelector('#cal-block');
+      if (blockBtn) {
+        blockBtn.addEventListener('click', function () {
+          var D = store.data();
+          var existing = blockedOn(view.selected);
+          if (existing.length) {
+            D.blocked = D.blocked.filter(function (b) { return b.date !== view.selected; });
+          } else {
+            D.blocked.push({ id: Date.now(), date: view.selected, half: 'toute la journée' });
+            store.log('Blocage de journée', longLabel(view.selected));
+          }
+          store.save();
+          refresh();
+        });
+      }
+
+      /* Reporter d'un jour : le geste le plus fréquent sur un agenda. */
+      panel.querySelectorAll('[data-rdv-move]').forEach(function (button) {
+        button.addEventListener('click', function () {
+          var id = Number(button.getAttribute('data-rdv-move'));
+          var r = store.data().rdv.filter(function (x) { return x.id === id; })[0];
+          if (!r) return;
+          r.date = addDays(r.date, 1);
+          store.log('Report de ' + r.client, 'Déplacé au ' + longLabel(r.date));
+          store.save();
+          refresh();
+        });
+      });
+    },
+
+    /* Permet au reste de l'application de sélectionner un jour. */
+    select: function (iso) {
+      view.selected = iso;
+      view.month = iso.slice(0, 7);
+    }
+  };
+})();
+
 /* Ally — moteur de compréhension partagé.
    Un seul cerveau alimente la commande vocale, le chat écrit et la simulation
    d'appel : les trois comprennent les mêmes demandes et puisent dans les mêmes
@@ -3161,11 +3556,9 @@ window.ALLY_PLAN_BY_ID = function (id) {
           };
         }
 
-        var label = nd
-          ? (nd === 'demain' ? 'Demain'
-             : nd === 'après-demain' ? 'Après-dem.'
-             : nd.charAt(0).toUpperCase() + nd.slice(1, 3) + '.')
-          : 'Auj.';
+        var A = window.ALLY_AGENDA;
+        var iso = A.resolveDate(nd, A.TODAY);
+        var label = A.shortLabel(iso);
 
         var client = who || 'Nouveau ' + p.clientWord;
         var kindLabel = hasAny(t, ['consultation']) ? 'Consultation'
@@ -3180,9 +3573,10 @@ window.ALLY_PLAN_BY_ID = function (id) {
           detail: kindLabel + ' — ajouté à votre agenda',
           apply: function () {
             D.rdv.push({
-              id: Date.now(), day: label, client: client,
+              id: Date.now(), date: iso, client: client,
               type: kindLabel, time: nt
             });
+            A.select(iso);
             store.log('Création de rendez-vous — ' + client,
               label + ' ' + nt.replace(':', 'h'));
           },
@@ -3192,12 +3586,14 @@ window.ALLY_PLAN_BY_ID = function (id) {
 
       /* ---------- Agenda : consultation ---------- */
       if (hasAny(t, ['prochain rendez vous', 'prochain rdv', 'prochain rendez'])) {
-        var next = D.rdv[0];
+        var A0 = window.ALLY_AGENDA;
+        var next = D.rdv.filter(function (r) { return r.date >= A0.TODAY; })
+          .sort(function (a, b) { return (a.date + a.time) < (b.date + b.time) ? -1 : 1; })[0];
         if (!next) return { kind: 'answer', reply: 'Aucun rendez-vous à venir.' };
         return {
           kind: 'answer',
           reply: 'Votre prochain rendez-vous : ' + next.client + ' à ' + next.time
-            + (next.day === 'Auj.' ? ', aujourd\'hui' : ', ' + next.day) + ' — ' + next.type + '.'
+            + ', ' + A0.longLabel(next.date) + ' — ' + next.type + '.'
         };
       }
 
@@ -3205,7 +3601,7 @@ window.ALLY_PLAN_BY_ID = function (id) {
           && hasAny(t, ['combien', 'quoi', 'journee', 'aujourd hui', 'demain', 'programme', 'ai je'])
           && !hasAny(t, ['deplace', 'decale', 'bouge', 'bloque', 'annule'])
           && !hasAny(t, CREATE_VERBS)) {
-        var today = D.rdv.filter(function (r) { return r.day === 'Auj.'; });
+        var today = window.ALLY_AGENDA.rdvOn(window.ALLY_AGENDA.TODAY);
         return {
           kind: 'answer',
           reply: today.length + ' rendez-vous aujourd\'hui : '
@@ -3216,32 +3612,51 @@ window.ALLY_PLAN_BY_ID = function (id) {
 
       /* ---------- Agenda : modification ---------- */
       if (hasAny(t, ['deplace', 'decale', 'bouge', 'reporte'])) {
+        var A2 = window.ALLY_AGENDA;
         var time = findTime(t);
         var day = findDay(t);
         var target = time
           ? D.rdv.filter(function (r) { return r.time === time; })[0]
-          : D.rdv[0];
-        var who = target ? target.client : 'ce rendez-vous';
+          : D.rdv.filter(function (r) { return r.date >= A2.TODAY; })[0];
+
+        if (!target) {
+          return { kind: 'answer', reply: 'Je ne trouve pas ce rendez-vous dans votre agenda.' };
+        }
+
+        var newDate = day ? A2.resolveDate(day, A2.TODAY) : target.date;
+        var who = target.client;
+
         return {
           kind: 'action', sensitive: true,
           confirm: 'Vous voulez bien que je déplace le rendez-vous de ' + who
-            + (day ? ' à ' + day : '') + (time ? ' ' + time.replace(':', 'h') : '') + ' ?',
-          reply: 'C\'est fait, le rendez-vous de ' + who + ' est déplacé'
-            + (day ? ' à ' + day : '') + (time ? ' ' + time.replace(':', 'h') : '')
+            + ' au ' + A2.longLabel(newDate) + ' ?',
+          reply: 'C\'est fait, le rendez-vous de ' + who + ' passe au '
+            + A2.longLabel(newDate) + ' à ' + target.time.replace(':', 'h')
             + '. Je préviens ' + (p.clientWord === 'patient' ? 'le patient' : 'le client') + '.',
-          detail: 'Modification tracée dans l\'agenda'
+          detail: 'Modification visible dans le calendrier',
+          apply: function () {
+            target.date = newDate;
+            A2.select(newDate);
+            store.log('Déplacement de ' + who, 'Reporté au ' + A2.longLabel(newDate));
+          }
         };
       }
 
       if (hasAny(t, ['bloque', 'bloquer', 'indisponible', 'reserve moi'])) {
-        var d = findDay(t) || 'ce créneau';
-        var half = findHalf(t);
-        var label = d + (half ? ' ' + half : '');
+        var A3 = window.ALLY_AGENDA;
+        var d = findDay(t);
+        var iso3 = A3.resolveDate(d, A3.TODAY);
+        var half = findHalf(t) || 'toute la journée';
         return {
           kind: 'action', sensitive: false,
-          reply: label.charAt(0).toUpperCase() + label.slice(1)
-            + ' est bloqué, aucun rendez-vous ne sera proposé sur ce créneau.',
-          detail: 'Règle de disponibilité mise à jour'
+          reply: A3.longLabel(iso3) + ', ' + half + ' : c\'est bloqué. '
+            + 'Aucun rendez-vous ne sera proposé sur ce créneau.',
+          detail: 'Visible en grisé dans le calendrier',
+          apply: function () {
+            D.blocked.push({ id: Date.now(), date: iso3, half: half });
+            A3.select(iso3);
+            store.log('Blocage de créneau', A3.longLabel(iso3) + ' — ' + half);
+          }
         };
       }
 
@@ -3343,11 +3758,12 @@ window.ALLY_PLAN_BY_ID = function (id) {
             && hasAny(t, ['souhaite', 'voudrais', 'cherche', 'prendre', 'avoir', 'possible']));
 
       if (wantsBooking) {
-        var slot = D.rdv.filter(function (r) { return r.day !== 'Auj.'; })[0];
+        var A4 = window.ALLY_AGENDA;
+        var slot = D.rdv.filter(function (r) { return r.date > A4.TODAY; })[0];
         return {
           kind: 'booking',
           reply: 'Je peux vous proposer un créneau'
-            + (slot ? ' ' + slot.day.toLowerCase() + ' à ' + slot.time : ' cette semaine')
+            + (slot ? ' ' + A4.longLabel(slot.date) + ' à ' + slot.time : ' cette semaine')
             + '. Cela vous convient-il ?'
         };
       }
@@ -3475,14 +3891,15 @@ window.ALLY_PLAN_BY_ID = function (id) {
         if (/^(et|puis|ensuite)\b/.test(t) || t.length < 16) {
           if (ctx.intent === 'agenda') {
             var day = has(t, ['demain']) ? 'demain' : null;
+            var A = window.ALLY_AGENDA;
             var list = day
-              ? D.rdv.filter(function (x) { return x.day !== 'Auj.'; }).slice(0, 2)
-              : D.rdv.filter(function (x) { return x.day === 'Auj.'; });
+              ? A.rdvOn(A.addDays(A.TODAY, 1))
+              : A.rdvOn(A.TODAY);
             return this.wrap({
               kind: 'answer',
               reply: list.length
-                ? (day ? 'Ensuite : ' : 'Aujourd\'hui : ') + list.map(function (x) {
-                    return x.client + ' à ' + x.time + (day ? ' ' + x.day.toLowerCase() : '');
+                ? (day ? 'Demain : ' : 'Aujourd\'hui : ') + list.map(function (x) {
+                    return x.client + ' à ' + x.time;
                   }).join(', ') + '.'
                 : 'Rien de prévu sur cette période.',
               follow: ['Bloque mon agenda vendredi après-midi', 'Résume-moi ma journée']
@@ -3519,7 +3936,7 @@ window.ALLY_PLAN_BY_ID = function (id) {
     brief: function () {
       var store = window.ALLY_STORE;
       var D = store.data();
-      var today = D.rdv.filter(function (r) { return r.day === 'Auj.'; });
+      var today = window.ALLY_AGENDA.rdvOn(window.ALLY_AGENDA.TODAY);
       var urgent = D.calls.filter(function (c) { return c.kind === 'urgent'; });
       var bits = [];
 
@@ -4613,7 +5030,7 @@ window.ALLY_PLAN_BY_ID = function (id) {
   /* ---------- Dérivés du profil ---------- */
   function drafts()   { return D().drafts; }
   function calls()    { return D().calls; }
-  function todayRdv() { return D().rdv.filter(function (r) { return r.day === 'Auj.'; }); }
+  function todayRdv() { return window.ALLY_AGENDA.rdvOn(window.ALLY_AGENDA.TODAY); }
   function urgentCall() {
     return calls().filter(function (c) { return c.kind === 'urgent'; })[0] || null;
   }
@@ -4751,7 +5168,8 @@ window.ALLY_PLAN_BY_ID = function (id) {
     });
     D().rdv.forEach(function (r) {
       if (match(r.client) || match(r.type)) {
-        hits.push({ tab: 'agenda', filter: 'all', label: r.client, sub: r.day + ' · ' + r.time, kind: 'RDV' });
+        hits.push({ tab: 'agenda', filter: 'all', label: r.client,
+          sub: window.ALLY_AGENDA.shortLabel(r.date) + ' · ' + r.time, kind: 'RDV' });
       }
     });
     D().faq.forEach(function (f) {
@@ -4869,6 +5287,80 @@ window.ALLY_PLAN_BY_ID = function (id) {
     return '<div class="empty">' + esc(text) + '</div>';
   }
 
+  /* Répartition des appels par motif, en barres horizontales. */
+  function motifBars() {
+    var counts = {};
+    calls().forEach(function (c) {
+      var key = c.kind === 'urgent' ? 'Urgences'
+        : c.kind === 'pending' ? 'À rappeler'
+        : c.subject.indexOf('endez') !== -1 || c.subject.indexOf('evis') !== -1
+          ? 'Rendez-vous et devis' : 'Renseignements';
+      counts[key] = (counts[key] || 0) + 1;
+    });
+    var keys = Object.keys(counts);
+    if (!keys.length) return '<div class="empty">Aucun appel aujourd\'hui.</div>';
+    var total = calls().length;
+
+    return '<div class="bars">' + keys.map(function (k) {
+      return '<div class="bar-row">' +
+        '<span class="bar-label">' + esc(k) + '</span>' +
+        '<span class="bar-track"><span class="bar-fill' +
+          (k === 'Urgences' ? ' danger' : k === 'À rappeler' ? ' warn' : '') +
+          '" style="width:' + Math.round((counts[k] / total) * 100) + '%"></span></span>' +
+        '<span class="bar-value">' + counts[k] + '</span>' +
+        '</div>';
+    }).join('') + '</div>';
+  }
+
+  /* Points d'attention : des signaux calculés, pas une liste décorative. */
+  function watchPoints() {
+    var points = [];
+    var p = P();
+    var A = window.ALLY_AGENDA;
+
+    var pending = pendingCall();
+    if (pending) {
+      points.push({ level: 'warn', text: pending.caller + ' attend un rappel depuis ' + pending.time + '.' });
+    }
+
+    var todays = todayRdv();
+    if (todays.length >= 4) {
+      points.push({ level: 'warn', text: 'Journée chargée : ' + todays.length + ' rendez-vous aujourd\'hui.' });
+    }
+
+    // Deux rendez-vous à moins d'une heure d'intervalle.
+    for (var i = 1; i < todays.length; i++) {
+      var a = Number(todays[i - 1].time.split(':')[0]) * 60 + Number(todays[i - 1].time.split(':')[1]);
+      var b = Number(todays[i].time.split(':')[0]) * 60 + Number(todays[i].time.split(':')[1]);
+      if (b - a < 60) {
+        points.push({ level: 'warn', text: 'Créneaux serrés : ' + todays[i - 1].client +
+          ' et ' + todays[i].client + ' à moins d\'une heure d\'écart.' });
+        break;
+      }
+    }
+
+    var used = p.quota.calls[0] + D().sent.length;
+    var ratio = used / p.quota.calls[1];
+    if (ratio > 0.8) {
+      points.push({ level: 'danger', text: 'Forfait bientôt atteint : ' + used + ' appels sur ' +
+        p.quota.calls[1] + '. Pensez à passer à la formule supérieure.' });
+    }
+
+    if (!S.links.gcal) {
+      points.push({ level: 'info', text: 'Google Calendar n\'est pas connecté : Ally ne voit pas vos vraies disponibilités.' });
+    }
+
+    if (!points.length) {
+      return '<div class="empty">Aucun point de vigilance détecté pour l\'instant.</div>';
+    }
+
+    return '<div class="watch">' + points.map(function (pt) {
+      return '<div class="watch-item ' + pt.level + '">' +
+        '<span class="watch-dot" aria-hidden="true"></span>' +
+        '<span>' + esc(pt.text) + '</span></div>';
+    }).join('') + '</div>';
+  }
+
   /* ============================ AUJOURD'HUI ============================ */
   function todoItems() {
     var items = [];
@@ -4926,6 +5418,15 @@ window.ALLY_PLAN_BY_ID = function (id) {
         '<div class="stat"><p class="stat-label">RDV du jour</p><p class="stat-value">' + todayRdv().length + '</p></div>' +
         '<div class="stat"><p class="stat-label">Mails à valider</p><p class="stat-value accent">' + drafts().length + '</p></div>' +
         '<div class="stat"><p class="stat-label">Temps gagné (semaine)</p><p class="stat-value cyan">' + esc(p.stats.saved) + '</p></div>' +
+      '</div>' +
+
+      '<div class="cols cols-11" style="margin-bottom:20px">' +
+        '<div class="card"><p class="card-title">Répartition des appels</p>' +
+          motifBars() +
+        '</div>' +
+        '<div class="card"><p class="card-title">Points d\'attention</p>' +
+          watchPoints() +
+        '</div>' +
       '</div>' +
 
       '<div class="cols cols-13">' +
@@ -5056,61 +5557,7 @@ window.ALLY_PLAN_BY_ID = function (id) {
   }
 
   /* ================================ AGENDA ================================ */
-  function viewAgenda() {
-    var p = P();
-    var today = todayRdv();
-    var later = D().rdv.filter(function (r) { return r.day !== 'Auj.'; });
-
-    function rdvRow(r, withDay) {
-      return '<div class="rdv">' +
-        '<span class="rdv-day">' + esc(withDay ? r.day : r.time) + '</span>' +
-        '<div class="rdv-main"><p class="row-name">' + esc(r.client) + '</p>' +
-        '<p class="row-meta">' + esc(r.type) + (withDay ? ' · ' + esc(r.time) : '') + '</p></div>' +
-        '<button type="button" class="btn-link danger" data-rdv-cancel="' + r.id + '">Annuler</button>' +
-        '</div>';
-    }
-
-    return '<div class="cols cols-14">' +
-      '<div class="stack">' +
-        '<div class="card"><p class="card-title">Aujourd\'hui</p>' +
-          (today.length ? today.map(function (r) { return rdvRow(r, false); }).join('')
-            : emptyState('Aucun rendez-vous aujourd\'hui.')) +
-        '</div>' +
-        '<div class="card"><p class="card-title">À venir</p>' +
-          later.map(function (r) { return rdvRow(r, true); }).join('') +
-        '</div>' +
-      '</div>' +
-      '<div class="stack">' +
-        '<div class="card"><p class="card-title">Synchronisation</p>' +
-          '<div class="sync-row"><span>Google Calendar</span><span class="sync-dot" aria-hidden="true"></span></div>' +
-          '<p class="note" style="margin-top:14px">' + esc(P().agendaRules) + '</p>' +
-        '</div>' +
-        '<div class="card"><p class="card-title">Bloquer un créneau</p>' +
-          '<p class="note" style="margin-bottom:14px">Ally n\'y proposera aucun rendez-vous.</p>' +
-          '<form class="block-form" id="block-form">' +
-            '<label class="sr-only" for="block-day">Jour</label>' +
-            '<select class="field" id="block-day">' +
-              ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'].map(function (d) {
-                return '<option>' + d + '</option>';
-              }).join('') + '</select>' +
-            '<label class="sr-only" for="block-half">Demi-journée</label>' +
-            '<select class="field" id="block-half">' +
-              '<option>matin</option><option>après-midi</option><option>toute la journée</option>' +
-            '</select>' +
-            '<button type="submit" class="btn btn-primary btn-sm">Bloquer</button>' +
-          '</form>' +
-          (D().blocked.length
-            ? '<div class="blocked-list">' + D().blocked.map(function (b) {
-                return '<div class="row"><span style="font-size:14px">' + esc(b.label) + '</span>' +
-                  '<button type="button" class="btn-link" data-unblock="' + b.id + '">Débloquer</button></div>';
-              }).join('') + '</div>'
-            : '') +
-        '</div>' +
-        '<div class="card"><p class="card-title">Modifications faites par Ally</p>' +
-          '<p class="note">' + esc(P().agendaLast) + '</p>' +
-        '</div>' +
-      '</div></div>';
-  }
+  function viewAgenda() { return window.ALLY_AGENDA.view(); }
 
   /* ================================= ALLY ================================= */
   function viewAlly() {
@@ -5405,6 +5852,7 @@ window.ALLY_PLAN_BY_ID = function (id) {
     var panel = el.panel;
 
     if (ui.tab === 'telephony') window.ALLY_TELEPHONY.bind(panel, renderPanel);
+    if (ui.tab === 'agenda') window.ALLY_AGENDA.bind(panel, renderPanel);
 
     /* ---------- Actions réelles sur les données du compte ---------- */
 

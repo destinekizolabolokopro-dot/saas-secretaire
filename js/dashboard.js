@@ -69,7 +69,7 @@
   /* ---------- Dérivés du profil ---------- */
   function drafts()   { return D().drafts; }
   function calls()    { return D().calls; }
-  function todayRdv() { return D().rdv.filter(function (r) { return r.day === 'Auj.'; }); }
+  function todayRdv() { return window.ALLY_AGENDA.rdvOn(window.ALLY_AGENDA.TODAY); }
   function urgentCall() {
     return calls().filter(function (c) { return c.kind === 'urgent'; })[0] || null;
   }
@@ -207,7 +207,8 @@
     });
     D().rdv.forEach(function (r) {
       if (match(r.client) || match(r.type)) {
-        hits.push({ tab: 'agenda', filter: 'all', label: r.client, sub: r.day + ' · ' + r.time, kind: 'RDV' });
+        hits.push({ tab: 'agenda', filter: 'all', label: r.client,
+          sub: window.ALLY_AGENDA.shortLabel(r.date) + ' · ' + r.time, kind: 'RDV' });
       }
     });
     D().faq.forEach(function (f) {
@@ -325,6 +326,80 @@
     return '<div class="empty">' + esc(text) + '</div>';
   }
 
+  /* Répartition des appels par motif, en barres horizontales. */
+  function motifBars() {
+    var counts = {};
+    calls().forEach(function (c) {
+      var key = c.kind === 'urgent' ? 'Urgences'
+        : c.kind === 'pending' ? 'À rappeler'
+        : c.subject.indexOf('endez') !== -1 || c.subject.indexOf('evis') !== -1
+          ? 'Rendez-vous et devis' : 'Renseignements';
+      counts[key] = (counts[key] || 0) + 1;
+    });
+    var keys = Object.keys(counts);
+    if (!keys.length) return '<div class="empty">Aucun appel aujourd\'hui.</div>';
+    var total = calls().length;
+
+    return '<div class="bars">' + keys.map(function (k) {
+      return '<div class="bar-row">' +
+        '<span class="bar-label">' + esc(k) + '</span>' +
+        '<span class="bar-track"><span class="bar-fill' +
+          (k === 'Urgences' ? ' danger' : k === 'À rappeler' ? ' warn' : '') +
+          '" style="width:' + Math.round((counts[k] / total) * 100) + '%"></span></span>' +
+        '<span class="bar-value">' + counts[k] + '</span>' +
+        '</div>';
+    }).join('') + '</div>';
+  }
+
+  /* Points d'attention : des signaux calculés, pas une liste décorative. */
+  function watchPoints() {
+    var points = [];
+    var p = P();
+    var A = window.ALLY_AGENDA;
+
+    var pending = pendingCall();
+    if (pending) {
+      points.push({ level: 'warn', text: pending.caller + ' attend un rappel depuis ' + pending.time + '.' });
+    }
+
+    var todays = todayRdv();
+    if (todays.length >= 4) {
+      points.push({ level: 'warn', text: 'Journée chargée : ' + todays.length + ' rendez-vous aujourd\'hui.' });
+    }
+
+    // Deux rendez-vous à moins d'une heure d'intervalle.
+    for (var i = 1; i < todays.length; i++) {
+      var a = Number(todays[i - 1].time.split(':')[0]) * 60 + Number(todays[i - 1].time.split(':')[1]);
+      var b = Number(todays[i].time.split(':')[0]) * 60 + Number(todays[i].time.split(':')[1]);
+      if (b - a < 60) {
+        points.push({ level: 'warn', text: 'Créneaux serrés : ' + todays[i - 1].client +
+          ' et ' + todays[i].client + ' à moins d\'une heure d\'écart.' });
+        break;
+      }
+    }
+
+    var used = p.quota.calls[0] + D().sent.length;
+    var ratio = used / p.quota.calls[1];
+    if (ratio > 0.8) {
+      points.push({ level: 'danger', text: 'Forfait bientôt atteint : ' + used + ' appels sur ' +
+        p.quota.calls[1] + '. Pensez à passer à la formule supérieure.' });
+    }
+
+    if (!S.links.gcal) {
+      points.push({ level: 'info', text: 'Google Calendar n\'est pas connecté : Ally ne voit pas vos vraies disponibilités.' });
+    }
+
+    if (!points.length) {
+      return '<div class="empty">Aucun point de vigilance détecté pour l\'instant.</div>';
+    }
+
+    return '<div class="watch">' + points.map(function (pt) {
+      return '<div class="watch-item ' + pt.level + '">' +
+        '<span class="watch-dot" aria-hidden="true"></span>' +
+        '<span>' + esc(pt.text) + '</span></div>';
+    }).join('') + '</div>';
+  }
+
   /* ============================ AUJOURD'HUI ============================ */
   function todoItems() {
     var items = [];
@@ -382,6 +457,15 @@
         '<div class="stat"><p class="stat-label">RDV du jour</p><p class="stat-value">' + todayRdv().length + '</p></div>' +
         '<div class="stat"><p class="stat-label">Mails à valider</p><p class="stat-value accent">' + drafts().length + '</p></div>' +
         '<div class="stat"><p class="stat-label">Temps gagné (semaine)</p><p class="stat-value cyan">' + esc(p.stats.saved) + '</p></div>' +
+      '</div>' +
+
+      '<div class="cols cols-11" style="margin-bottom:20px">' +
+        '<div class="card"><p class="card-title">Répartition des appels</p>' +
+          motifBars() +
+        '</div>' +
+        '<div class="card"><p class="card-title">Points d\'attention</p>' +
+          watchPoints() +
+        '</div>' +
       '</div>' +
 
       '<div class="cols cols-13">' +
@@ -512,61 +596,7 @@
   }
 
   /* ================================ AGENDA ================================ */
-  function viewAgenda() {
-    var p = P();
-    var today = todayRdv();
-    var later = D().rdv.filter(function (r) { return r.day !== 'Auj.'; });
-
-    function rdvRow(r, withDay) {
-      return '<div class="rdv">' +
-        '<span class="rdv-day">' + esc(withDay ? r.day : r.time) + '</span>' +
-        '<div class="rdv-main"><p class="row-name">' + esc(r.client) + '</p>' +
-        '<p class="row-meta">' + esc(r.type) + (withDay ? ' · ' + esc(r.time) : '') + '</p></div>' +
-        '<button type="button" class="btn-link danger" data-rdv-cancel="' + r.id + '">Annuler</button>' +
-        '</div>';
-    }
-
-    return '<div class="cols cols-14">' +
-      '<div class="stack">' +
-        '<div class="card"><p class="card-title">Aujourd\'hui</p>' +
-          (today.length ? today.map(function (r) { return rdvRow(r, false); }).join('')
-            : emptyState('Aucun rendez-vous aujourd\'hui.')) +
-        '</div>' +
-        '<div class="card"><p class="card-title">À venir</p>' +
-          later.map(function (r) { return rdvRow(r, true); }).join('') +
-        '</div>' +
-      '</div>' +
-      '<div class="stack">' +
-        '<div class="card"><p class="card-title">Synchronisation</p>' +
-          '<div class="sync-row"><span>Google Calendar</span><span class="sync-dot" aria-hidden="true"></span></div>' +
-          '<p class="note" style="margin-top:14px">' + esc(P().agendaRules) + '</p>' +
-        '</div>' +
-        '<div class="card"><p class="card-title">Bloquer un créneau</p>' +
-          '<p class="note" style="margin-bottom:14px">Ally n\'y proposera aucun rendez-vous.</p>' +
-          '<form class="block-form" id="block-form">' +
-            '<label class="sr-only" for="block-day">Jour</label>' +
-            '<select class="field" id="block-day">' +
-              ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'].map(function (d) {
-                return '<option>' + d + '</option>';
-              }).join('') + '</select>' +
-            '<label class="sr-only" for="block-half">Demi-journée</label>' +
-            '<select class="field" id="block-half">' +
-              '<option>matin</option><option>après-midi</option><option>toute la journée</option>' +
-            '</select>' +
-            '<button type="submit" class="btn btn-primary btn-sm">Bloquer</button>' +
-          '</form>' +
-          (D().blocked.length
-            ? '<div class="blocked-list">' + D().blocked.map(function (b) {
-                return '<div class="row"><span style="font-size:14px">' + esc(b.label) + '</span>' +
-                  '<button type="button" class="btn-link" data-unblock="' + b.id + '">Débloquer</button></div>';
-              }).join('') + '</div>'
-            : '') +
-        '</div>' +
-        '<div class="card"><p class="card-title">Modifications faites par Ally</p>' +
-          '<p class="note">' + esc(P().agendaLast) + '</p>' +
-        '</div>' +
-      '</div></div>';
-  }
+  function viewAgenda() { return window.ALLY_AGENDA.view(); }
 
   /* ================================= ALLY ================================= */
   function viewAlly() {
@@ -861,6 +891,7 @@
     var panel = el.panel;
 
     if (ui.tab === 'telephony') window.ALLY_TELEPHONY.bind(panel, renderPanel);
+    if (ui.tab === 'agenda') window.ALLY_AGENDA.bind(panel, renderPanel);
 
     /* ---------- Actions réelles sur les données du compte ---------- */
 

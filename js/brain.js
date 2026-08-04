@@ -298,11 +298,9 @@
           };
         }
 
-        var label = nd
-          ? (nd === 'demain' ? 'Demain'
-             : nd === 'après-demain' ? 'Après-dem.'
-             : nd.charAt(0).toUpperCase() + nd.slice(1, 3) + '.')
-          : 'Auj.';
+        var A = window.ALLY_AGENDA;
+        var iso = A.resolveDate(nd, A.TODAY);
+        var label = A.shortLabel(iso);
 
         var client = who || 'Nouveau ' + p.clientWord;
         var kindLabel = hasAny(t, ['consultation']) ? 'Consultation'
@@ -317,9 +315,10 @@
           detail: kindLabel + ' — ajouté à votre agenda',
           apply: function () {
             D.rdv.push({
-              id: Date.now(), day: label, client: client,
+              id: Date.now(), date: iso, client: client,
               type: kindLabel, time: nt
             });
+            A.select(iso);
             store.log('Création de rendez-vous — ' + client,
               label + ' ' + nt.replace(':', 'h'));
           },
@@ -329,12 +328,14 @@
 
       /* ---------- Agenda : consultation ---------- */
       if (hasAny(t, ['prochain rendez vous', 'prochain rdv', 'prochain rendez'])) {
-        var next = D.rdv[0];
+        var A0 = window.ALLY_AGENDA;
+        var next = D.rdv.filter(function (r) { return r.date >= A0.TODAY; })
+          .sort(function (a, b) { return (a.date + a.time) < (b.date + b.time) ? -1 : 1; })[0];
         if (!next) return { kind: 'answer', reply: 'Aucun rendez-vous à venir.' };
         return {
           kind: 'answer',
           reply: 'Votre prochain rendez-vous : ' + next.client + ' à ' + next.time
-            + (next.day === 'Auj.' ? ', aujourd\'hui' : ', ' + next.day) + ' — ' + next.type + '.'
+            + ', ' + A0.longLabel(next.date) + ' — ' + next.type + '.'
         };
       }
 
@@ -342,7 +343,7 @@
           && hasAny(t, ['combien', 'quoi', 'journee', 'aujourd hui', 'demain', 'programme', 'ai je'])
           && !hasAny(t, ['deplace', 'decale', 'bouge', 'bloque', 'annule'])
           && !hasAny(t, CREATE_VERBS)) {
-        var today = D.rdv.filter(function (r) { return r.day === 'Auj.'; });
+        var today = window.ALLY_AGENDA.rdvOn(window.ALLY_AGENDA.TODAY);
         return {
           kind: 'answer',
           reply: today.length + ' rendez-vous aujourd\'hui : '
@@ -353,32 +354,51 @@
 
       /* ---------- Agenda : modification ---------- */
       if (hasAny(t, ['deplace', 'decale', 'bouge', 'reporte'])) {
+        var A2 = window.ALLY_AGENDA;
         var time = findTime(t);
         var day = findDay(t);
         var target = time
           ? D.rdv.filter(function (r) { return r.time === time; })[0]
-          : D.rdv[0];
-        var who = target ? target.client : 'ce rendez-vous';
+          : D.rdv.filter(function (r) { return r.date >= A2.TODAY; })[0];
+
+        if (!target) {
+          return { kind: 'answer', reply: 'Je ne trouve pas ce rendez-vous dans votre agenda.' };
+        }
+
+        var newDate = day ? A2.resolveDate(day, A2.TODAY) : target.date;
+        var who = target.client;
+
         return {
           kind: 'action', sensitive: true,
           confirm: 'Vous voulez bien que je déplace le rendez-vous de ' + who
-            + (day ? ' à ' + day : '') + (time ? ' ' + time.replace(':', 'h') : '') + ' ?',
-          reply: 'C\'est fait, le rendez-vous de ' + who + ' est déplacé'
-            + (day ? ' à ' + day : '') + (time ? ' ' + time.replace(':', 'h') : '')
+            + ' au ' + A2.longLabel(newDate) + ' ?',
+          reply: 'C\'est fait, le rendez-vous de ' + who + ' passe au '
+            + A2.longLabel(newDate) + ' à ' + target.time.replace(':', 'h')
             + '. Je préviens ' + (p.clientWord === 'patient' ? 'le patient' : 'le client') + '.',
-          detail: 'Modification tracée dans l\'agenda'
+          detail: 'Modification visible dans le calendrier',
+          apply: function () {
+            target.date = newDate;
+            A2.select(newDate);
+            store.log('Déplacement de ' + who, 'Reporté au ' + A2.longLabel(newDate));
+          }
         };
       }
 
       if (hasAny(t, ['bloque', 'bloquer', 'indisponible', 'reserve moi'])) {
-        var d = findDay(t) || 'ce créneau';
-        var half = findHalf(t);
-        var label = d + (half ? ' ' + half : '');
+        var A3 = window.ALLY_AGENDA;
+        var d = findDay(t);
+        var iso3 = A3.resolveDate(d, A3.TODAY);
+        var half = findHalf(t) || 'toute la journée';
         return {
           kind: 'action', sensitive: false,
-          reply: label.charAt(0).toUpperCase() + label.slice(1)
-            + ' est bloqué, aucun rendez-vous ne sera proposé sur ce créneau.',
-          detail: 'Règle de disponibilité mise à jour'
+          reply: A3.longLabel(iso3) + ', ' + half + ' : c\'est bloqué. '
+            + 'Aucun rendez-vous ne sera proposé sur ce créneau.',
+          detail: 'Visible en grisé dans le calendrier',
+          apply: function () {
+            D.blocked.push({ id: Date.now(), date: iso3, half: half });
+            A3.select(iso3);
+            store.log('Blocage de créneau', A3.longLabel(iso3) + ' — ' + half);
+          }
         };
       }
 
@@ -480,11 +500,12 @@
             && hasAny(t, ['souhaite', 'voudrais', 'cherche', 'prendre', 'avoir', 'possible']));
 
       if (wantsBooking) {
-        var slot = D.rdv.filter(function (r) { return r.day !== 'Auj.'; })[0];
+        var A4 = window.ALLY_AGENDA;
+        var slot = D.rdv.filter(function (r) { return r.date > A4.TODAY; })[0];
         return {
           kind: 'booking',
           reply: 'Je peux vous proposer un créneau'
-            + (slot ? ' ' + slot.day.toLowerCase() + ' à ' + slot.time : ' cette semaine')
+            + (slot ? ' ' + A4.longLabel(slot.date) + ' à ' + slot.time : ' cette semaine')
             + '. Cela vous convient-il ?'
         };
       }
