@@ -6,11 +6,13 @@
   'use strict';
 
   var store = window.ALLY_STORE;
-  var S = store.state;
+  var accounts = window.ALLY_ACCOUNTS;
+  var UI = window.ALLY_UI;
   var PLANS = window.ALLY_PLANS;
   var TRIAL = window.ALLY_TRIAL;
 
   var state = { step: 1, cycle: 'month', plan: 'cabinet' };
+  var created = null;   /* compte créé à l'étape 2, en attente de vérification */
 
   function esc(v) {
     return String(v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
@@ -103,6 +105,15 @@
     render();
   });
 
+  function fail(message) {
+    var box = document.getElementById('sub-error');
+    box.textContent = message;
+    box.hidden = !message;
+  }
+
+  UI.revealToggle(document.getElementById('sub-pass'));
+  UI.passwordMeter(document.getElementById('sub-pass'), document.getElementById('sub-meter'));
+
   document.getElementById('sub-submit').addEventListener('click', function () {
     var first = document.getElementById('sub-first');
     var last = document.getElementById('sub-last');
@@ -110,40 +121,110 @@
     var pass = document.getElementById('sub-pass');
     var cgv = document.getElementById('sub-cgv');
 
+    fail('');
     if (!last.value.trim()) { last.focus(); return; }
     if (!email.checkValidity() || !email.value) { email.focus(); return; }
-    if (pass.value.length < 8) { pass.focus(); pass.setAttribute('aria-invalid', 'true'); return; }
-    if (!cgv.checked) { cgv.focus(); return; }
+    if (pass.value.length < 8) {
+      pass.focus(); pass.setAttribute('aria-invalid', 'true');
+      fail('Le mot de passe doit faire au moins 8 caractères.');
+      return;
+    }
+    if (!cgv.checked) { cgv.focus(); fail('Vous devez accepter les conditions générales.'); return; }
 
     var plan = chosen();
-    S.identity.firstName = first.value.trim() || S.identity.firstName;
-    S.identity.lastName = last.value.trim();
-    S.identity.email = email.value.trim();
-    S.planId = plan.id;
-    S.plan = plan.name;
-    S.subscription = {
+    var result = accounts.signup({
+      firstName: first.value, lastName: last.value, email: email.value,
+      password: pass.value, planId: plan.id, cycle: state.cycle
+    });
+
+    if (!result.ok) { fail(result.error); email.focus(); return; }
+
+    created = result.user;
+    sendCode();
+    state.step = 3;
+    render();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+
+  /* ---------- Étape 3 : vérification de l'adresse ---------- */
+  var codeBoxes = UI.codeInput(document.getElementById('ver-boxes'), function () {
+    document.getElementById('ver-submit').focus();
+  });
+
+  function verifyFail(message) {
+    var box = document.getElementById('ver-error');
+    box.textContent = message;
+    box.hidden = !message;
+  }
+
+  function sendCode() {
+    var code = accounts.issueCode(created.id, 'verify');
+    document.getElementById('ver-target').textContent = created.email;
+    document.getElementById('ver-code').textContent = code;
+    verifyFail('');
+    codeBoxes.clear();
+  }
+
+  document.getElementById('ver-resend').addEventListener('click', function () {
+    if (created) sendCode();
+  });
+
+  /* Faute de frappe dans l'adresse : on supprime le compte à peine créé et on
+     revient au formulaire, plutôt que de laisser un compte fantôme. */
+  document.getElementById('ver-change').addEventListener('click', function () {
+    if (created) { accounts.remove(created.id); created = null; }
+    state.step = 2;
+    render();
+    document.getElementById('sub-email').focus();
+  });
+
+  document.getElementById('ver-submit').addEventListener('click', function () {
+    if (!created) { state.step = 2; render(); return; }
+
+    var result = accounts.verifyEmail(created.id, codeBoxes.value());
+    if (!result.ok) { verifyFail(result.error); codeBoxes.shake(); return; }
+
+    accounts.open(created.id);
+    store.reload();
+
+    var plan = chosen();
+    var S2 = store.state;
+    S2.identity.firstName = created.firstName || S2.identity.firstName;
+    S2.identity.lastName = created.lastName;
+    S2.identity.email = created.email;
+    S2.identity.org = '';
+    S2.planId = plan.id;
+    S2.plan = plan.name;
+    S2.configured = false;
+    S2.subscription = {
       planId: plan.id, cycle: state.cycle,
       price: priceOf(plan), trialEndsOn: trialEnd(), startedOn: new Date().toISOString()
     };
     store.save();
 
-    // Le questionnaire prend le relais : métier, horaires, règles.
+    // Le questionnaire prend le relais : métier, activité, horaires, règles.
     window.location.href = 'onboarding.html';
   });
 
   /* ---------- Navigation ---------- */
+  var TITLES = ['Choisissez votre formule', 'Créez votre compte', 'Vérifiez votre adresse'];
+  var LEDES = [
+    'Les 14 premiers jours sont offerts, sans carte bancaire. Vous ne payez qu\'à la '
+      + 'fin de l\'essai, et vous changez de formule quand vous voulez.',
+    'Il ne reste qu\'à vous identifier. Vous configurerez Ally juste après, '
+      + 'en quelques minutes.',
+    'Dernière étape avant la configuration : confirmez que cette adresse est bien la vôtre.'
+  ];
+
   function render() {
-    document.getElementById('sub-step-1').hidden = (state.step !== 1);
-    document.getElementById('sub-step-2').hidden = (state.step !== 2);
-    document.getElementById('sub-step-label').textContent = 'Étape ' + state.step + ' sur 2';
-    document.getElementById('sub-title').textContent =
-      state.step === 1 ? 'Choisissez votre formule' : 'Créez votre compte';
-    document.getElementById('sub-lede').textContent = state.step === 1
-      ? 'Les 14 premiers jours sont offerts, sans carte bancaire. Vous ne payez qu\'à la '
-        + 'fin de l\'essai, et vous changez de formule quand vous voulez.'
-      : 'Il ne reste qu\'à vous identifier. Vous configurerez Ally juste après, '
-        + 'en quelques minutes.';
+    for (var i = 1; i <= 3; i++) {
+      document.getElementById('sub-step-' + i).hidden = (state.step !== i);
+    }
+    document.getElementById('sub-step-label').textContent = 'Étape ' + state.step + ' sur 3';
+    document.getElementById('sub-title').textContent = TITLES[state.step - 1];
+    document.getElementById('sub-lede').textContent = LEDES[state.step - 1];
     if (state.step === 2) renderSummary();
+    if (state.step === 3) codeBoxes.focus();
   }
 
   renderPlans();

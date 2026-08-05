@@ -22,30 +22,133 @@
     </a>
 
     <main class="auth-card">
-      <h1>Espace pro</h1>
-      <p>Accédez au tableau de bord de votre assistante.</p>
 
-      <p class="auth-hint" id="login-hint" hidden></p>
+      <!-- ============ Connexion ============ -->
+      <section data-panel="login">
+        <h1>Espace pro</h1>
+        <p>Accédez au tableau de bord de votre assistante.</p>
 
-      <form id="login-form" novalidate>
-        <div class="auth-field">
-          <label for="login-email">Email professionnel</label>
-          <input class="field" id="login-email" type="email" name="email"
-                 placeholder="vous@cabinet.fr" required autocomplete="email">
+        <p class="auth-hint" id="login-hint" hidden></p>
+        <p class="auth-error" id="login-error" role="alert" hidden></p>
+
+        <form id="login-form" novalidate>
+          <div class="auth-field">
+            <label for="login-email">Email professionnel</label>
+            <input class="field" id="login-email" type="email" name="email"
+                   placeholder="vous@cabinet.fr" required autocomplete="email">
+          </div>
+          <div class="auth-field">
+            <label for="login-password">Mot de passe</label>
+            <div class="field-wrap">
+              <input class="field" id="login-password" type="password" name="password"
+                     placeholder="••••••••" required autocomplete="current-password">
+            </div>
+          </div>
+
+          <div class="auth-row">
+            <label class="consent consent-inline">
+              <input type="checkbox" id="login-remember" checked>
+              <span>Rester connecté</span>
+            </label>
+            <button type="button" class="btn-link" id="go-forgot">Mot de passe oublié ?</button>
+          </div>
+
+          <button class="btn btn-primary" type="submit">Se connecter</button>
+        </form>
+
+        <p class="auth-note">
+          Pas encore de compte ? <a href="abonnement.html">Créer un compte</a>
+        </p>
+
+        <div class="demo-keys">
+          <p class="demo-keys-title">Accès de démonstration</p>
+          <ul>
+            <li><strong>Administrateur</strong><code id="demo-admin">—</code></li>
+            <li><strong>Professionnel</strong><code>camille.roux@cabinetroux.fr · demo1234</code></li>
+          </ul>
+          <p class="note">
+            Maquette : les comptes vivent dans ce navigateur, rien n'est envoyé
+            à un serveur.
+          </p>
         </div>
-        <div class="auth-field">
-          <label for="login-password">Mot de passe</label>
-          <input class="field" id="login-password" type="password" name="password"
-                 placeholder="••••••••" required autocomplete="current-password">
-        </div>
-        <button class="btn btn-primary" type="submit">Se connecter</button>
-      </form>
+      </section>
 
-      <p class="auth-note">
-        Maquette de démonstration : aucune authentification réelle, n'importe quelle
-        adresse valide ouvre le tableau de bord.<br>
-        Premier accès ? <a href="onboarding.html">Configurer Ally</a>
-      </p>
+      <!-- ============ Vérification de l'adresse ============ -->
+      <section data-panel="verify" hidden>
+        <h1>Vérifiez votre adresse</h1>
+        <p>Un code à 6 chiffres a été envoyé à <strong id="verify-target">—</strong>.</p>
+
+        <div class="code-sent" id="verify-sent" hidden>
+          <span>Démonstration — code&nbsp;:</span> <code id="verify-code">——————</code>
+        </div>
+
+        <p class="auth-error" id="verify-error" role="alert" hidden></p>
+
+        <div class="auth-field">
+          <span class="ob-label">Code de vérification</span>
+          <div id="verify-boxes"></div>
+        </div>
+
+        <button class="btn btn-primary" id="verify-submit" type="button">Vérifier</button>
+        <div class="auth-row auth-row-center">
+          <button type="button" class="btn-link" id="verify-resend">Renvoyer le code</button>
+          <button type="button" class="btn-link" data-goto-panel="login">← Retour</button>
+        </div>
+      </section>
+
+      <!-- ============ Mot de passe oublié ============ -->
+      <section data-panel="forgot" hidden>
+        <h1>Mot de passe oublié</h1>
+        <p>Indiquez votre adresse : nous vous envoyons un code pour en choisir un nouveau.</p>
+
+        <p class="auth-error" id="forgot-error" role="alert" hidden></p>
+
+        <form id="forgot-form" novalidate>
+          <div class="auth-field">
+            <label for="forgot-email">Email professionnel</label>
+            <input class="field" id="forgot-email" type="email" placeholder="vous@cabinet.fr"
+                   required autocomplete="email">
+          </div>
+          <button class="btn btn-primary" type="submit">Envoyer le code</button>
+        </form>
+
+        <div class="auth-row auth-row-center">
+          <button type="button" class="btn-link" data-goto-panel="login">← Revenir à la connexion</button>
+        </div>
+      </section>
+
+      <!-- ============ Nouveau mot de passe ============ -->
+      <section data-panel="reset" hidden>
+        <h1>Nouveau mot de passe</h1>
+        <p id="reset-lede">Saisissez le code reçu, puis choisissez votre nouveau mot de passe.</p>
+
+        <div class="code-sent" id="reset-sent" hidden>
+          <span>Démonstration — code&nbsp;:</span> <code id="reset-code">——————</code>
+        </div>
+
+        <p class="auth-error" id="reset-error" role="alert" hidden></p>
+
+        <div class="auth-field">
+          <span class="ob-label">Code reçu</span>
+          <div id="reset-boxes"></div>
+        </div>
+
+        <div class="auth-field">
+          <label for="reset-pass">Nouveau mot de passe</label>
+          <div class="field-wrap">
+            <input class="field" id="reset-pass" type="password" autocomplete="new-password"
+                   placeholder="8 caractères minimum">
+          </div>
+          <div class="pass-meter" id="reset-meter"></div>
+        </div>
+
+        <button class="btn btn-primary" id="reset-submit" type="button">Changer mon mot de passe</button>
+        <div class="auth-row auth-row-center">
+          <button type="button" class="btn-link" id="reset-resend">Renvoyer le code</button>
+          <button type="button" class="btn-link" data-goto-panel="login">← Retour</button>
+        </div>
+      </section>
+
     </main>
 
     <a class="auth-back" href="index.html">← Retour au site</a>
@@ -53,7 +156,10 @@
 </div>
 
 <script src="js/profiles.js"></script>
+<script src="js/plans.js"></script>
+<script src="js/accounts.js"></script>
 <script src="js/store.js"></script>
+<script src="js/ui.js"></script>
 <script src="js/login.js"></script>
 </body>
 </html>

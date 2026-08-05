@@ -176,6 +176,12 @@ img, svg { max-width: 100%; }
 .btn-danger { background: none; border-color: oklch(0.65 0.18 25 / 0.4); color: var(--danger); }
 .btn-danger:hover { background: oklch(0.65 0.18 25 / 0.12); }
 
+.btn-link {
+  font-family: inherit; font-size: 13px; color: var(--cyan);
+  background: none; border: none; padding: 0; cursor: pointer;
+}
+.btn-link:hover { text-decoration: underline; }
+
 /* ---- Cartes ---- */
 .card {
   background: var(--card);
@@ -254,6 +260,97 @@ input[type="range"] {
   background: var(--grad); color: var(--on-accent);
   font-weight: 600; border-color: transparent;
 }
+
+/* ---- Lignes de récapitulatif (onboarding et console d'administration) ---- */
+.recap-row {
+  display: flex; justify-content: space-between; gap: 16px;
+  padding: 12px 0; border-bottom: 1px solid var(--hair); font-size: 14px;
+}
+.recap-row:last-child { border-bottom: none; }
+.recap-row span:last-child { color: var(--txt-3); text-align: right; }
+.recap-row.total { font-weight: 600; border-bottom: none; padding-top: 16px; }
+.recap-row.total span:last-child { color: var(--txt); }
+
+/* ---- Pastilles de réponse (questionnaire, filtres d'administration) ----
+   Différentes des .choice : elles se cochent et se décochent, souvent
+   plusieurs à la fois, et portent une phrase entière. */
+.chip-group { display: flex; flex-wrap: wrap; gap: 10px; }
+.chip {
+  font-family: inherit; font-size: 13px; line-height: 1.35;
+  padding: 10px 16px; border-radius: var(--pill);
+  background: var(--s1); border: 1px solid var(--bd-2);
+  color: var(--txt-2); cursor: pointer; text-align: left;
+  transition: border-color .15s, background .15s;
+}
+.chip:hover { border-color: var(--bd-3); background: var(--s4); }
+.chip[aria-pressed="true"] {
+  background: oklch(0.72 0.19 296 / 0.18);
+  border-color: oklch(0.72 0.19 296 / 0.55);
+  color: oklch(0.93 0.06 296); font-weight: 500;
+}
+.chip[aria-pressed="true"]::before {
+  content: '✓'; margin-right: 7px; font-size: 11px; color: var(--accent-bright);
+}
+
+/* ---- Code à usage unique ---- */
+.code-input { display: flex; gap: 10px; }
+.code-box {
+  width: 100%; max-width: 56px; aspect-ratio: 3 / 4;
+  background: var(--s1); border: 1px solid var(--bd-2); border-radius: var(--r-sm);
+  color: var(--txt); font-family: var(--ff-h); font-size: 22px; font-weight: 700;
+  text-align: center; outline: none;
+}
+.code-box:focus { border-color: oklch(0.72 0.19 296 / 0.7); background: var(--s2); }
+.code-input.is-wrong .code-box { border-color: oklch(0.65 0.18 25 / 0.6); }
+.code-input.is-wrong { animation: shake .4s ease; }
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-6px); }
+  40% { transform: translateX(6px); }
+  60% { transform: translateX(-4px); }
+  80% { transform: translateX(4px); }
+}
+
+/* ---- Champ avec bouton intégré ---- */
+.field-wrap { position: relative; }
+.field-wrap > .field { padding-right: 82px; }
+.reveal-pass {
+  position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+  background: none; border: none; cursor: pointer;
+  font-family: inherit; font-size: 12px; color: var(--txt-4); padding: 6px 8px;
+}
+.reveal-pass:hover { color: var(--txt-2); }
+
+/* ---- Robustesse du mot de passe ---- */
+.pass-meter { display: flex; align-items: center; gap: 12px; margin-top: 10px; }
+.meter-bar { flex: 1; height: 4px; border-radius: var(--pill); background: oklch(1 0 0 / 0.1); overflow: hidden; }
+.meter-bar i { display: block; height: 100%; width: 0; border-radius: var(--pill); transition: width .2s, background .2s; }
+.meter-bar i.lvl-1, .meter-bar i.lvl-2 { background: var(--danger); }
+.meter-bar i.lvl-3 { background: var(--yellow); }
+.meter-bar i.lvl-4, .meter-bar i.lvl-5 { background: var(--cyan); }
+.meter-label { font-size: 12px; color: var(--txt-4); min-width: 72px; }
+
+/* ---- Erreur de formulaire ---- */
+.auth-error {
+  background: oklch(0.4 0.14 25 / 0.16); border: 1px solid oklch(0.65 0.18 25 / 0.3);
+  border-radius: var(--r-sm); padding: 11px 14px;
+  font-size: 13px; color: oklch(0.85 0.12 25); line-height: 1.5; margin-bottom: 16px;
+}
+
+/* ---- Message éphémère ---- */
+.toast-host {
+  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+  z-index: 300; display: flex; flex-direction: column; gap: 10px; align-items: center;
+  pointer-events: none;
+}
+.toast {
+  background: var(--s6); border: 1px solid var(--bd-3); border-radius: var(--pill);
+  padding: 12px 22px; font-size: 14px; box-shadow: 0 12px 40px oklch(0 0 0 / 0.4);
+  transition: opacity .35s, transform .35s;
+}
+.toast-ok { border-color: oklch(0.7 0.14 200 / 0.5); }
+.toast-warn { border-color: oklch(0.7 0.15 25 / 0.5); }
+.toast.is-out { opacity: 0; transform: translateY(10px); }
 
 /* ---- Blobs de fond ---- */
 .blob { position: fixed; border-radius: 50%; filter: blur(20px); pointer-events: none; z-index: 0; }
@@ -532,8 +629,16 @@ input[type="range"] {
   border-radius: var(--r-lg); padding: 36px 32px;
   backdrop-filter: blur(10px);
 }
+.auth-card { max-width: 440px; }
 .auth-card h1 { font-size: 26px; font-weight: 700; margin-bottom: 8px; }
-.auth-card > p { color: var(--txt-3); font-size: 14px; line-height: 1.6; margin-bottom: 28px; }
+/* Le panneau intermédiaire est arrivé avec les écrans de vérification et de
+   récupération : le sélecteur direct ne suffisait plus. */
+.auth-card > p,
+.auth-card > [data-panel] > p:not(.auth-hint):not(.auth-error):not(.note) {
+  color: var(--txt-3); font-size: 14px; line-height: 1.6; margin-bottom: 28px;
+}
+.auth-card > [data-panel] > p.auth-hint,
+.auth-card > [data-panel] > p.auth-error { margin-bottom: 22px; }
 .auth-field { margin-bottom: 16px; }
 .auth-field label { display: block; font-size: 13px; color: var(--txt-3); margin-bottom: 7px; }
 .auth-card .btn { width: 100%; margin-top: 12px; }
@@ -549,6 +654,69 @@ input[type="range"] {
 .auth-note a { color: var(--cyan); }
 .auth-back { color: var(--txt-4); font-size: 13px; text-decoration: none; }
 .auth-back:hover { color: var(--txt); }
+
+/* Ligne « rester connecté » / « mot de passe oublié ». */
+.auth-row {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 14px; flex-wrap: wrap; margin-top: 18px;
+}
+.auth-row-center { justify-content: center; gap: 22px; margin-top: 18px; }
+.consent-inline { margin-top: 0; font-size: 13px; align-items: center; }
+.consent-inline input { margin-top: 0; }
+
+/* Code affiché à l'écran : sans serveur d'envoi, c'est le seul moyen de faire
+   fonctionner la démonstration. Le cartouche dit clairement que ce n'est pas
+   le comportement du produit. */
+.code-sent {
+  background: oklch(0.3 0.10 90 / 0.14); border: 1px dashed oklch(0.8 0.10 90 / 0.4);
+  border-radius: var(--r-sm); padding: 14px 16px; margin-bottom: 20px;
+  font-size: 13px; color: var(--yellow); line-height: 1.6;
+}
+.code-sent code {
+  font-family: var(--ff-h); font-size: 20px; font-weight: 700;
+  letter-spacing: .18em; color: var(--txt); margin-left: 6px;
+}
+.code-sent em { display: block; margin-top: 8px; font-size: 11px; color: var(--txt-4); font-style: normal; }
+
+/* Accès de démonstration listés sous le formulaire de connexion. */
+.demo-keys {
+  margin-top: 22px; padding-top: 20px; border-top: 1px solid var(--hair);
+}
+.demo-keys-title {
+  font-size: 11px; text-transform: uppercase; letter-spacing: .08em;
+  color: var(--txt-5); margin-bottom: 12px;
+}
+.demo-keys ul { list-style: none; margin: 0 0 12px; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.demo-keys li { display: flex; flex-direction: column; gap: 3px; }
+.demo-keys strong { font-size: 12px; font-weight: 600; color: var(--txt-3); }
+.demo-keys code {
+  font-size: 12px; color: var(--cyan); background: var(--s1);
+  border-radius: 6px; padding: 6px 9px; word-break: break-all;
+}
+
+/* ============ VÉRIFICATION D'ADRESSE (inscription) ============ */
+.verify-shell { display: grid; grid-template-columns: 1.15fr 1fr; gap: 20px; align-items: start; }
+.verify-why .why-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 16px; }
+.verify-why .why-list li { font-size: 13px; color: var(--txt-4); line-height: 1.6; padding-left: 16px; position: relative; }
+.verify-why .why-list li::before { content: ''; position: absolute; left: 0; top: 7px; width: 6px; height: 6px; border-radius: 50%; background: var(--accent-bright); }
+.verify-why .why-list strong { display: block; color: var(--txt-2); font-weight: 600; margin-bottom: 3px; }
+
+/* ============ RECOMMANDATION DE FORMULE (récapitulatif) ============ */
+.reco-card {
+  background: linear-gradient(135deg, oklch(0.24 0.05 296 / 0.7), oklch(0.2 0.03 200 / 0.55));
+  border-color: oklch(0.72 0.19 296 / 0.35);
+}
+.reco-kicker {
+  font-size: 11px; text-transform: uppercase; letter-spacing: .08em;
+  color: oklch(0.8 0.12 296); margin-bottom: 8px;
+}
+.reco-title { font-family: var(--ff-h); font-size: 19px; font-weight: 700; margin-bottom: 8px; }
+.reco-text { font-size: 14px; color: var(--txt-3); line-height: 1.6; }
+.reco-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 18px; }
+
+@media (max-width: 860px) {
+  .verify-shell { grid-template-columns: 1fr; }
+}
 
 /* ============ ONBOARDING ============ */
 .ob-shell {
@@ -619,12 +787,7 @@ input[type="range"] {
 .rule-row span { font-size: 13px; color: var(--txt-4); line-height: 1.5; }
 .rule-locked { font-size: 11px; color: var(--yellow); }
 
-.recap-row {
-  display: flex; justify-content: space-between; gap: 16px;
-  padding: 12px 0; border-bottom: 1px solid var(--hair); font-size: 14px;
-}
-.recap-row:last-child { border-bottom: none; }
-.recap-row span:last-child { color: var(--txt-3); text-align: right; }
+/* .recap-row vit dans base.css : la console d'administration s'en sert aussi. */
 .ob-nav { display: flex; justify-content: space-between; gap: 12px; margin-top: 32px; }
 
 @media (max-width: 560px) {
@@ -958,11 +1121,7 @@ input[type="range"] {
   padding: 7px 14px; cursor: pointer;
 }
 .btn-play:hover { color: var(--txt-2); }
-.btn-link {
-  font-family: inherit; font-size: 13px; color: var(--cyan);
-  background: none; border: none; padding: 0; cursor: pointer;
-}
-.btn-link:hover { text-decoration: underline; }
+/* .btn-link vit dans base.css : la connexion et l'inscription s'en servent. */
 .legal { margin-top: 12px; font-size: 11px; color: oklch(0.5 0.01 264); }
 
 .tag {
@@ -1641,6 +1800,269 @@ input[type="range"] {
   .serve-step .btn { width: 100%; }
 }
 
+/* Ally — console d'administration.
+   Reprend la coque de l'espace pro (barre latérale, topbar, cartes) et n'ajoute
+   que ce qui lui est propre : tableaux, graphiques, tiroir de fiche compte. */
+
+.badge-admin {
+  background: oklch(0.3 0.15 25 / 0.3);
+  color: oklch(0.85 0.14 25);
+}
+
+/* Présence, dans la barre latérale. */
+.admin-pulse {
+  display: flex; align-items: center; gap: 10px;
+  margin: 18px 0 0; padding: 13px 14px;
+  background: var(--s3); border: 1px solid var(--bd); border-radius: var(--r-md);
+  font-size: 13px; color: var(--txt-3);
+}
+.admin-pulse strong { color: var(--txt); font-weight: 600; }
+.pulse-dot {
+  width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+  background: var(--cyan); box-shadow: 0 0 0 3px oklch(0.75 0.15 200 / 0.18);
+  animation: pulse-dot 1.8s ease-in-out infinite;
+}
+.row-name .pulse-dot { display: inline-block; margin-right: 8px; }
+
+.live-clock {
+  font-family: var(--ff-h); font-size: 14px; color: var(--txt-4);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ============ STATISTIQUES ============ */
+.stat-grid-4 { grid-template-columns: repeat(4, 1fr); }
+.stat-grid-3 { grid-template-columns: repeat(3, 1fr); }
+.stat-foot { font-size: 12px; color: var(--txt-5); margin-top: 8px; line-height: 1.45; }
+.stat-value.warn { color: var(--yellow); }
+
+.alert-list { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.alert-list li { font-size: 13px; color: var(--txt-3); line-height: 1.5; }
+
+.tri-stat { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+
+/* Les cartes ne s'étirent pas à la hauteur de leur voisine : une liste courte
+   laissait un grand vide sous son dernier élément. */
+.cols > .card, .cols > .stack { align-self: start; }
+
+/* ============ GRAPHIQUE EN BARRES ============ */
+/* Hauteur fixe, et non min-height : les barres se dimensionnent en pourcentage
+   de leur colonne, ce qui exige un parent de hauteur définie. Avec min-height
+   seul, elles retombent à zéro et le graphique disparaît. */
+.chart {
+  display: flex; align-items: flex-end; gap: 10px;
+  height: 240px; padding-top: 20px;
+}
+.chart-col {
+  flex: 1; display: flex; flex-direction: column; align-items: center;
+  justify-content: flex-end; height: 100%; gap: 6px; min-width: 0;
+}
+.chart-value { font-size: 12px; color: var(--txt-4); font-variant-numeric: tabular-nums; }
+.chart-bar {
+  width: 100%; max-width: 34px; border-radius: 6px 6px 2px 2px;
+  background: linear-gradient(180deg, var(--accent-bright), oklch(0.55 0.16 296 / 0.55));
+  transition: filter .15s;
+}
+.chart-col:hover .chart-bar { filter: brightness(1.2); }
+.chart-label { font-size: 11px; color: var(--txt-5); white-space: nowrap; }
+
+/* ============ JAUGES ============ */
+.meter-row + .meter-row { margin-top: 16px; }
+.meter-head strong { font-weight: 600; }
+.meter-head small { color: var(--txt-5); font-weight: 400; }
+/* La piste est un <span> : sans display:block, sa hauteur est ignorée et la
+   jauge reste invisible. */
+.meter-track { display: block; }
+.meter-track > i {
+  display: block; height: 100%; border-radius: var(--pill);
+  background: oklch(0.6 0.02 264); transition: width .3s;
+}
+.meter-track > i.tone-accent { background: var(--accent-bright); }
+.meter-track > i.tone-cyan { background: var(--cyan); }
+.meter-track > i.tone-warn { background: var(--yellow); }
+
+/* ============ LISTES ============ */
+.row-main { min-width: 0; }
+.row-side { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+
+/* ============ BARRE D'OUTILS ============ */
+.admin-toolbar {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 16px; flex-wrap: wrap; margin-bottom: 22px;
+}
+.admin-toolbar .filters { margin-bottom: 0; display: flex; gap: 10px; flex-wrap: wrap; }
+.toolbar-right { display: flex; gap: 10px; flex-wrap: wrap; }
+.toolbar-right .field { width: 240px; }
+.field-select { width: auto; min-width: 170px; cursor: pointer; }
+.field-select option { background: var(--s1); color: var(--txt); }
+
+/* ============ TABLEAU ============ */
+/* Le tableau défile dans son cadre : sur mobile, c'est lui qui déborde,
+   jamais la page. */
+.card-table { padding: 22px 8px 8px; }
+/* position:relative n'est pas décoratif : sans lui, le libellé .sr-only de
+   l'en-tête « Actions » — en position absolue — se cale sur le bloc englobant
+   initial, échappe au découpage et fait déborder toute la page sur mobile. */
+.table-wrap { position: relative; overflow-x: auto; border-radius: var(--r-md); }
+.admin-table { width: 100%; border-collapse: collapse; min-width: 720px; }
+.admin-table th {
+  text-align: left; font-size: 11px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: .06em; color: var(--txt-5);
+  padding: 0 16px 12px; border-bottom: 1px solid var(--bd);
+}
+.admin-table td {
+  padding: 14px 16px; border-bottom: 1px solid var(--hair);
+  font-size: 14px; vertical-align: middle;
+}
+.admin-table tbody tr { transition: background .12s; }
+.admin-table tbody tr:hover { background: oklch(1 0 0 / 0.03); }
+.admin-table tbody tr:last-child td { border-bottom: none; }
+.admin-table tfoot td {
+  padding: 14px 16px; font-weight: 600; border-top: 1px solid var(--bd); border-bottom: none;
+}
+.admin-table .num { text-align: right; font-variant-numeric: tabular-nums; }
+.admin-table th:nth-child(n+2) { text-align: right; }
+.admin-table th:first-child, .admin-table th:last-child { text-align: left; }
+.admin-table td:nth-child(2), .admin-table td:nth-child(3),
+.admin-table td:nth-child(5) { text-align: right; }
+.cell-actions { text-align: right !important; }
+.cell-cycle { display: block; margin-top: 4px; }
+
+.cell-user { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.avatar-sm { width: 34px; height: 34px; font-size: 12px; }
+.avatar {
+  display: inline-flex; align-items: center; justify-content: center;
+  font-family: var(--ff-h); font-weight: 700; color: var(--on-accent);
+  position: relative;
+}
+/* Pastille de présence : posée sur l'avatar, elle se lit sans légende. */
+.avatar.is-online::after {
+  content: ''; position: absolute; right: -1px; bottom: -1px;
+  width: 10px; height: 10px; border-radius: 50%;
+  background: var(--cyan); border: 2px solid var(--s0);
+}
+
+.badge-wait { background: oklch(0.28 0.02 264); color: var(--txt-3); }
+
+/* ============ TIROIR DE FICHE ============ */
+.drawer-overlay {
+  position: fixed; inset: 0; z-index: 220;
+  background: oklch(0.08 0.02 264 / 0.7);
+  backdrop-filter: blur(3px);
+  display: flex; justify-content: flex-end;
+}
+.drawer {
+  width: min(520px, 100%); height: 100%; overflow-y: auto;
+  background: var(--s0); border-left: 1px solid var(--bd-2);
+  padding: 26px 28px 60px;
+  animation: drawer-in .22s ease;
+}
+@keyframes drawer-in { from { transform: translateX(24px); opacity: 0; } }
+.drawer-head {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 16px; margin-bottom: 24px;
+}
+.drawer-head h2 { font-size: 21px; font-weight: 700; }
+.drawer-head .icon-btn { font-size: 20px; color: var(--txt-3); }
+
+.drawer-id {
+  display: flex; align-items: center; gap: 14px;
+  padding-bottom: 22px; border-bottom: 1px solid var(--hair); margin-bottom: 22px;
+}
+.drawer-id > div { flex: 1; min-width: 0; }
+.drawer-id .row-meta { word-break: break-all; }
+
+.drawer-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 26px; }
+.drawer-block { padding-top: 22px; border-top: 1px solid var(--hair); margin-bottom: 22px; }
+.drawer-actions { display: flex; gap: 10px; flex-wrap: wrap; padding-top: 22px; border-top: 1px solid var(--hair); }
+
+/* ============ JOURNAL ============ */
+.log-list { list-style: none; margin: 0; padding: 0; }
+.log-item {
+  display: flex; align-items: center; gap: 14px;
+  padding: 12px 0; border-bottom: 1px solid var(--hair);
+}
+.log-item:last-child { border-bottom: none; }
+.log-main { flex: 1; min-width: 0; }
+.log-main .row-meta { word-break: break-all; }
+.log-dot {
+  width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+  background: var(--txt-5);
+}
+.log-dot.ok { background: var(--cyan); }
+.log-dot.warn { background: var(--danger); }
+
+/* ============ CHECKLIST SÉCURITÉ ============ */
+.check-list { list-style: none; margin: 0; padding: 0; }
+.check-item {
+  display: flex; align-items: flex-start; gap: 14px;
+  padding: 15px 0; border-bottom: 1px solid var(--hair);
+}
+.check-item:last-child { border-bottom: none; }
+.check-item > div { flex: 1; min-width: 0; }
+.check-item .row-meta { line-height: 1.55; margin-top: 3px; }
+.check-mark {
+  width: 18px; height: 18px; border-radius: 50%; flex-shrink: 0; margin-top: 2px;
+  border: 2px solid var(--toggle-off);
+}
+.check-item.is-done .check-mark {
+  border-color: var(--cyan); background: var(--cyan);
+  position: relative;
+}
+.check-item.is-done .check-mark::after {
+  content: '✓'; position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700; color: var(--on-accent);
+}
+
+.proj-value { font-family: var(--ff-h); font-size: 36px; font-weight: 700; margin-bottom: 10px; }
+.proj-value small { font-size: 15px; color: var(--txt-4); font-weight: 400; }
+
+/* ============ RESPONSIVE ============ */
+@media (max-width: 1100px) {
+  .stat-grid-4 { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 900px) {
+  .stat-grid-3, .tri-stat, .drawer-grid { grid-template-columns: 1fr 1fr; }
+  .toolbar-right { width: 100%; }
+  .toolbar-right .field { width: 100%; }
+  .field-select { width: 100%; }
+}
+/* Sous 700 px, un tableau à six colonnes ne se lit pas, même en défilant.
+   Chaque ligne devient une carte et chaque valeur retrouve son intitulé via
+   l'attribut data-label posé par le script. */
+@media (max-width: 700px) {
+  .card-table { padding: 8px; }
+  .table-wrap { overflow-x: visible; }
+  .admin-table { min-width: 0; display: block; }
+  .admin-table thead, .admin-table tfoot { display: none; }
+  .admin-table tbody, .admin-table tr { display: block; width: 100%; }
+  .admin-table tr {
+    padding: 16px 14px; border-bottom: 1px solid var(--hair);
+  }
+  .admin-table tbody tr:last-child { border-bottom: none; }
+  .admin-table td {
+    display: flex; align-items: center; gap: 10px;
+    padding: 6px 0; border: none; text-align: left;
+  }
+  .admin-table td:first-child { padding-bottom: 12px; }
+  /* margin-right:auto plutôt que space-between : la cellule Formule contient
+     deux éléments, qui doivent rester groupés à droite au lieu d'être écartés. */
+  .admin-table td[data-label]::before {
+    content: attr(data-label);
+    font-size: 11px; text-transform: uppercase; letter-spacing: .06em;
+    color: var(--txt-5); flex-shrink: 0; margin-right: auto;
+  }
+  .cell-actions { justify-content: stretch !important; padding-top: 12px !important; }
+  .cell-actions .btn { width: 100%; }
+  .cell-cycle { display: inline; margin-left: 8px; }
+}
+
+@media (max-width: 560px) {
+  .stat-grid-4, .stat-grid-3, .tri-stat, .drawer-grid { grid-template-columns: 1fr; }
+  .chart { height: 180px; }
+  .drawer { padding: 22px 20px 60px; }
+}
+
 /* Un seul écran visible à la fois. */
 .screen { display: none; }
 .screen[data-active] { display: block; }
@@ -1929,8 +2351,13 @@ input[type="range"] {
 
             <div class="ob-field">
               <label class="ob-label" for="sub-pass">Mot de passe</label>
-              <input class="field" id="sub-pass" type="password" autocomplete="new-password" placeholder="8 caractères minimum">
+              <div class="field-wrap">
+                <input class="field" id="sub-pass" type="password" autocomplete="new-password" placeholder="8 caractères minimum">
+              </div>
+              <div class="pass-meter" id="sub-meter"></div>
             </div>
+
+            <p class="auth-error" id="sub-error" role="alert" hidden></p>
 
             <p class="demo-warning">
               Démonstration : aucun compte n'est créé sur un serveur, aucun paiement
@@ -1965,6 +2392,49 @@ input[type="range"] {
           </aside>
         </div>
       </section>
+
+      <!-- Étape 3 — Vérification de l'adresse -->
+      <section id="sub-step-3" hidden>
+        <div class="verify-shell">
+          <div class="card">
+            <p class="card-title">Confirmez votre adresse</p>
+            <p class="note" style="margin-bottom:20px">
+              Un code à 6 chiffres a été envoyé à <strong id="ver-target">—</strong>.
+              Il est valable 10 minutes.
+            </p>
+
+            <div class="code-sent">
+              <span>Démonstration — code&nbsp;:</span> <code id="ver-code">——————</code>
+              <em>Dans le produit réel, ce code arrive par email et n'apparaît jamais à l'écran.</em>
+            </div>
+
+            <p class="auth-error" id="ver-error" role="alert" hidden></p>
+
+            <div class="ob-field" style="margin-top:20px">
+              <span class="ob-label">Code de vérification</span>
+              <div id="ver-boxes"></div>
+            </div>
+
+            <button class="btn btn-primary" id="ver-submit" type="button" style="width:100%;margin-top:18px">
+              Vérifier et continuer
+            </button>
+
+            <div class="auth-row auth-row-center" style="margin-top:14px">
+              <button type="button" class="btn-link" id="ver-resend">Renvoyer le code</button>
+              <button type="button" class="btn-link" id="ver-change">Changer d'adresse</button>
+            </div>
+          </div>
+
+          <aside class="card verify-why">
+            <p class="card-title">Pourquoi cette étape ?</p>
+            <ul class="why-list">
+              <li><strong>Votre adresse est votre identifiant.</strong> Une faute de frappe et vous ne pourriez plus vous connecter, ni récupérer votre mot de passe.</li>
+              <li><strong>Ally vous écrit.</strong> Résumé quotidien, alertes d'urgence, notifications de rendez-vous : tout passe par cette adresse.</li>
+              <li><strong>Elle protège vos clients.</strong> Un compte non vérifié ne peut pas déclencher d'envoi d'email en votre nom.</li>
+            </ul>
+          </aside>
+        </div>
+      </section>
     </main>
   </div>
 </div>
@@ -1981,30 +2451,133 @@ input[type="range"] {
     </a>
 
     <main class="auth-card">
-      <h1>Espace pro</h1>
-      <p>Accédez au tableau de bord de votre assistante.</p>
 
-      <p class="auth-hint" id="login-hint" hidden></p>
+      <!-- ============ Connexion ============ -->
+      <section data-panel="login">
+        <h1>Espace pro</h1>
+        <p>Accédez au tableau de bord de votre assistante.</p>
 
-      <form id="login-form" novalidate>
-        <div class="auth-field">
-          <label for="login-email">Email professionnel</label>
-          <input class="field" id="login-email" type="email" name="email"
-                 placeholder="vous@cabinet.fr" required autocomplete="email">
+        <p class="auth-hint" id="login-hint" hidden></p>
+        <p class="auth-error" id="login-error" role="alert" hidden></p>
+
+        <form id="login-form" novalidate>
+          <div class="auth-field">
+            <label for="login-email">Email professionnel</label>
+            <input class="field" id="login-email" type="email" name="email"
+                   placeholder="vous@cabinet.fr" required autocomplete="email">
+          </div>
+          <div class="auth-field">
+            <label for="login-password">Mot de passe</label>
+            <div class="field-wrap">
+              <input class="field" id="login-password" type="password" name="password"
+                     placeholder="••••••••" required autocomplete="current-password">
+            </div>
+          </div>
+
+          <div class="auth-row">
+            <label class="consent consent-inline">
+              <input type="checkbox" id="login-remember" checked>
+              <span>Rester connecté</span>
+            </label>
+            <button type="button" class="btn-link" id="go-forgot">Mot de passe oublié ?</button>
+          </div>
+
+          <button class="btn btn-primary" type="submit">Se connecter</button>
+        </form>
+
+        <p class="auth-note">
+          Pas encore de compte ? <a href="#" data-goto="abonnement">Créer un compte</a>
+        </p>
+
+        <div class="demo-keys">
+          <p class="demo-keys-title">Accès de démonstration</p>
+          <ul>
+            <li><strong>Administrateur</strong><code id="demo-admin">—</code></li>
+            <li><strong>Professionnel</strong><code>camille.roux@cabinetroux.fr · demo1234</code></li>
+          </ul>
+          <p class="note">
+            Maquette : les comptes vivent dans ce navigateur, rien n'est envoyé
+            à un serveur.
+          </p>
         </div>
-        <div class="auth-field">
-          <label for="login-password">Mot de passe</label>
-          <input class="field" id="login-password" type="password" name="password"
-                 placeholder="••••••••" required autocomplete="current-password">
-        </div>
-        <button class="btn btn-primary" type="submit">Se connecter</button>
-      </form>
+      </section>
 
-      <p class="auth-note">
-        Maquette de démonstration : aucune authentification réelle, n'importe quelle
-        adresse valide ouvre le tableau de bord.<br>
-        Premier accès ? <a href="#" data-goto="onboarding">Configurer Ally</a>
-      </p>
+      <!-- ============ Vérification de l'adresse ============ -->
+      <section data-panel="verify" hidden>
+        <h1>Vérifiez votre adresse</h1>
+        <p>Un code à 6 chiffres a été envoyé à <strong id="verify-target">—</strong>.</p>
+
+        <div class="code-sent" id="verify-sent" hidden>
+          <span>Démonstration — code&nbsp;:</span> <code id="verify-code">——————</code>
+        </div>
+
+        <p class="auth-error" id="verify-error" role="alert" hidden></p>
+
+        <div class="auth-field">
+          <span class="ob-label">Code de vérification</span>
+          <div id="verify-boxes"></div>
+        </div>
+
+        <button class="btn btn-primary" id="verify-submit" type="button">Vérifier</button>
+        <div class="auth-row auth-row-center">
+          <button type="button" class="btn-link" id="verify-resend">Renvoyer le code</button>
+          <button type="button" class="btn-link" data-goto-panel="login">← Retour</button>
+        </div>
+      </section>
+
+      <!-- ============ Mot de passe oublié ============ -->
+      <section data-panel="forgot" hidden>
+        <h1>Mot de passe oublié</h1>
+        <p>Indiquez votre adresse : nous vous envoyons un code pour en choisir un nouveau.</p>
+
+        <p class="auth-error" id="forgot-error" role="alert" hidden></p>
+
+        <form id="forgot-form" novalidate>
+          <div class="auth-field">
+            <label for="forgot-email">Email professionnel</label>
+            <input class="field" id="forgot-email" type="email" placeholder="vous@cabinet.fr"
+                   required autocomplete="email">
+          </div>
+          <button class="btn btn-primary" type="submit">Envoyer le code</button>
+        </form>
+
+        <div class="auth-row auth-row-center">
+          <button type="button" class="btn-link" data-goto-panel="login">← Revenir à la connexion</button>
+        </div>
+      </section>
+
+      <!-- ============ Nouveau mot de passe ============ -->
+      <section data-panel="reset" hidden>
+        <h1>Nouveau mot de passe</h1>
+        <p id="reset-lede">Saisissez le code reçu, puis choisissez votre nouveau mot de passe.</p>
+
+        <div class="code-sent" id="reset-sent" hidden>
+          <span>Démonstration — code&nbsp;:</span> <code id="reset-code">——————</code>
+        </div>
+
+        <p class="auth-error" id="reset-error" role="alert" hidden></p>
+
+        <div class="auth-field">
+          <span class="ob-label">Code reçu</span>
+          <div id="reset-boxes"></div>
+        </div>
+
+        <div class="auth-field">
+          <label for="reset-pass">Nouveau mot de passe</label>
+          <div class="field-wrap">
+            <input class="field" id="reset-pass" type="password" autocomplete="new-password"
+                   placeholder="8 caractères minimum">
+          </div>
+          <div class="pass-meter" id="reset-meter"></div>
+        </div>
+
+        <button class="btn btn-primary" id="reset-submit" type="button">Changer mon mot de passe</button>
+        <div class="auth-row auth-row-center">
+          <button type="button" class="btn-link" id="reset-resend">Renvoyer le code</button>
+          <button type="button" class="btn-link" data-goto-panel="login">← Retour</button>
+        </div>
+      </section>
+
     </main>
 
     <a class="auth-back" href="#" data-goto="landing">← Retour au site</a>
@@ -2026,12 +2599,12 @@ input[type="range"] {
     </div>
 
     <div class="ob-progress" id="ob-progress" role="progressbar" aria-label="Progression de la configuration"
-         aria-valuemin="1" aria-valuemax="5" aria-valuenow="1">
-      <span class="done"></span><span></span><span></span><span></span><span></span>
+         aria-valuemin="1" aria-valuemax="7" aria-valuenow="1">
+      <span class="done"></span><span></span><span></span><span></span><span></span><span></span><span></span>
     </div>
 
     <main>
-      <p class="ob-step-label" id="ob-step-label">Étape 1 sur 5</p>
+      <p class="ob-step-label" id="ob-step-label">Étape 1 sur 7</p>
       <h1 id="ob-title">Quel métier exercez-vous ?</h1>
       <p class="ob-lede" id="ob-lede"></p>
 
@@ -2089,8 +2662,36 @@ input[type="range"] {
         </div>
       </section>
 
-      <!-- Étape 3 — Disponibilités -->
+      <!-- Étape 3 — Votre activité -->
       <section class="ob-panel" id="step-3" hidden>
+        <div class="card">
+          <p class="card-title">Combien d'appels manquez-vous, par semaine ?</p>
+          <p class="note" style="margin-bottom:14px">
+            C'est la seule réponse qui a une conséquence sur le prix : elle
+            détermine la formule dont vous avez réellement besoin.
+          </p>
+          <div class="chip-group" id="q-volume"></div>
+        </div>
+
+        <div class="card">
+          <p class="card-title">Qui répond, aujourd'hui, quand vous ne pouvez pas ?</p>
+          <div class="chip-group" id="q-today"></div>
+        </div>
+
+        <div class="card">
+          <p class="card-title">Qu'est-ce qui vous prend le plus de temps ?</p>
+          <p class="note" style="margin-bottom:14px">Plusieurs réponses possibles. Ally traitera ces cas en priorité.</p>
+          <div class="chip-group" id="q-pain"></div>
+        </div>
+
+        <div class="card">
+          <p class="card-title">Où tenez-vous votre agenda ?</p>
+          <div class="chip-group" id="q-tools"></div>
+        </div>
+      </section>
+
+      <!-- Étape 4 — Disponibilités -->
+      <section class="ob-panel" id="step-4" hidden>
         <div class="card">
           <p class="card-title">Horaires d'ouverture</p>
           <div id="hours-list"></div>
@@ -2102,20 +2703,65 @@ input[type="range"] {
         </div>
       </section>
 
-      <!-- Étape 4 — Règles -->
-      <section class="ob-panel" id="step-4" hidden>
+      <!-- Étape 5 — Les demandes que vous recevez -->
+      <section class="ob-panel" id="step-5" hidden>
+        <div class="card">
+          <p class="card-title">À quelles questions Ally peut-elle répondre seule ?</p>
+          <p class="note" style="margin-bottom:14px">
+            Décochez ce qu'elle ne doit jamais traiter à votre place. Sur ces
+            sujets-là, elle prendra un message au lieu de répondre.
+          </p>
+          <div class="chip-group" id="q-motifs"></div>
+        </div>
+
+        <div class="ob-grid-2">
+          <div class="card">
+            <p class="card-title">Durée d'un rendez-vous</p>
+            <div class="chip-group" id="q-duration"></div>
+          </div>
+          <div class="card">
+            <p class="card-title">Sous quel délai rappelez-vous ?</p>
+            <div class="chip-group" id="q-callback"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <p class="card-title" id="firsttime-title">Acceptez-vous de nouveaux clients ?</p>
+          <div class="chip-group" id="q-firsttime"></div>
+        </div>
+
+        <div class="card">
+          <p class="card-title">Ce qu'Ally ne doit jamais dire</p>
+          <label class="sr-only" for="q-notes">Consignes particulières</label>
+          <textarea class="field" id="q-notes" placeholder="Ex. : ne jamais donner d'estimation d'honoraires, ne jamais confirmer qu'un dossier existe."></textarea>
+          <p class="note" style="margin-top:12px">
+            Cette consigne est reprise telle quelle dans le script d'appel.
+          </p>
+        </div>
+      </section>
+
+      <!-- Étape 6 — Règles -->
+      <section class="ob-panel" id="step-6" hidden>
         <div class="card">
           <p class="card-title">Règles de comportement</p>
           <div id="rules-list"></div>
         </div>
       </section>
 
-      <!-- Étape 5 — Récapitulatif -->
-      <section class="ob-panel" id="step-5" hidden>
+      <!-- Étape 7 — Récapitulatif -->
+      <section class="ob-panel" id="step-7" hidden>
+        <div class="card reco-card" id="reco" hidden>
+          <p class="reco-kicker">D'après vos réponses</p>
+          <p class="reco-title" id="reco-title">—</p>
+          <p class="reco-text" id="reco-text">—</p>
+          <div class="reco-actions" id="reco-actions"></div>
+        </div>
+
         <div class="card">
           <p class="card-title">Profil généré</p>
           <div id="recap"></div>
         </div>
+
         <div class="card">
           <p class="card-title">Script d'accueil téléphonique</p>
           <label class="sr-only" for="ob-greeting">Script d'accueil</label>
@@ -2180,10 +2826,11 @@ input[type="range"] {
         <li><span class="foot-dim">Stockage :</span> <span id="foot-storage">navigateur</span></li>
         <li><button type="button" class="foot-link" id="foot-palette">⌘K — Palette de commandes</button></li>
         <li><a class="foot-link" href="#" data-goto="landing">← Retour au site public</a></li>
+        <li id="foot-admin-item" hidden><a class="foot-link" href="#" data-goto="admin">Console d'administration →</a></li>
         <li><button type="button" class="foot-link" id="foot-invite">Inviter un collaborateur (lecture seule)</button></li>
         <li><button type="button" class="foot-link" id="foot-voice">Voix : <span id="foot-voice-name">par défaut</span> (modifier)</button></li>
       </ul>
-      <p class="foot-version">Ally — v0.6</p>
+      <p class="foot-version">Ally — v0.7</p>
     </div>
   </aside>
 
@@ -2266,6 +2913,73 @@ input[type="range"] {
   </div>
 </div>
 </div>
+<div class="screen" id="screen-admin">
+<a class="skip-link" href="#adm-tabpanel">Aller au contenu</a>
+
+<div class="shell" id="adm-shell">
+  <div class="scrim" id="adm-scrim"></div>
+
+  <aside class="sidebar" id="adm-sidebar">
+    <button class="sidebar-close" id="adm-sidebar-close" type="button" aria-label="Fermer le menu">×</button>
+
+    <div class="sidebar-head">
+      <span class="logo-mark" aria-hidden="true"></span>
+      <span class="logo-word">Ally</span>
+      <span class="badge-pro badge-admin">Admin</span>
+    </div>
+
+    <nav class="nav-list" id="adm-nav-list" aria-label="Sections de l'administration"></nav>
+
+    <div class="admin-pulse" id="admin-pulse">
+      <span class="pulse-dot" aria-hidden="true"></span>
+      <span><strong id="pulse-online">0</strong> professionnel(s) en ligne</span>
+    </div>
+
+    <div class="sidebar-foot">
+      <p class="foot-account">
+        <span id="adm-foot-email">—</span>
+        <button type="button" class="btn-link" id="adm-foot-logout">Déconnexion</button>
+      </p>
+      <ul class="foot-links">
+        <li><a class="foot-link" href="#" data-goto="dashboard">Voir un espace pro →</a></li>
+        <li><a class="foot-link" href="#" data-goto="landing">← Site public</a></li>
+        <li><button type="button" class="foot-link" id="adm-foot-reseed">Réinitialiser les données de démonstration</button></li>
+      </ul>
+      <p class="foot-version">Ally — console d'administration v0.7</p>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <div class="topbar-id">
+        <h1 id="adm-tab-title">Vue d'ensemble</h1>
+        <p class="topbar-sub" id="adm-tab-sub"></p>
+      </div>
+      <div class="topbar-actions" id="adm-topbar-actions"></div>
+      <div class="topbar-tools">
+        <button class="icon-btn" id="adm-menu-toggle" type="button" aria-label="Ouvrir le menu"
+                aria-controls="adm-sidebar" aria-expanded="false" hidden>
+          <span class="glyph-sq" aria-hidden="true"></span>
+        </button>
+        <span class="live-clock" id="live-clock">—</span>
+      </div>
+    </div>
+
+    <div id="adm-tabpanel" role="region" aria-live="polite" aria-labelledby="adm-tab-title"></div>
+  </main>
+</div>
+
+<div class="drawer-overlay" id="drawer-overlay" role="dialog" aria-modal="true"
+     aria-labelledby="drawer-title" hidden>
+  <div class="drawer">
+    <div class="drawer-head">
+      <h2 id="drawer-title">Compte</h2>
+      <button class="icon-btn" id="drawer-close" type="button" aria-label="Fermer">×</button>
+    </div>
+    <div class="drawer-body" id="drawer-body"></div>
+  </div>
+</div>
+</div>
 <script>
 
 /* Routeur d'écrans du fichier de démonstration. */
@@ -2279,6 +2993,7 @@ window.ALLY_GOTO = function (target) {
   // Sans rechargement de page, on redemande à l'écran de relire le compte.
   if (id === 'dashboard' && window.ALLY_DASHBOARD_REFRESH) window.ALLY_DASHBOARD_REFRESH();
   if (id === 'onboarding' && window.ALLY_ONBOARDING_REFRESH) window.ALLY_ONBOARDING_REFRESH();
+  if (id === 'admin' && window.ALLY_ADMIN_REFRESH) window.ALLY_ADMIN_REFRESH();
 };
 document.addEventListener('click', function (event) {
   var link = event.target.closest('[data-goto]');
@@ -2737,13 +3452,460 @@ window.ALLY_PLAN_BY_ID = function (id) {
     || window.ALLY_PLANS[1];
 };
 
+/* Ally — annuaire des comptes, rôles et session.
+
+   AVERTISSEMENT : maquette front. Les mots de passe sont « hachés » ici par une
+   fonction non cryptographique, uniquement pour éviter de les écrire en clair
+   dans le navigateur. Ce n'est PAS de la sécurité. En production, le hachage se
+   fait côté serveur avec argon2id, et rien de tout ceci ne vit dans le
+   navigateur. Voir ARCHITECTURE.md § Sécuriser Ally. */
+(function () {
+  'use strict';
+
+  var KEY = 'ally.users.v1';
+  var ONLINE_MS = 5 * 60 * 1000;   /* considéré connecté sous 5 minutes */
+  var CODE_TTL = 10 * 60 * 1000;   /* validité d'un code à usage unique */
+
+  /* Compte administrateur livré avec la maquette. À changer avant toute mise
+     en ligne — il est volontairement visible sur l'écran de connexion. */
+  var ADMIN = { email: 'admin@ally.fr', password: 'ally-admin-2026' };
+
+  function now() { return Date.now(); }
+  function uid() { return 'u' + now().toString(36) + Math.random().toString(36).slice(2, 7); }
+  function days(n) { return n * 86400000; }
+
+  /* Hachage de démonstration. Voir l'avertissement en tête de fichier. */
+  function hash(text) {
+    var h = 5381, i;
+    text = 'ally.' + String(text);
+    for (i = 0; i < text.length; i++) h = ((h << 5) + h + text.charCodeAt(i)) >>> 0;
+    return 'd$' + h.toString(36);
+  }
+
+  function code6() {
+    return String(Math.floor(100000 + Math.random() * 900000));
+  }
+
+  function normalize(email) { return String(email || '').trim().toLowerCase(); }
+
+  /* ---------- Comptes de démonstration ----------
+     L'admin a besoin de voir une plateforme vivante : des formules variées,
+     des essais en cours, des comptes suspendus, des dates d'inscription
+     étalées sur l'année. Sans ça, la console d'administration ne montre rien. */
+  var DEMO = [
+    ['Camille', 'Roux',     'Cabinet Roux',              'avocat',   'expert',     'active',    318, 3,    { calls: 942, emails: 2610, minutes: 1880 }],
+    ['Sofiane', 'Benali',   'Benali Avocats',            'avocat',   'cabinet',    'active',    266, 0.02, { calls: 381, emails: 1104, minutes: 762 }],
+    ['Hélène',  'Marchand', 'Cabinet Marchand',          'avocat',   'cabinet',    'active',    241, 1,    { calls: 355, emails: 980,  minutes: 690 }],
+    ['Julien',  'Ferrand',  'Ferrand & Associés',        'avocat',   'expert',     'active',    203, 0.1,  { calls: 1108, emails: 3320, minutes: 2210 }],
+    ['Nadia',   'Cherif',   'Cabinet Cherif',            'avocat',   'cabinet',    'active',    177, 6,    { calls: 298, emails: 812,  minutes: 601 }],
+    ['Marc',    'Lévêque',  'Étude Lévêque',             'avocat',   'permanence', 'active',    154, 2,    { calls: 132, emails: 96,   minutes: 210 }],
+    ['Inès',    'Fabre',    'Docteur Fabre',             'medecin',  'cabinet',    'active',    131, 0.03, { calls: 402, emails: 640,  minutes: 810 }],
+    ['Thomas',  'Girard',   'Girard Conseil',            'consultant','cabinet',   'active',    112, 4,    { calls: 214, emails: 1420, minutes: 430 }],
+    ['Aurélie', 'Vasseur',  'Cabinet Vasseur',           'avocat',   'cabinet',    'active',     88, 0.5,  { calls: 276, emails: 903,  minutes: 552 }],
+    ['Karim',   'Haddad',   'Haddad Plomberie',          'artisan',  'permanence', 'active',     74, 9,    { calls: 148, emails: 62,   minutes: 232 }],
+    ['Léa',     'Dumas',    'Docteur Dumas',             'medecin',  'expert',     'active',     61, 0.08, { calls: 1290, emails: 2140, minutes: 2480 }],
+    ['Olivier', 'Perrin',   'Perrin Avocat',             'avocat',   'cabinet',    'suspended',  57, 42,   { calls: 90,  emails: 210,  minutes: 178 }],
+    ['Manon',   'Aubry',    'Cabinet Aubry',             'avocat',   'cabinet',    'trial',      11, 0.2,  { calls: 38,  emails: 74,   minutes: 71 }],
+    ['Rémi',    'Colin',    'Colin Ébénisterie',         'artisan',  'permanence', 'trial',       6, 1.5,  { calls: 21,  emails: 8,    minutes: 33 }],
+    ['Sarah',   'Nguyen',   'Nguyen & Partners',         'consultant','cabinet',   'trial',       3, 0.01, { calls: 12,  emails: 47,   minutes: 26 }],
+    ['Paul',    'Rivière',  'Étude Rivière',             'avocat',   'cabinet',    'pending',     1, 999,  { calls: 0,   emails: 0,    minutes: 0 }]
+  ];
+
+  function demoUsers() {
+    var list = DEMO.map(function (row, index) {
+      var created = now() - days(row[6]);
+      return {
+        id: 'demo' + (index + 1),
+        role: 'pro',
+        email: (row[0] + '.' + row[1] + '@' + row[2].toLowerCase()
+                 .replace(/[éèê]/g, 'e').replace(/[^a-z]+/g, '') + '.fr')
+                 .toLowerCase().replace(/[éèê]/g, 'e'),
+        pass: hash('demo1234'),
+        civility: ['Camille', 'Hélène', 'Nadia', 'Inès', 'Aurélie', 'Léa', 'Manon', 'Sarah']
+          .indexOf(row[0]) >= 0 ? 'Mme' : 'M.',
+        firstName: row[0], lastName: row[1], org: row[2],
+        trade: row[3], planId: row[4], cycle: index % 4 === 0 ? 'year' : 'month',
+        status: row[5],
+        createdAt: created,
+        /* Une dernière visite ne peut pas précéder la création du compte :
+           sans ce plancher, un compte inscrit hier affichait « il y a 33 mois ». */
+        lastSeenAt: Math.max(created, now() - days(row[7])),
+        verified: row[5] !== 'pending',
+        onboarded: row[5] !== 'pending',
+        survey: null,
+        usage: row[8],
+        code: null
+      };
+    });
+
+    list.unshift({
+      id: 'admin',
+      role: 'admin',
+      email: ADMIN.email,
+      pass: hash(ADMIN.password),
+      civility: 'M.', firstName: 'Administrateur', lastName: 'Ally', org: 'Ally',
+      trade: 'avocat', planId: 'expert', cycle: 'year', status: 'active',
+      createdAt: now() - days(365), lastSeenAt: now(),
+      verified: true, onboarded: true, survey: null,
+      usage: { calls: 0, emails: 0, minutes: 0 }, code: null
+    });
+
+    return list;
+  }
+
+  function blank() {
+    return { users: demoUsers(), sessionId: null, events: [] };
+  }
+
+  var db = blank();
+  try {
+    var raw = window.localStorage.getItem(KEY);
+    if (raw) {
+      var saved = JSON.parse(raw);
+      if (saved && Array.isArray(saved.users) && saved.users.length) {
+        db = { users: saved.users, sessionId: saved.sessionId || null,
+               events: Array.isArray(saved.events) ? saved.events : [] };
+      }
+    }
+  } catch (e) { /* localStorage indisponible : annuaire en mémoire seule */ }
+
+  function persist() {
+    try { window.localStorage.setItem(KEY, JSON.stringify(db)); return true; }
+    catch (e) { return false; }
+  }
+
+  function find(predicate) {
+    for (var i = 0; i < db.users.length; i++) if (predicate(db.users[i])) return db.users[i];
+    return null;
+  }
+
+  function record(action, detail, userId) {
+    db.events.unshift({ at: now(), action: action, detail: detail || '', userId: userId || null });
+    if (db.events.length > 120) db.events.length = 120;
+  }
+
+  var API = {
+    ADMIN: ADMIN,
+    ONLINE_MS: ONLINE_MS,
+
+    all: function () { return db.users; },
+    pros: function () { return db.users.filter(function (u) { return u.role === 'pro'; }); },
+    byId: function (id) { return find(function (u) { return u.id === id; }); },
+    byEmail: function (email) {
+      var target = normalize(email);
+      return find(function (u) { return normalize(u.email) === target; });
+    },
+
+    current: function () { return db.sessionId ? this.byId(db.sessionId) : null; },
+    currentId: function () { return db.sessionId; },
+    isAdmin: function () { var u = this.current(); return !!u && u.role === 'admin'; },
+
+    /* Clé de stockage du compte : chaque professionnel a sa propre
+       configuration, sinon deux comptes du même navigateur se mélangent. */
+    suffix: function () { return db.sessionId ? ':' + db.sessionId : ''; },
+
+    /* ---------- Inscription ---------- */
+    signup: function (input) {
+      var email = normalize(input.email);
+      if (!email || email.indexOf('@') < 1) return { ok: false, error: 'Adresse email invalide.' };
+      if (this.byEmail(email)) {
+        return { ok: false, error: 'Un compte existe déjà avec cette adresse.' };
+      }
+      if (!input.password || input.password.length < 8) {
+        return { ok: false, error: 'Le mot de passe doit faire au moins 8 caractères.' };
+      }
+
+      var user = {
+        id: uid(), role: 'pro', email: email, pass: hash(input.password),
+        civility: input.civility || 'M.',
+        firstName: (input.firstName || '').trim(),
+        lastName: (input.lastName || '').trim(),
+        org: (input.org || '').trim(),
+        trade: input.trade || 'avocat',
+        planId: input.planId || 'cabinet',
+        cycle: input.cycle || 'month',
+        status: 'pending',
+        createdAt: now(), lastSeenAt: now(),
+        verified: false, onboarded: false, survey: null,
+        usage: { calls: 0, emails: 0, minutes: 0 },
+        code: null
+      };
+      db.users.push(user);
+      record('signup', user.email + ' — formule ' + user.planId, user.id);
+      persist();
+      return { ok: true, user: user };
+    },
+
+    /* ---------- Codes à usage unique ---------- */
+    issueCode: function (userId, kind) {
+      var user = this.byId(userId);
+      if (!user) return null;
+      user.code = { kind: kind, value: code6(), expires: now() + CODE_TTL, tries: 0 };
+      record(kind === 'reset' ? 'reset-code' : 'verify-code', user.email, user.id);
+      persist();
+      return user.code.value;
+    },
+
+    checkCode: function (userId, kind, value) {
+      var user = this.byId(userId);
+      if (!user || !user.code || user.code.kind !== kind) {
+        return { ok: false, error: 'Aucun code en attente. Demandez-en un nouveau.' };
+      }
+      if (now() > user.code.expires) {
+        return { ok: false, error: 'Ce code a expiré. Demandez-en un nouveau.' };
+      }
+      user.code.tries += 1;
+      if (user.code.tries > 5) {
+        user.code = null;
+        persist();
+        return { ok: false, error: 'Trop de tentatives. Demandez un nouveau code.' };
+      }
+      if (String(value).trim() !== user.code.value) {
+        persist();
+        return { ok: false, error: 'Code incorrect. Il reste ' + (6 - user.code.tries) + ' essai(s).' };
+      }
+      return { ok: true, user: user };
+    },
+
+    verifyEmail: function (userId, value) {
+      var result = this.checkCode(userId, 'verify', value);
+      if (!result.ok) return result;
+      result.user.verified = true;
+      result.user.status = 'trial';
+      result.user.code = null;
+      record('verified', result.user.email, result.user.id);
+      persist();
+      return { ok: true, user: result.user };
+    },
+
+    /* ---------- Connexion ---------- */
+    login: function (email, password) {
+      var user = this.byEmail(email);
+      if (!user) return { ok: false, error: 'Aucun compte à cette adresse.' };
+      if (user.status === 'suspended') {
+        return { ok: false, error: 'Ce compte est suspendu. Contactez le support.' };
+      }
+      if (user.pass !== hash(password)) {
+        record('login-failed', user.email, user.id);
+        persist();
+        return { ok: false, error: 'Mot de passe incorrect.' };
+      }
+      if (!user.verified) return { ok: false, error: 'unverified', user: user };
+
+      db.sessionId = user.id;
+      user.lastSeenAt = now();
+      record('login', user.email, user.id);
+      persist();
+      return { ok: true, user: user };
+    },
+
+    logout: function () {
+      var user = this.current();
+      if (user) record('logout', user.email, user.id);
+      db.sessionId = null;
+      persist();
+    },
+
+    /* Ouvre la session sans mot de passe — utilisé juste après la vérification
+       du code d'inscription, où l'identité vient d'être prouvée. */
+    open: function (userId) {
+      var user = this.byId(userId);
+      if (!user) return false;
+      db.sessionId = user.id;
+      user.lastSeenAt = now();
+      persist();
+      return true;
+    },
+
+    /* ---------- Mot de passe oublié ---------- */
+    requestReset: function (email) {
+      var user = this.byEmail(email);
+      /* On ne dit jamais si l'adresse existe : sinon la page devient un outil
+         pour découvrir qui est client. Le code n'est émis que si le compte
+         existe, mais l'écran affiche le même message dans les deux cas. */
+      if (!user) return { ok: true, user: null, code: null };
+      return { ok: true, user: user, code: this.issueCode(user.id, 'reset') };
+    },
+
+    resetPassword: function (userId, value, password) {
+      if (!password || password.length < 8) {
+        return { ok: false, error: 'Le mot de passe doit faire au moins 8 caractères.' };
+      }
+      var result = this.checkCode(userId, 'reset', value);
+      if (!result.ok) return result;
+      result.user.pass = hash(password);
+      result.user.code = null;
+      record('password-reset', result.user.email, result.user.id);
+      persist();
+      return { ok: true, user: result.user };
+    },
+
+    /* ---------- Mise à jour ---------- */
+    update: function (userId, patch) {
+      var user = this.byId(userId);
+      if (!user) return null;
+      Object.keys(patch).forEach(function (key) { user[key] = patch[key]; });
+      persist();
+      return user;
+    },
+
+    touch: function () {
+      var user = this.current();
+      if (!user) return;
+      user.lastSeenAt = now();
+      persist();
+    },
+
+    remove: function (userId) {
+      var user = this.byId(userId);
+      if (!user || user.role === 'admin') return false;
+      db.users = db.users.filter(function (u) { return u.id !== userId; });
+      if (db.sessionId === userId) db.sessionId = null;
+      try { window.localStorage.removeItem('ally.account.v1:' + userId); } catch (e) {}
+      record('deleted', user.email, null);
+      persist();
+      return true;
+    },
+
+    isOnline: function (user) { return (now() - (user.lastSeenAt || 0)) < ONLINE_MS; },
+
+    events: function () { return db.events; },
+    log: function (action, detail) {
+      var user = this.current();
+      record(action, detail, user ? user.id : null);
+      persist();
+    },
+
+    /* ---------- Statistiques plateforme ---------- */
+    stats: function () {
+      var pros = this.pros();
+      var self = this;
+      var byStatus = { active: 0, trial: 0, suspended: 0, pending: 0 };
+      var byPlan = {}, byTrade = {};
+      var mrr = 0, trialMrr = 0, calls = 0, emails = 0, minutes = 0, online = 0;
+
+      window.ALLY_PLANS.forEach(function (p) {
+        byPlan[p.id] = { plan: p, count: 0, active: 0, mrr: 0 };
+      });
+      Object.keys(window.ALLY_PROFILES).forEach(function (t) { byTrade[t] = 0; });
+
+      pros.forEach(function (user) {
+        byStatus[user.status] = (byStatus[user.status] || 0) + 1;
+        if (byTrade[user.trade] === undefined) byTrade[user.trade] = 0;
+        byTrade[user.trade] += 1;
+
+        var plan = window.ALLY_PLAN_BY_ID(user.planId);
+        /* Un abonnement annuel se compare en base mensuelle, sinon le revenu
+           récurrent n'a plus de sens. */
+        var monthly = user.cycle === 'year' ? Math.round(plan.priceYear / 12) : plan.price;
+
+        if (byPlan[plan.id]) byPlan[plan.id].count += 1;
+        if (user.status === 'active') {
+          mrr += monthly;
+          if (byPlan[plan.id]) {
+            byPlan[plan.id].mrr += monthly;
+            byPlan[plan.id].active += 1;
+          }
+        } else if (user.status === 'trial') {
+          trialMrr += monthly;
+        }
+
+        calls += user.usage.calls;
+        emails += user.usage.emails;
+        minutes += user.usage.minutes;
+        if (self.isOnline(user)) online += 1;
+      });
+
+      /* Coût de revient : le fixe (hébergement) plus le variable par compte
+         actif, aux ordres de grandeur retenus dans ARCHITECTURE.md. */
+      var COST_FIXED = 45;
+      var COST_PER_ACTIVE = 12;
+      var COST_PER_TRIAL = 7;
+      var cost = COST_FIXED + byStatus.active * COST_PER_ACTIVE + byStatus.trial * COST_PER_TRIAL;
+
+      return {
+        total: pros.length,
+        online: online,
+        byStatus: byStatus,
+        byPlan: byPlan,
+        byTrade: byTrade,
+        mrr: mrr,
+        arr: mrr * 12,
+        trialMrr: trialMrr,
+        arpu: byStatus.active ? Math.round(mrr / byStatus.active) : 0,
+        calls: calls, emails: emails, minutes: minutes,
+        cost: cost,
+        margin: mrr - cost,
+        marginRate: mrr ? Math.round(((mrr - cost) / mrr) * 100) : 0,
+        signups: this.signupsByMonth()
+      };
+    },
+
+    /* Inscriptions des 12 derniers mois, du plus ancien au plus récent. */
+    signupsByMonth: function () {
+      var buckets = [], reference = new Date(), i;
+      for (i = 11; i >= 0; i--) {
+        var date = new Date(reference.getFullYear(), reference.getMonth() - i, 1);
+        buckets.push({
+          key: date.getFullYear() + '-' + date.getMonth(),
+          label: date.toLocaleDateString('fr-FR', { month: 'short' }),
+          count: 0
+        });
+      }
+      this.pros().forEach(function (user) {
+        var date = new Date(user.createdAt);
+        var key = date.getFullYear() + '-' + date.getMonth();
+        buckets.forEach(function (bucket) { if (bucket.key === key) bucket.count += 1; });
+      });
+      return buckets;
+    },
+
+    /* Remet l'annuaire à son état de démonstration. */
+    reseed: function () {
+      db = blank();
+      persist();
+    }
+  };
+
+  /* Libellé relatif — « il y a 3 min », « il y a 2 j ». */
+  window.ALLY_SINCE = function (timestamp) {
+    if (!timestamp) return '—';
+    var delta = Math.max(0, now() - timestamp);
+    var minutes = Math.floor(delta / 60000);
+    if (minutes < 1) return 'à l\'instant';
+    if (minutes < 60) return 'il y a ' + minutes + ' min';
+    var hours = Math.floor(minutes / 60);
+    if (hours < 24) return 'il y a ' + hours + ' h';
+    var d = Math.floor(hours / 24);
+    if (d < 31) return 'il y a ' + d + ' j';
+    var months = Math.floor(d / 30);
+    return 'il y a ' + months + ' mois';
+  };
+
+  window.ALLY_DATE = function (timestamp) {
+    if (!timestamp) return '—';
+    return new Date(timestamp).toLocaleDateString('fr-FR',
+      { day: '2-digit', month: 'short', year: 'numeric' });
+  };
+
+  window.ALLY_ACCOUNTS = API;
+})();
+
 /* Ally — état du compte, persisté en localStorage.
    L'onboarding écrit, l'espace pro lit : le tableau de bord reste celui du
    professionnel après un rechargement, avec ses réglages. */
 (function () {
   'use strict';
 
-  var KEY = 'ally.account.v1';
+  /* Une clé par compte : deux professionnels qui se connectent depuis le même
+     navigateur ne doivent pas voir la configuration l'un de l'autre. C'est la
+     version « front » du cloisonnement décrit dans ARCHITECTURE.md — côté
+     serveur, ce sera un filtre sur cabinet_id déduit du jeton de session. */
+  function storageKey() {
+    return 'ally.account.v1' +
+      (window.ALLY_ACCOUNTS ? window.ALLY_ACCOUNTS.suffix() : '');
+  }
+  var KEY = storageKey();
 
   var DEFAULT_HOURS = [
     { id: 'lun', label: 'Lundi',    on: true,  from: '09:00', to: '18:30' },
@@ -2766,6 +3928,14 @@ window.ALLY_PLAN_BY_ID = function (id) {
       trade: trade,
       hours: JSON.parse(JSON.stringify(DEFAULT_HOURS)),
       closures: 'Jours fériés, mercredi après-midi',
+      /* Réponses au questionnaire d'installation. Elles ne servent pas qu'à
+         faire joli : le volume d'appels choisit la formule recommandée, les
+         motifs alimentent la base de connaissances, la durée de rendez-vous
+         est reprise par l'agenda. */
+      survey: {
+        volume: '', clients: '', pain: [], tools: [], today: '',
+        motifs: [], rdvDuration: '45', callback: '24h', firstTime: '', notes: ''
+      },
       rules: { transfer: true, draft: false, record: true, autobook: true, voice: true },
       autonomy: { calls: profile.autonomy.calls, emails: profile.autonomy.emails, agenda: profile.autonomy.agenda },
       greeting: '',
@@ -2950,6 +4120,54 @@ window.ALLY_PLAN_BY_ID = function (id) {
       catch (e) { return false; }
     },
 
+    /* Relit le compte de l'utilisateur connecté. Appelé après une connexion ou
+       une déconnexion : la clé de stockage a changé, l'état en mémoire doit
+       suivre, sans recharger la page. */
+    reload: function () {
+      KEY = storageKey();
+      var fresh = defaults();
+      try {
+        var stored = window.localStorage.getItem(KEY);
+        if (stored) fresh = merge(defaults(), JSON.parse(stored));
+      } catch (e) {}
+
+      /* L'annuaire fait autorité sur l'identité et la formule : c'est lui que
+         l'administrateur modifie. */
+      var user = window.ALLY_ACCOUNTS && window.ALLY_ACCOUNTS.current();
+      if (user) {
+        fresh.identity.civility = user.civility || fresh.identity.civility;
+        fresh.identity.firstName = user.firstName || fresh.identity.firstName;
+        fresh.identity.lastName = user.lastName || fresh.identity.lastName;
+        fresh.identity.email = user.email || fresh.identity.email;
+        if (user.org) fresh.identity.org = user.org;
+        if (user.trade) fresh.trade = user.trade;
+        fresh.planId = user.planId || fresh.planId;
+        fresh.plan = window.ALLY_PLAN_BY_ID(fresh.planId).name;
+        fresh.configured = !!user.onboarded;
+      }
+
+      Object.keys(state).forEach(function (key) { delete state[key]; });
+      Object.keys(fresh).forEach(function (key) { state[key] = fresh[key]; });
+      return state;
+    },
+
+    /* Reporte dans l'annuaire ce que le professionnel vient de configurer,
+       pour que la console d'administration le voie. */
+    syncAccount: function () {
+      var accounts = window.ALLY_ACCOUNTS;
+      if (!accounts || !accounts.currentId()) return;
+      accounts.update(accounts.currentId(), {
+        civility: state.identity.civility,
+        firstName: state.identity.firstName,
+        lastName: state.identity.lastName,
+        org: state.identity.org,
+        trade: state.trade,
+        planId: state.planId,
+        onboarded: !!state.configured,
+        survey: state.survey
+      });
+    },
+
     /* On réécrit l'objet sur place : les modules qui en gardent une référence
        (l'onboarding, par exemple) restent synchronisés. */
     reset: function () {
@@ -2960,9 +4178,174 @@ window.ALLY_PLAN_BY_ID = function (id) {
     }
   };
 
+  /* Session ouverte au chargement : l'annuaire fait autorité sur l'identité,
+     le métier et la formule. */
+  if (window.ALLY_ACCOUNTS && window.ALLY_ACCOUNTS.currentId()) {
+    window.ALLY_STORE.reload();
+  }
+
   /* Repart du questionnaire. Le fichier de démonstration autonome remplace
      cette fonction par un simple rechargement, puisqu'il n'a pas de pages. */
   window.ALLY_RESTART = function () { window.ALLY_GOTO('onboarding.html'); };
+})();
+
+/* Ally — petits composants partagés par la connexion, l'inscription et la
+   console d'administration. Aucun framework : chaque helper prend un élément
+   du DOM et lui donne un comportement. */
+(function () {
+  'use strict';
+
+  function esc(value) {
+    return String(value === undefined || value === null ? '' : value)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  /* ---------- Saisie d'un code à 6 chiffres ----------
+     Six cases plutôt qu'un champ unique : on voit combien il en reste, le
+     collage depuis la boîte mail fonctionne, et la correction est plus simple
+     sur mobile. */
+  function codeInput(container, onComplete) {
+    if (!container) return null;
+    container.innerHTML = '';
+    container.className = 'code-input';
+
+    var boxes = [];
+    for (var i = 0; i < 6; i++) {
+      var box = document.createElement('input');
+      box.type = 'text';
+      box.inputMode = 'numeric';
+      box.autocomplete = i === 0 ? 'one-time-code' : 'off';
+      box.maxLength = 1;
+      box.className = 'code-box';
+      box.setAttribute('aria-label', 'Chiffre ' + (i + 1) + ' sur 6');
+      container.appendChild(box);
+      boxes.push(box);
+    }
+
+    function value() {
+      return boxes.map(function (b) { return b.value; }).join('');
+    }
+
+    function fill(text) {
+      var digits = String(text).replace(/\D/g, '').slice(0, 6).split('');
+      boxes.forEach(function (box, index) { box.value = digits[index] || ''; });
+      var next = Math.min(digits.length, 5);
+      boxes[next].focus();
+      if (digits.length === 6 && onComplete) onComplete(value());
+    }
+
+    boxes.forEach(function (box, index) {
+      box.addEventListener('input', function () {
+        box.value = box.value.replace(/\D/g, '').slice(0, 1);
+        container.classList.remove('is-wrong');
+        if (box.value && index < 5) boxes[index + 1].focus();
+        if (value().length === 6 && onComplete) onComplete(value());
+      });
+
+      box.addEventListener('keydown', function (event) {
+        if (event.key === 'Backspace' && !box.value && index > 0) {
+          boxes[index - 1].focus();
+          boxes[index - 1].value = '';
+          event.preventDefault();
+        }
+        if (event.key === 'ArrowLeft' && index > 0) boxes[index - 1].focus();
+        if (event.key === 'ArrowRight' && index < 5) boxes[index + 1].focus();
+      });
+
+      box.addEventListener('paste', function (event) {
+        event.preventDefault();
+        fill((event.clipboardData || window.clipboardData).getData('text'));
+      });
+    });
+
+    return {
+      value: value,
+      fill: fill,
+      focus: function () { boxes[0].focus(); },
+      clear: function () {
+        boxes.forEach(function (b) { b.value = ''; });
+        boxes[0].focus();
+      },
+      shake: function () {
+        container.classList.add('is-wrong');
+        window.setTimeout(function () { container.classList.remove('is-wrong'); }, 500);
+      }
+    };
+  }
+
+  /* ---------- Robustesse du mot de passe ----------
+     Indicatif, pas bloquant : la seule règle dure reste les 8 caractères. */
+  function scorePassword(text) {
+    if (!text) return { score: 0, label: '—' };
+    var score = 0;
+    if (text.length >= 8) score += 1;
+    if (text.length >= 12) score += 1;
+    if (/[a-z]/.test(text) && /[A-Z]/.test(text)) score += 1;
+    if (/\d/.test(text)) score += 1;
+    if (/[^A-Za-z0-9]/.test(text)) score += 1;
+    var labels = ['Trop court', 'Faible', 'Correct', 'Bon', 'Solide', 'Excellent'];
+    return { score: score, label: labels[score] };
+  }
+
+  function passwordMeter(input, meter) {
+    if (!input || !meter) return;
+    meter.innerHTML = '<span class="meter-bar"><i></i></span><span class="meter-label">—</span>';
+    var fill = meter.querySelector('i');
+    var label = meter.querySelector('.meter-label');
+    input.addEventListener('input', function () {
+      var result = scorePassword(input.value);
+      fill.style.width = (result.score / 5 * 100) + '%';
+      fill.className = 'lvl-' + result.score;
+      label.textContent = result.label;
+    });
+  }
+
+  /* Bouton « afficher / masquer » posé dans un champ mot de passe. */
+  function revealToggle(input) {
+    if (!input || input.parentNode.querySelector('.reveal-pass')) return;
+    var wrap = input.parentNode;
+    wrap.classList.add('field-wrap');
+    var button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'reveal-pass';
+    button.textContent = 'Afficher';
+    button.setAttribute('aria-label', 'Afficher le mot de passe');
+    button.addEventListener('click', function () {
+      var shown = input.type === 'text';
+      input.type = shown ? 'password' : 'text';
+      button.textContent = shown ? 'Afficher' : 'Masquer';
+      button.setAttribute('aria-label', (shown ? 'Afficher' : 'Masquer') + ' le mot de passe');
+    });
+    wrap.appendChild(button);
+  }
+
+  /* ---------- Message éphémère ---------- */
+  var toastHost = null;
+  function toast(message, kind) {
+    if (!toastHost) {
+      toastHost = document.createElement('div');
+      toastHost.className = 'toast-host';
+      toastHost.setAttribute('role', 'status');
+      toastHost.setAttribute('aria-live', 'polite');
+      document.body.appendChild(toastHost);
+    }
+    var item = document.createElement('div');
+    item.className = 'toast' + (kind ? ' toast-' + kind : '');
+    item.textContent = message;
+    toastHost.appendChild(item);
+    window.setTimeout(function () { item.classList.add('is-out'); }, 3200);
+    window.setTimeout(function () { if (item.parentNode) item.parentNode.removeChild(item); }, 3600);
+  }
+
+  window.ALLY_UI = {
+    esc: esc,
+    codeInput: codeInput,
+    passwordMeter: passwordMeter,
+    revealToggle: revealToggle,
+    scorePassword: scorePassword,
+    toast: toast
+  };
 })();
 
 /* Ally — voix réelle.
@@ -4875,7 +6258,9 @@ window.ALLY_PLAN_BY_ID = function (id) {
   }).join('');
 })();
 
-/* Ally — connexion (démonstration : aucune authentification réelle) */
+/* Ally — connexion, vérification d'adresse et récupération de mot de passe.
+   Maquette : l'annuaire vit dans le navigateur (voir js/accounts.js) et les
+   codes, faute de serveur d'envoi, s'affichent à l'écran. */
 (function () {
   'use strict';
 
@@ -4883,31 +6268,174 @@ window.ALLY_PLAN_BY_ID = function (id) {
   if (!form) return;
 
   var store = window.ALLY_STORE;
+  var accounts = window.ALLY_ACCOUNTS;
+  var UI = window.ALLY_UI;
 
-  // Si un compte a déjà été configuré, on le rappelle et on pré-remplit l'email.
+  var pending = null;   /* compte en cours de vérification ou de récupération */
+
+  /* ---------- Panneaux ---------- */
+  function show(name) {
+    document.querySelectorAll('[data-panel]').forEach(function (panel) {
+      panel.hidden = (panel.getAttribute('data-panel') !== name);
+    });
+    var first = document.querySelector('[data-panel="' + name + '"] input');
+    if (first) first.focus();
+  }
+
+  document.querySelectorAll('[data-goto-panel]').forEach(function (button) {
+    button.addEventListener('click', function () {
+      show(button.getAttribute('data-goto-panel'));
+    });
+  });
+
+  function fail(id, message) {
+    var box = document.getElementById(id);
+    box.textContent = message;
+    box.hidden = !message;
+  }
+
+  /* ---------- Aiguillage après connexion ---------- */
+  function route(user) {
+    store.reload();
+    if (user.role === 'admin') { window.ALLY_GOTO('admin.html'); return; }
+    window.ALLY_GOTO(user.onboarded ? 'dashboard.html' : 'onboarding.html');
+  }
+
+  /* ---------- Écran de connexion ---------- */
+  document.getElementById('demo-admin').textContent =
+    accounts.ADMIN.email + ' · ' + accounts.ADMIN.password;
+
+  UI.revealToggle(document.getElementById('login-password'));
+
   var hint = document.getElementById('login-hint');
-  if (store.state.configured) {
-    document.getElementById('login-email').value = store.state.identity.email || '';
-    hint.textContent = 'Compte trouvé sur cet appareil : ' + store.displayName()
-      + ' — ' + store.state.identity.org + '.';
+  var known = accounts.current();
+  if (known) {
+    document.getElementById('login-email').value = known.email;
+    hint.textContent = 'Session ouverte sur cet appareil : ' + known.firstName + ' '
+      + known.lastName + (known.org ? ' — ' + known.org : '') + '.';
     hint.hidden = false;
   }
 
   form.addEventListener('submit', function (event) {
     event.preventDefault();
+    fail('login-error', '');
+
     var email = document.getElementById('login-email');
     var password = document.getElementById('login-password');
-
-    if (!email.checkValidity()) { email.focus(); return; }
+    if (!email.checkValidity() || !email.value) { email.focus(); return; }
     if (!password.value) { password.focus(); return; }
 
-    // Un compte déjà configuré va droit à l'espace pro, sinon on passe par
-    // le questionnaire pour personnaliser l'expérience.
-    if (!store.state.configured && !store.state.identity.email) {
-      store.state.identity.email = email.value;
-      store.save();
+    var result = accounts.login(email.value, password.value);
+
+    if (result.ok) { route(result.user); return; }
+
+    /* Compte créé mais adresse jamais confirmée : on ne renvoie pas une erreur,
+       on reprend la vérification là où elle s'était arrêtée. */
+    if (result.error === 'unverified') {
+      pending = result.user;
+      startVerify();
+      return;
     }
-    window.ALLY_GOTO(store.state.configured ? 'dashboard.html' : 'onboarding.html');
+
+    fail('login-error', result.error);
+    password.value = '';
+    password.focus();
+  });
+
+  document.getElementById('go-forgot').addEventListener('click', function () {
+    document.getElementById('forgot-email').value = document.getElementById('login-email').value;
+    fail('forgot-error', '');
+    show('forgot');
+  });
+
+  /* ---------- Vérification de l'adresse ---------- */
+  var verifyBoxes = UI.codeInput(document.getElementById('verify-boxes'), function () {
+    document.getElementById('verify-submit').focus();
+  });
+
+  function startVerify() {
+    var code = accounts.issueCode(pending.id, 'verify');
+    document.getElementById('verify-target').textContent = pending.email;
+    document.getElementById('verify-code').textContent = code;
+    document.getElementById('verify-sent').hidden = false;
+    fail('verify-error', '');
+    verifyBoxes.clear();
+    show('verify');
+  }
+
+  document.getElementById('verify-submit').addEventListener('click', function () {
+    if (!pending) { show('login'); return; }
+    var result = accounts.verifyEmail(pending.id, verifyBoxes.value());
+    if (!result.ok) {
+      fail('verify-error', result.error);
+      verifyBoxes.shake();
+      return;
+    }
+    accounts.open(pending.id);
+    route(result.user);
+  });
+
+  document.getElementById('verify-resend').addEventListener('click', function () {
+    if (pending) startVerify();
+  });
+
+  /* ---------- Mot de passe oublié ---------- */
+  document.getElementById('forgot-form').addEventListener('submit', function (event) {
+    event.preventDefault();
+    var email = document.getElementById('forgot-email');
+    if (!email.checkValidity() || !email.value) { email.focus(); return; }
+
+    var result = accounts.requestReset(email.value);
+    pending = result.user;
+
+    /* Même écran que l'adresse existe ou non : la page ne doit pas permettre
+       de découvrir qui est client. */
+    document.getElementById('reset-lede').textContent =
+      'Si un compte existe pour ' + email.value + ', un code à 6 chiffres vient d\'y être envoyé.';
+    document.getElementById('reset-sent').hidden = !result.code;
+    if (result.code) document.getElementById('reset-code').textContent = result.code;
+
+    fail('reset-error', '');
+    resetBoxes.clear();
+    document.getElementById('reset-pass').value = '';
+    show('reset');
+  });
+
+  /* ---------- Nouveau mot de passe ---------- */
+  var resetBoxes = UI.codeInput(document.getElementById('reset-boxes'));
+  UI.revealToggle(document.getElementById('reset-pass'));
+  UI.passwordMeter(document.getElementById('reset-pass'), document.getElementById('reset-meter'));
+
+  document.getElementById('reset-submit').addEventListener('click', function () {
+    var password = document.getElementById('reset-pass');
+
+    if (!pending) {
+      fail('reset-error', 'Code incorrect ou expiré. Recommencez la demande.');
+      return;
+    }
+    var result = accounts.resetPassword(pending.id, resetBoxes.value(), password.value);
+    if (!result.ok) {
+      fail('reset-error', result.error);
+      if (result.error.indexOf('caractères') < 0) resetBoxes.shake();
+      return;
+    }
+
+    document.getElementById('login-email').value = result.user.email;
+    document.getElementById('login-password').value = '';
+    hint.textContent = 'Mot de passe modifié. Connectez-vous avec le nouveau.';
+    hint.hidden = false;
+    fail('login-error', '');
+    pending = null;
+    show('login');
+  });
+
+  document.getElementById('reset-resend').addEventListener('click', function () {
+    if (!pending) return;
+    var code = accounts.issueCode(pending.id, 'reset');
+    document.getElementById('reset-code').textContent = code;
+    document.getElementById('reset-sent').hidden = false;
+    fail('reset-error', '');
+    resetBoxes.clear();
   });
 })();
 
@@ -4919,11 +6447,13 @@ window.ALLY_PLAN_BY_ID = function (id) {
   'use strict';
 
   var store = window.ALLY_STORE;
-  var S = store.state;
+  var accounts = window.ALLY_ACCOUNTS;
+  var UI = window.ALLY_UI;
   var PLANS = window.ALLY_PLANS;
   var TRIAL = window.ALLY_TRIAL;
 
   var state = { step: 1, cycle: 'month', plan: 'cabinet' };
+  var created = null;   /* compte créé à l'étape 2, en attente de vérification */
 
   function esc(v) {
     return String(v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
@@ -5016,6 +6546,15 @@ window.ALLY_PLAN_BY_ID = function (id) {
     render();
   });
 
+  function fail(message) {
+    var box = document.getElementById('sub-error');
+    box.textContent = message;
+    box.hidden = !message;
+  }
+
+  UI.revealToggle(document.getElementById('sub-pass'));
+  UI.passwordMeter(document.getElementById('sub-pass'), document.getElementById('sub-meter'));
+
   document.getElementById('sub-submit').addEventListener('click', function () {
     var first = document.getElementById('sub-first');
     var last = document.getElementById('sub-last');
@@ -5023,50 +6562,122 @@ window.ALLY_PLAN_BY_ID = function (id) {
     var pass = document.getElementById('sub-pass');
     var cgv = document.getElementById('sub-cgv');
 
+    fail('');
     if (!last.value.trim()) { last.focus(); return; }
     if (!email.checkValidity() || !email.value) { email.focus(); return; }
-    if (pass.value.length < 8) { pass.focus(); pass.setAttribute('aria-invalid', 'true'); return; }
-    if (!cgv.checked) { cgv.focus(); return; }
+    if (pass.value.length < 8) {
+      pass.focus(); pass.setAttribute('aria-invalid', 'true');
+      fail('Le mot de passe doit faire au moins 8 caractères.');
+      return;
+    }
+    if (!cgv.checked) { cgv.focus(); fail('Vous devez accepter les conditions générales.'); return; }
 
     var plan = chosen();
-    S.identity.firstName = first.value.trim() || S.identity.firstName;
-    S.identity.lastName = last.value.trim();
-    S.identity.email = email.value.trim();
-    S.planId = plan.id;
-    S.plan = plan.name;
-    S.subscription = {
+    var result = accounts.signup({
+      firstName: first.value, lastName: last.value, email: email.value,
+      password: pass.value, planId: plan.id, cycle: state.cycle
+    });
+
+    if (!result.ok) { fail(result.error); email.focus(); return; }
+
+    created = result.user;
+    sendCode();
+    state.step = 3;
+    render();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+
+  /* ---------- Étape 3 : vérification de l'adresse ---------- */
+  var codeBoxes = UI.codeInput(document.getElementById('ver-boxes'), function () {
+    document.getElementById('ver-submit').focus();
+  });
+
+  function verifyFail(message) {
+    var box = document.getElementById('ver-error');
+    box.textContent = message;
+    box.hidden = !message;
+  }
+
+  function sendCode() {
+    var code = accounts.issueCode(created.id, 'verify');
+    document.getElementById('ver-target').textContent = created.email;
+    document.getElementById('ver-code').textContent = code;
+    verifyFail('');
+    codeBoxes.clear();
+  }
+
+  document.getElementById('ver-resend').addEventListener('click', function () {
+    if (created) sendCode();
+  });
+
+  /* Faute de frappe dans l'adresse : on supprime le compte à peine créé et on
+     revient au formulaire, plutôt que de laisser un compte fantôme. */
+  document.getElementById('ver-change').addEventListener('click', function () {
+    if (created) { accounts.remove(created.id); created = null; }
+    state.step = 2;
+    render();
+    document.getElementById('sub-email').focus();
+  });
+
+  document.getElementById('ver-submit').addEventListener('click', function () {
+    if (!created) { state.step = 2; render(); return; }
+
+    var result = accounts.verifyEmail(created.id, codeBoxes.value());
+    if (!result.ok) { verifyFail(result.error); codeBoxes.shake(); return; }
+
+    accounts.open(created.id);
+    store.reload();
+
+    var plan = chosen();
+    var S2 = store.state;
+    S2.identity.firstName = created.firstName || S2.identity.firstName;
+    S2.identity.lastName = created.lastName;
+    S2.identity.email = created.email;
+    S2.identity.org = '';
+    S2.planId = plan.id;
+    S2.plan = plan.name;
+    S2.configured = false;
+    S2.subscription = {
       planId: plan.id, cycle: state.cycle,
       price: priceOf(plan), trialEndsOn: trialEnd(), startedOn: new Date().toISOString()
     };
     store.save();
 
-    // Le questionnaire prend le relais : métier, horaires, règles.
+    // Le questionnaire prend le relais : métier, activité, horaires, règles.
     window.ALLY_GOTO('onboarding.html');
   });
 
   /* ---------- Navigation ---------- */
+  var TITLES = ['Choisissez votre formule', 'Créez votre compte', 'Vérifiez votre adresse'];
+  var LEDES = [
+    'Les 14 premiers jours sont offerts, sans carte bancaire. Vous ne payez qu\'à la '
+      + 'fin de l\'essai, et vous changez de formule quand vous voulez.',
+    'Il ne reste qu\'à vous identifier. Vous configurerez Ally juste après, '
+      + 'en quelques minutes.',
+    'Dernière étape avant la configuration : confirmez que cette adresse est bien la vôtre.'
+  ];
+
   function render() {
-    document.getElementById('sub-step-1').hidden = (state.step !== 1);
-    document.getElementById('sub-step-2').hidden = (state.step !== 2);
-    document.getElementById('sub-step-label').textContent = 'Étape ' + state.step + ' sur 2';
-    document.getElementById('sub-title').textContent =
-      state.step === 1 ? 'Choisissez votre formule' : 'Créez votre compte';
-    document.getElementById('sub-lede').textContent = state.step === 1
-      ? 'Les 14 premiers jours sont offerts, sans carte bancaire. Vous ne payez qu\'à la '
-        + 'fin de l\'essai, et vous changez de formule quand vous voulez.'
-      : 'Il ne reste qu\'à vous identifier. Vous configurerez Ally juste après, '
-        + 'en quelques minutes.';
+    for (var i = 1; i <= 3; i++) {
+      document.getElementById('sub-step-' + i).hidden = (state.step !== i);
+    }
+    document.getElementById('sub-step-label').textContent = 'Étape ' + state.step + ' sur 3';
+    document.getElementById('sub-title').textContent = TITLES[state.step - 1];
+    document.getElementById('sub-lede').textContent = LEDES[state.step - 1];
     if (state.step === 2) renderSummary();
+    if (state.step === 3) codeBoxes.focus();
   }
 
   renderPlans();
   render();
 })();
 
-/* Ally — questionnaire de configuration (5 étapes).
-   Le métier génère le profil (vocabulaire, autonomie, script d'accueil), et
-   l'identité saisie est reprise partout dans l'espace pro. Tout est écrit dans
-   ALLY_STORE à la dernière étape. */
+/* Ally — questionnaire de configuration (7 étapes).
+   Le métier génère le profil (vocabulaire, autonomie, script d'accueil),
+   l'identité est reprise partout dans l'espace pro, et les réponses sur
+   l'activité ne servent pas qu'à remplir un formulaire : elles choisissent la
+   formule recommandée, filtrent la base de connaissances et fixent la durée
+   par défaut des rendez-vous. */
 (function () {
   'use strict';
 
@@ -5074,6 +6685,7 @@ window.ALLY_PLAN_BY_ID = function (id) {
   var S = store.state;
   var PROFILES = window.ALLY_PROFILES;
   var TRADE_IDS = Object.keys(PROFILES);
+  var STEP_COUNT = 7;
 
   var RULES = [
     { id: 'transfer', label: 'Transférer les urgences vers mon portable',
@@ -5093,18 +6705,38 @@ window.ALLY_PLAN_BY_ID = function (id) {
       lede: 'Ally charge le vocabulaire, les scripts d\'accueil et le niveau d\'autonomie adaptés à votre profession.' },
     { title: 'Qui êtes-vous ?',
       lede: 'Ces informations servent partout : ce qu\'Ally dit au téléphone, la signature de vos emails, votre espace pro.' },
+    { title: 'Parlez-nous de votre activité',
+      lede: 'Quatre questions pour dimensionner Ally correctement. C\'est ici que se décide la formule dont vous avez réellement besoin.' },
     { title: 'Quelles sont vos disponibilités ?',
       lede: 'Ally s\'y tient strictement : aucun rendez-vous ne sera proposé en dehors de ces créneaux.' },
+    { title: 'Que doit-elle savoir répondre ?',
+      lede: 'Ce qu\'Ally peut traiter seule, et ce sur quoi elle doit se taire et prendre un message.' },
     { title: 'Quelles règles Ally doit-elle suivre ?',
       lede: 'Ce cadre vaut pour les appels comme pour les emails. Modifiable à tout moment.' },
     { title: null, /* personnalisé : « Ally est prête, Maître Dubois. » */
       lede: 'Voici le profil généré à partir de vos réponses. Vérifiez-le avant d\'ouvrir votre espace pro.' }
   ];
 
+  /* ---- Questions sur l'activité ---- */
+  var VOLUME = ['Moins de 5', '5 à 15', '15 à 40', 'Plus de 40'];
+  var TODAY = ['Moi-même, plus tard', 'Un secrétariat externe', 'Ma messagerie vocale', 'Personne'];
+  var PAIN = [
+    'Les appels pendant mes rendez-vous',
+    'Les questions de tarifs',
+    'La prise de rendez-vous',
+    'Les relances par email',
+    'Le démarchage téléphonique'
+  ];
+  var TOOLS = ['Google Agenda', 'Outlook / Microsoft 365', 'Doctolib', 'Agenda papier', 'Aucun outil'];
+  var DURATIONS = ['15', '30', '45', '60', '90'];
+  var CALLBACK = ['Le jour même', 'Sous 24 h', 'Sous 48 h', 'Sans engagement'];
+  var FIRSTTIME = ['Oui, sans condition', 'Oui, après qualification', 'Sur recommandation uniquement'];
+
   var AUTONOMY = ['Toujours valider', 'Semi-autonome', 'IA autonome'];
   function autonomyLabel(v) { return v < 34 ? AUTONOMY[0] : v < 67 ? AUTONOMY[1] : AUTONOMY[2]; }
 
   var step = 1;
+  var motifsTouched = false;
 
   var el = {
     progress: document.getElementById('ob-progress'),
@@ -5129,6 +6761,55 @@ window.ALLY_PLAN_BY_ID = function (id) {
 
   function profile() { return PROFILES[S.trade]; }
 
+  /* ---- Groupe de pastilles, à choix unique ou multiple ---- */
+  function chipGroup(container, options, read, write, multi) {
+    if (!container) return;
+    container.innerHTML = '';
+    options.forEach(function (option) {
+      var value = typeof option === 'string' ? option : option.value;
+      var label = typeof option === 'string' ? option : option.label;
+
+      var chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = 'chip';
+      chip.textContent = label;
+
+      function sync() {
+        var current = read();
+        var on = multi ? current.indexOf(value) >= 0 : current === value;
+        chip.setAttribute('aria-pressed', String(on));
+      }
+
+      chip.addEventListener('click', function () {
+        if (multi) {
+          var list = read().slice();
+          var at = list.indexOf(value);
+          if (at >= 0) list.splice(at, 1); else list.push(value);
+          write(list);
+        } else {
+          /* Choix unique : recliquer ne désélectionne pas. Une question à
+             réponse obligatoire ne doit pas pouvoir repasser à vide par
+             inadvertance — c'est ce qui vidait la durée de rendez-vous. */
+          write(value);
+        }
+        container.querySelectorAll('.chip').forEach(function (other) {
+          if (other.sync) other.sync();
+        });
+      });
+
+      chip.sync = sync;
+      sync();
+      container.appendChild(chip);
+    });
+  }
+
+  function surveyField(key) {
+    return {
+      read: function () { return S.survey[key]; },
+      write: function (value) { S.survey[key] = value; }
+    };
+  }
+
   /* ---- Étape 1 : métier ---- */
   function renderTrades() {
     el.trades.innerHTML = '';
@@ -5144,8 +6825,11 @@ window.ALLY_PLAN_BY_ID = function (id) {
       button.querySelector('span').textContent = p.desc;
       button.addEventListener('click', function () {
         S.trade = id;
-        // Le métier redéfinit les curseurs d'autonomie recommandés.
+        // Le métier redéfinit les curseurs d'autonomie recommandés et la
+        // liste des sujets qu'Ally peut traiter.
         S.autonomy = { calls: p.autonomy.calls, emails: p.autonomy.emails, agenda: p.autonomy.agenda };
+        motifsTouched = false;
+        S.survey.motifs = [];
         renderTrades();
         renderIdentityLabels();
         renderRules();
@@ -5201,7 +6885,22 @@ window.ALLY_PLAN_BY_ID = function (id) {
     });
   }
 
-  /* ---- Étape 3 : horaires ---- */
+  /* ---- Étape 3 : activité ---- */
+  function renderActivity() {
+    var volume = surveyField('volume');
+    chipGroup(document.getElementById('q-volume'), VOLUME, volume.read, volume.write, false);
+
+    var today = surveyField('today');
+    chipGroup(document.getElementById('q-today'), TODAY, today.read, today.write, false);
+
+    var pain = surveyField('pain');
+    chipGroup(document.getElementById('q-pain'), PAIN, pain.read, pain.write, true);
+
+    var tools = surveyField('tools');
+    chipGroup(document.getElementById('q-tools'), TOOLS, tools.read, tools.write, true);
+  }
+
+  /* ---- Étape 4 : horaires ---- */
   function renderHours() {
     el.hours.innerHTML = '';
     S.hours.forEach(function (day) {
@@ -5237,7 +6936,48 @@ window.ALLY_PLAN_BY_ID = function (id) {
     el.closures.addEventListener('input', function () { S.closures = el.closures.value; });
   }
 
-  /* ---- Étape 4 : règles ---- */
+  /* ---- Étape 5 : sujets traités ---- */
+  function renderTopics() {
+    var p = profile();
+
+    /* Les sujets proposés sont ceux que le métier connaît déjà : ce sont les
+       fiches de la base de connaissances. Décocher une fiche la retire. */
+    var options = p.faq.map(function (entry) {
+      return { value: entry.q, label: entry.q };
+    });
+
+    if (!motifsTouched && !S.survey.motifs.length) {
+      S.survey.motifs = options.map(function (o) { return o.value; });
+    }
+
+    var motifs = surveyField('motifs');
+    chipGroup(document.getElementById('q-motifs'), options, motifs.read, function (list) {
+      motifsTouched = true;
+      motifs.write(list);
+    }, true);
+
+    var duration = surveyField('rdvDuration');
+    chipGroup(document.getElementById('q-duration'),
+      DURATIONS.map(function (d) { return { value: d, label: d + ' min' }; }),
+      duration.read, duration.write, false);
+
+    var callback = surveyField('callback');
+    chipGroup(document.getElementById('q-callback'), CALLBACK, callback.read, callback.write, false);
+
+    document.getElementById('firsttime-title').textContent =
+      'Acceptez-vous de nouveaux ' + p.clientWord + 's ?';
+    var firstTime = surveyField('firstTime');
+    chipGroup(document.getElementById('q-firsttime'), FIRSTTIME, firstTime.read, firstTime.write, false);
+
+    var notes = document.getElementById('q-notes');
+    notes.value = S.survey.notes || '';
+    if (!notes.dataset.bound) {
+      notes.dataset.bound = '1';
+      notes.addEventListener('input', function () { S.survey.notes = notes.value; });
+    }
+  }
+
+  /* ---- Étape 6 : règles ---- */
   function renderRules() {
     var p = profile();
     el.rules.innerHTML = '';
@@ -5278,7 +7018,85 @@ window.ALLY_PLAN_BY_ID = function (id) {
     }
   }
 
-  /* ---- Étape 5 : récapitulatif ---- */
+  /* ---- Formule recommandée ----
+     Le volume d'appels décide du plancher ; certains besoins (comprendre une
+     demande de tarif, rédiger un email) excluent la formule sans IA. */
+  function recommend() {
+    var volume = S.survey.volume;
+    var plan = 'cabinet';
+    var why = [];
+
+    if (volume === 'Moins de 5') { plan = 'permanence'; why.push('moins de 5 appels manqués par semaine'); }
+    if (volume === '5 à 15' || volume === '15 à 40') { plan = 'cabinet'; why.push(volume.toLowerCase() + ' appels manqués par semaine'); }
+    if (volume === 'Plus de 40') { plan = 'expert'; why.push('plus de 40 appels manqués par semaine'); }
+
+    var needsAI = S.survey.pain.indexOf('Les questions de tarifs') >= 0
+      || S.survey.pain.indexOf('Les relances par email') >= 0
+      || S.survey.today === 'Un secrétariat externe';
+
+    if (needsAI && plan === 'permanence') {
+      plan = 'cabinet';
+      why.push('vous attendez d\'elle qu\'elle réponde, pas seulement qu\'elle décroche');
+    }
+    return { planId: plan, why: why };
+  }
+
+  function renderReco() {
+    var box = document.getElementById('reco');
+    if (!S.survey.volume) { box.hidden = true; return; }
+
+    var reco = recommend();
+    var recommended = window.ALLY_PLAN_BY_ID(reco.planId);
+    var current = window.ALLY_PLAN_BY_ID(S.planId);
+    var actions = document.getElementById('reco-actions');
+    box.hidden = false;
+    actions.innerHTML = '';
+
+    if (reco.planId === S.planId) {
+      document.getElementById('reco-title').textContent =
+        'La formule ' + current.name + ' est la bonne.';
+      document.getElementById('reco-text').textContent =
+        'Vous avez indiqué ' + reco.why.join(' et ') + '. Votre formule couvre ce volume, '
+        + 'avec ' + current.quota.calls + ' appels par mois.';
+      return;
+    }
+
+    var cheaper = recommended.price < current.price;
+    document.getElementById('reco-title').textContent =
+      cheaper ? 'La formule ' + recommended.name + ' vous suffirait.'
+              : 'La formule ' + recommended.name + ' serait plus adaptée.';
+    document.getElementById('reco-text').textContent =
+      'Vous avez indiqué ' + reco.why.join(', et ') + '. '
+      + (cheaper
+          ? 'Vous économiseriez ' + (current.price - recommended.price) + ' € par mois. '
+            + 'Vous pourrez toujours monter en gamme plus tard.'
+          : 'Avec ' + current.name + ', vous atteindriez le plafond de '
+            + current.quota.calls + ' appels avant la fin du mois.');
+
+    var swap = document.createElement('button');
+    swap.type = 'button';
+    swap.className = 'btn btn-primary btn-md';
+    swap.textContent = 'Passer à ' + recommended.name + ' (' + recommended.price + ' €)';
+    swap.addEventListener('click', function () {
+      S.planId = recommended.id;
+      S.plan = recommended.name;
+      if (S.subscription) S.subscription.planId = recommended.id;
+      store.save();
+      renderReco();
+      renderRecap();
+    });
+
+    var keep = document.createElement('button');
+    keep.type = 'button';
+    keep.className = 'btn btn-ghost btn-md';
+    keep.textContent = 'Garder ' + current.name;
+    keep.addEventListener('click', function () { document.getElementById('reco').hidden = true; });
+
+    actions.appendChild(swap);
+    actions.appendChild(keep);
+  }
+
+  /* ---- Étape 7 : récapitulatif ---- */
   function renderRecap() {
     var p = profile();
     var openDays = S.hours.filter(function (d) { return d.on; });
@@ -5288,12 +7106,16 @@ window.ALLY_PLAN_BY_ID = function (id) {
       ['Nom d\'usage', store.displayName()],
       [p.orgLabel, S.identity.org || '—'],
       ['Métier', p.name],
+      ['Formule', window.ALLY_PLAN_BY_ID(S.planId).name],
+      ['Appels manqués / semaine', S.survey.volume || 'Non renseigné'],
       ['Jours d\'ouverture', openDays.length
         ? openDays.map(function (d) { return d.label.slice(0, 3); }).join(', ') : 'Aucun'],
       ['Fermetures', S.closures || '—'],
+      ['Durée d\'un rendez-vous', S.survey.rdvDuration + ' min'],
+      ['Délai de rappel annoncé', S.survey.callback || '—'],
+      ['Sujets traités par Ally', S.survey.motifs.length + ' sur ' + p.faq.length],
       ['Autonomie appels', autonomyLabel(S.autonomy.calls)],
       ['Autonomie emails', autonomyLabel(S.autonomy.emails)],
-      ['Autonomie agenda', autonomyLabel(S.autonomy.agenda)],
       ['Règles actives', activeRules.length + ' sur ' + RULES.length],
       ['Transfert des urgences', S.identity.phone || '—']
     ];
@@ -5309,30 +7131,61 @@ window.ALLY_PLAN_BY_ID = function (id) {
     });
 
     el.greeting.value = store.greeting();
-    el.recapNote.textContent = p.secret
-      ? 'Profil à confidentialité renforcée : les emails partent uniquement après votre validation.'
-      : 'Vous pouvez relever le niveau d\'autonomie d\'Ally à tout moment depuis l\'onglet Ally.';
+    /* Le message doit dire ce qui va réellement se passer : la règle « draft »
+       est désactivée par défaut, donc annoncer une validation systématique
+       serait faux. */
+    el.recapNote.textContent = S.rules.draft
+      ? 'Aucun email ne partira sans votre validation : Ally prépare, vous envoyez.'
+      : 'Ally enverra vos emails sans relecture, sur votre ordre vocal. '
+        + 'Vous pouvez exiger une validation à tout moment depuis l\'onglet Ally.';
+  }
+
+  /* ---- Application des réponses au compte ----
+     Sans ça, le questionnaire ne serait qu'un formulaire : les sujets décochés
+     sont retirés de la base de connaissances, et la consigne de l'étape 5
+     entre dans le script d'appel. */
+  function applySurvey() {
+    var data = store.data();
+    if (S.survey.motifs.length) {
+      data.faq = data.faq.filter(function (entry) {
+        return S.survey.motifs.indexOf(entry.q) >= 0;
+      });
+    }
+
+    if (S.survey.notes && S.survey.notes.trim()) {
+      var script = store.script().map(function (line) { return Object.assign({}, line); });
+      script.forEach(function (line) {
+        if (line.id === 'unknown') {
+          line.text = line.text + ' Consigne du cabinet : ' + S.survey.notes.trim();
+        }
+      });
+      S.script = script;
+    }
   }
 
   /* ---- Navigation ---- */
   function render() {
-    for (var i = 1; i <= 5; i++) document.getElementById('step-' + i).hidden = (i !== step);
+    for (var i = 1; i <= STEP_COUNT; i++) {
+      document.getElementById('step-' + i).hidden = (i !== step);
+    }
 
     el.progress.querySelectorAll('span').forEach(function (bar, index) {
       bar.classList.toggle('done', index < step);
     });
     el.progress.setAttribute('aria-valuenow', String(step));
 
-    el.stepLabel.textContent = 'Étape ' + step + ' sur 5';
-    el.title.textContent = (step === 5)
+    el.stepLabel.textContent = 'Étape ' + step + ' sur ' + STEP_COUNT;
+    el.title.textContent = (step === STEP_COUNT)
       ? 'Ally est prête, ' + store.displayName() + '.'
       : STEPS[step - 1].title;
     el.lede.textContent = STEPS[step - 1].lede;
     el.prev.hidden = (step === 1);
-    el.next.textContent = (step === 5) ? 'Ouvrir mon espace pro' : 'Continuer';
+    el.next.textContent = (step === STEP_COUNT) ? 'Ouvrir mon espace pro' : 'Continuer';
 
     if (step === 2) renderIdentityLabels();
-    if (step === 5) renderRecap();
+    if (step === 3) renderActivity();
+    if (step === 5) renderTopics();
+    if (step === STEP_COUNT) { renderReco(); renderRecap(); }
   }
 
   el.next.addEventListener('click', function () {
@@ -5342,10 +7195,12 @@ window.ALLY_PLAN_BY_ID = function (id) {
       if (!S.identity.org.trim()) { document.getElementById('org').focus(); return; }
     }
 
-    if (step === 5) {
+    if (step === STEP_COUNT) {
       S.greeting = el.greeting.value;
       S.configured = true;
+      applySurvey();
       store.save();
+      store.syncAccount();
       window.ALLY_GOTO('dashboard.html');
       return;
     }
@@ -5358,6 +7213,7 @@ window.ALLY_PLAN_BY_ID = function (id) {
   el.prev.addEventListener('click', function () {
     if (step > 1) step -= 1;
     render();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   });
 
   renderTrades();
@@ -5371,6 +7227,7 @@ window.ALLY_PLAN_BY_ID = function (id) {
      courant quand il n'y a pas de rechargement de page. */
   window.ALLY_ONBOARDING_REFRESH = function () {
     step = 1;
+    motifsTouched = false;
     S = store.state;
     renderTrades();
     syncIdentity();
@@ -5562,6 +7419,12 @@ window.ALLY_PLAN_BY_ID = function (id) {
     document.title = 'Espace pro — ' + name() + ' — Ally';
 
     document.getElementById('foot-email').textContent = S.identity.email || store.fullName();
+
+    /* Le raccourci vers la console n'apparaît que pour le rôle admin. */
+    var adminItem = document.getElementById('foot-admin-item');
+    if (adminItem) {
+      adminItem.hidden = !(window.ALLY_ACCOUNTS && window.ALLY_ACCOUNTS.isAdmin());
+    }
     document.getElementById('foot-transfer').setAttribute('aria-checked', String(!!S.rules.transfer));
     document.getElementById('foot-digest').setAttribute('aria-checked', String(S.notif.email));
     document.getElementById('foot-storage').textContent =
@@ -5669,8 +7532,19 @@ window.ALLY_PLAN_BY_ID = function (id) {
     flash(S.notif.email ? 'Résumé quotidien activé' : 'Résumé quotidien désactivé');
   });
   document.getElementById('foot-logout').addEventListener('click', function () {
+    if (window.ALLY_ACCOUNTS) {
+      window.ALLY_ACCOUNTS.logout();
+      store.reload();
+    }
     window.ALLY_GOTO('login.html');
   });
+
+  /* Présence : c'est ce battement qui alimente le « en ligne » de la console
+     d'administration. Sans lui, un professionnel actif y paraîtrait absent. */
+  if (window.ALLY_ACCOUNTS && window.ALLY_ACCOUNTS.currentId()) {
+    window.ALLY_ACCOUNTS.touch();
+    window.setInterval(function () { window.ALLY_ACCOUNTS.touch(); }, 60000);
+  }
   document.getElementById('foot-palette').addEventListener('click', function () {
     window.ALLY_PALETTE.open();
   });
@@ -6997,6 +8871,836 @@ window.ALLY_PLAN_BY_ID = function (id) {
     renderChrome();
     setTab(ui.tab);
   };
+})();
+
+/* Ally — console d'administration.
+   Réservée au rôle « admin » : vue plateforme, comptes, revenus et journal.
+   Même grammaire visuelle que l'espace pro, mais aucune donnée de cabinet n'y
+   apparaît : l'administrateur voit des volumes et des statuts, pas le contenu
+   des appels ni des emails de ses clients. C'est un choix, pas une limite
+   technique — voir ARCHITECTURE.md § Ne pas stocker ce dont on n'a pas besoin. */
+(function () {
+  'use strict';
+
+  var accounts = window.ALLY_ACCOUNTS;
+  var store = window.ALLY_STORE;
+  var UI = window.ALLY_UI;
+  var esc = UI.esc;
+
+  /* Compte administrateur connecté. Renseigné par boot(), qui contrôle le rôle
+     avant d'afficher quoi que ce soit. */
+  var me = null;
+
+  var TABS = [
+    { id: 'overview', label: "Vue d'ensemble" },
+    { id: 'accounts', label: 'Comptes' },
+    { id: 'revenue',  label: 'Revenus' },
+    { id: 'activity', label: 'Activité' },
+    { id: 'system',   label: 'Système' }
+  ];
+
+  var ui = { tab: 'overview', search: '', filter: 'all', sort: 'recent', open: null };
+
+  var el = {
+    shell: document.getElementById('adm-shell'),
+    navList: document.getElementById('adm-nav-list'),
+    panel: document.getElementById('adm-tabpanel'),
+    title: document.getElementById('adm-tab-title'),
+    sub: document.getElementById('adm-tab-sub'),
+    actions: document.getElementById('adm-topbar-actions'),
+    scrim: document.getElementById('adm-scrim'),
+    menuToggle: document.getElementById('adm-menu-toggle'),
+    sidebarClose: document.getElementById('adm-sidebar-close'),
+    clock: document.getElementById('live-clock'),
+    pulse: document.getElementById('pulse-online'),
+    drawer: document.getElementById('drawer-overlay'),
+    drawerTitle: document.getElementById('drawer-title'),
+    drawerBody: document.getElementById('drawer-body')
+  };
+
+  function planName(id) { return window.ALLY_PLAN_BY_ID(id).name; }
+  function tradeName(id) {
+    return (window.ALLY_PROFILES[id] || window.ALLY_PROFILES.avocat).name;
+  }
+
+  var STATUS = {
+    active:    { label: 'Actif',    css: 'badge-ok' },
+    trial:     { label: 'Essai',    css: 'badge-pending' },
+    pending:   { label: 'Non vérifié', css: 'badge-wait' },
+    suspended: { label: 'Suspendu', css: 'badge-urgent' }
+  };
+
+  function statusBadge(status) {
+    var s = STATUS[status] || STATUS.pending;
+    return '<span class="badge-status ' + s.css + '">' + s.label + '</span>';
+  }
+
+  function money(value) {
+    return String(Math.round(value)).replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' €';
+  }
+
+  /* ---------- Barres et jauges ---------- */
+  function barChart(items, unit) {
+    var top = Math.max.apply(null, items.map(function (i) { return i.count; }).concat([1]));
+    return '<div class="chart">' + items.map(function (item) {
+      var height = Math.round((item.count / top) * 100);
+      return '<div class="chart-col">' +
+        '<span class="chart-value">' + item.count + '</span>' +
+        '<span class="chart-bar" style="height:' + Math.max(height, 2) + '%"></span>' +
+        '<span class="chart-label">' + esc(item.label) + '</span>' +
+        '</div>';
+    }).join('') + '</div>' +
+      (unit ? '<p class="note" style="margin-top:10px">' + esc(unit) + '</p>' : '');
+  }
+
+  function meter(label, value, total, tone) {
+    var pct = total ? Math.round((value / total) * 100) : 0;
+    return '<div class="meter-row">' +
+      '<div class="meter-head"><span>' + esc(label) + '</span>' +
+      '<strong>' + value + '<small> · ' + pct + ' %</small></strong></div>' +
+      '<span class="meter-track"><i class="' + (tone || '') + '" style="width:' + pct + '%"></i></span>' +
+      '</div>';
+  }
+
+  /* ================= VUE D'ENSEMBLE ================= */
+  function viewOverview() {
+    var s = accounts.stats();
+    var pros = accounts.pros();
+
+    var recent = pros.slice().sort(function (a, b) { return b.createdAt - a.createdAt; }).slice(0, 6);
+    var online = pros.filter(function (u) { return accounts.isOnline(u); });
+
+    var alerts = [];
+    if (s.byStatus.pending) {
+      alerts.push(s.byStatus.pending + ' compte(s) créé(s) mais jamais vérifié(s) — '
+        + 'ils n\'ont pas terminé leur inscription.');
+    }
+    if (s.byStatus.suspended) {
+      alerts.push(s.byStatus.suspended + ' compte(s) suspendu(s) — impayé ou demande du client.');
+    }
+    var endingTrials = pros.filter(function (u) {
+      return u.status === 'trial' && (Date.now() - u.createdAt) > 10 * 86400000;
+    });
+    if (endingTrials.length) {
+      alerts.push(endingTrials.length + ' essai(s) arrivent à échéance dans moins de 4 jours.');
+    }
+
+    return '' +
+      '<div class="stat-grid stat-grid-4">' +
+        '<div class="stat"><p class="stat-label">Comptes professionnels</p>' +
+          '<p class="stat-value">' + s.total + '</p>' +
+          '<p class="stat-foot">' + s.byStatus.active + ' actifs · ' + s.byStatus.trial + ' en essai</p></div>' +
+        '<div class="stat"><p class="stat-label">En ligne maintenant</p>' +
+          '<p class="stat-value cyan">' + s.online + '</p>' +
+          '<p class="stat-foot">activité dans les 5 dernières minutes</p></div>' +
+        '<div class="stat"><p class="stat-label">Revenu récurrent mensuel</p>' +
+          '<p class="stat-value accent">' + money(s.mrr) + '</p>' +
+          '<p class="stat-foot">' + money(s.arr) + ' par an · ' + money(s.trialMrr) + ' en essai</p></div>' +
+        '<div class="stat"><p class="stat-label">Marge estimée</p>' +
+          '<p class="stat-value">' + money(s.margin) + '</p>' +
+          '<p class="stat-foot">' + s.marginRate + ' % · coûts ' + money(s.cost) + '</p></div>' +
+      '</div>' +
+
+      (alerts.length
+        ? '<div class="alert"><span class="dot"></span><div><strong>À traiter</strong>' +
+          '<ul class="alert-list">' + alerts.map(function (a) {
+            return '<li>' + esc(a) + '</li>';
+          }).join('') + '</ul></div></div>'
+        : '') +
+
+      '<div class="cols cols-13">' +
+        '<div class="card card-chart">' +
+          '<p class="card-title">Inscriptions sur 12 mois</p>' +
+          barChart(s.signups, 'Une barre par mois. La donnée vient des dates de création réelles des comptes.') +
+        '</div>' +
+
+        '<div class="stack">' +
+          '<div class="card">' +
+            '<p class="card-title">Répartition par formule</p>' +
+            window.ALLY_PLANS.map(function (plan) {
+              return meter(plan.name + ' — ' + plan.price + ' €',
+                s.byPlan[plan.id].count, s.total, plan.id === 'expert' ? 'tone-accent' : '');
+            }).join('') +
+          '</div>' +
+          '<div class="card">' +
+            '<p class="card-title">Répartition par métier</p>' +
+            Object.keys(s.byTrade).map(function (trade) {
+              return meter(tradeName(trade), s.byTrade[trade], s.total, 'tone-cyan');
+            }).join('') +
+          '</div>' +
+        '</div>' +
+      '</div>' +
+
+      '<div class="cols cols-11" style="margin-top:20px">' +
+        '<div class="card">' +
+          '<p class="card-title">Dernières inscriptions</p>' +
+          (recent.length ? recent.map(function (user) {
+            return '<div class="row"><div class="row-main">' +
+              '<p class="row-name">' + esc(user.firstName + ' ' + user.lastName) + '</p>' +
+              '<p class="row-meta">' + esc(user.org) + ' · ' + planName(user.planId) + '</p></div>' +
+              '<div class="row-side">' + statusBadge(user.status) +
+              '<span class="row-meta">' + window.ALLY_SINCE(user.createdAt) + '</span></div></div>';
+          }).join('') : '<p class="empty">Aucun compte.</p>') +
+        '</div>' +
+
+        '<div class="card">' +
+          '<p class="card-title">Connectés à l\'instant</p>' +
+          (online.length ? online.map(function (user) {
+            return '<div class="row"><div class="row-main">' +
+              '<p class="row-name"><span class="pulse-dot" aria-hidden="true"></span>' +
+              esc(user.firstName + ' ' + user.lastName) + '</p>' +
+              '<p class="row-meta">' + esc(user.org) + '</p></div>' +
+              '<span class="row-meta">' + window.ALLY_SINCE(user.lastSeenAt) + '</span></div>';
+          }).join('') : '<p class="empty">Personne en ligne pour le moment.</p>') +
+        '</div>' +
+      '</div>' +
+
+      '<div class="card" style="margin-top:20px">' +
+        '<p class="card-title">Volumes traités par la plateforme</p>' +
+        '<div class="tri-stat">' +
+          '<div><p class="mini-stat-label">Appels pris par Ally</p>' +
+            '<p class="mini-stat-value">' + s.calls.toLocaleString('fr-FR') + '</p></div>' +
+          '<div><p class="mini-stat-label">Emails envoyés</p>' +
+            '<p class="mini-stat-value">' + s.emails.toLocaleString('fr-FR') + '</p></div>' +
+          '<div><p class="mini-stat-label">Minutes de conversation</p>' +
+            '<p class="mini-stat-value">' + s.minutes.toLocaleString('fr-FR') + '</p></div>' +
+        '</div>' +
+        '<p class="note note-sep" style="margin-top:16px">' +
+          'Les minutes sont la seule ligne de coût qui monte avec l\'usage. ' +
+          'À ' + s.minutes.toLocaleString('fr-FR') + ' minutes, la facture téléphonie ' +
+          'représente environ ' + money(s.minutes * 0.15) + ' sur la période.' +
+        '</p>' +
+      '</div>';
+  }
+
+  /* ================= COMPTES ================= */
+  function filtered() {
+    var query = ui.search.trim().toLowerCase();
+    var list = accounts.pros().filter(function (user) {
+      if (ui.filter !== 'all' && user.status !== ui.filter) return false;
+      if (!query) return true;
+      return (user.firstName + ' ' + user.lastName + ' ' + user.org + ' ' + user.email)
+        .toLowerCase().indexOf(query) >= 0;
+    });
+
+    var SORTS = {
+      recent: function (a, b) { return b.createdAt - a.createdAt; },
+      name:   function (a, b) { return a.lastName.localeCompare(b.lastName); },
+      seen:   function (a, b) { return b.lastSeenAt - a.lastSeenAt; },
+      usage:  function (a, b) { return b.usage.calls - a.usage.calls; }
+    };
+    return list.sort(SORTS[ui.sort] || SORTS.recent);
+  }
+
+  function viewAccounts() {
+    var list = filtered();
+    var s = accounts.stats();
+
+    var chips = [
+      { id: 'all', label: 'Tous', count: s.total },
+      { id: 'active', label: 'Actifs', count: s.byStatus.active },
+      { id: 'trial', label: 'En essai', count: s.byStatus.trial },
+      { id: 'pending', label: 'Non vérifiés', count: s.byStatus.pending },
+      { id: 'suspended', label: 'Suspendus', count: s.byStatus.suspended }
+    ];
+
+    return '' +
+      '<div class="admin-toolbar">' +
+        '<div class="filters">' + chips.map(function (chip) {
+          return '<button type="button" class="choice" data-filter="' + chip.id + '"' +
+            ' aria-pressed="' + (ui.filter === chip.id) + '">' + esc(chip.label) +
+            '<span class="choice-count">' + chip.count + '</span></button>';
+        }).join('') + '</div>' +
+        '<div class="toolbar-right">' +
+          '<label class="sr-only" for="admin-search">Rechercher un compte</label>' +
+          '<input class="field" id="admin-search" type="search" placeholder="Nom, cabinet, email…"' +
+            ' value="' + esc(ui.search) + '">' +
+          '<label class="sr-only" for="admin-sort">Trier</label>' +
+          '<select class="field field-select" id="admin-sort">' +
+            '<option value="recent"' + (ui.sort === 'recent' ? ' selected' : '') + '>Plus récents</option>' +
+            '<option value="seen"' + (ui.sort === 'seen' ? ' selected' : '') + '>Dernière connexion</option>' +
+            '<option value="name"' + (ui.sort === 'name' ? ' selected' : '') + '>Nom</option>' +
+            '<option value="usage"' + (ui.sort === 'usage' ? ' selected' : '') + '>Volume d\'appels</option>' +
+          '</select>' +
+        '</div>' +
+      '</div>' +
+
+      (list.length === 0
+        ? '<p class="empty">Aucun compte ne correspond à cette recherche.</p>'
+        : '<div class="card card-table"><div class="table-wrap"><table class="admin-table">' +
+          '<thead><tr>' +
+            '<th scope="col">Professionnel</th><th scope="col">Formule</th>' +
+            '<th scope="col">Statut</th><th scope="col">Appels</th>' +
+            '<th scope="col">Dernière activité</th><th scope="col"><span class="sr-only">Actions</span></th>' +
+          '</tr></thead><tbody>' +
+          list.map(function (user) {
+            var initials = (user.firstName[0] || '') + (user.lastName[0] || '');
+            return '<tr>' +
+              '<td><div class="cell-user">' +
+                '<span class="avatar avatar-sm' + (accounts.isOnline(user) ? ' is-online' : '') + '">' +
+                  esc(initials.toUpperCase()) + '</span>' +
+                '<div><p class="row-name">' + esc(user.firstName + ' ' + user.lastName) + '</p>' +
+                '<p class="row-meta">' + esc(user.org) + ' · ' + tradeName(user.trade) + '</p></div>' +
+              '</div></td>' +
+              /* data-label sert au repli mobile : sous 700 px le tableau devient
+                 une liste, et chaque valeur retrouve son intitulé. */
+              '<td data-label="Formule"><span class="tag">' + planName(user.planId) + '</span>' +
+                '<span class="row-meta cell-cycle">' +
+                (user.cycle === 'year' ? 'annuel' : 'mensuel') + '</span></td>' +
+              '<td data-label="Statut">' + statusBadge(user.status) + '</td>' +
+              '<td class="num" data-label="Appels">' + user.usage.calls.toLocaleString('fr-FR') + '</td>' +
+              '<td class="row-meta" data-label="Vu">' + window.ALLY_SINCE(user.lastSeenAt) + '</td>' +
+              '<td class="cell-actions">' +
+                '<button type="button" class="btn btn-ghost btn-sm" data-open="' + user.id + '">Ouvrir</button>' +
+              '</td>' +
+            '</tr>';
+          }).join('') +
+          '</tbody></table></div></div>') +
+
+      '<p class="note" style="margin-top:16px">' +
+        'La console ne donne accès à aucun contenu d\'appel ni d\'email : ' +
+        'seuls les volumes et les statuts remontent ici.' +
+      '</p>';
+  }
+
+  /* ---------- Fiche d'un compte ---------- */
+  function openDrawer(userId) {
+    var user = accounts.byId(userId);
+    if (!user) return;
+    ui.open = userId;
+
+    var plan = window.ALLY_PLAN_BY_ID(user.planId);
+    var monthly = user.cycle === 'year' ? Math.round(plan.priceYear / 12) : plan.price;
+    var survey = user.survey || {};
+
+    el.drawerTitle.textContent = user.firstName + ' ' + user.lastName;
+    el.drawerBody.innerHTML = '' +
+      '<div class="drawer-id">' +
+        '<span class="avatar' + (accounts.isOnline(user) ? ' is-online' : '') + '">' +
+          esc(((user.firstName[0] || '') + (user.lastName[0] || '')).toUpperCase()) + '</span>' +
+        '<div><p class="row-name">' + esc(user.org) + '</p>' +
+        '<p class="row-meta">' + esc(user.email) + '</p></div>' +
+        statusBadge(user.status) +
+      '</div>' +
+
+      '<div class="drawer-grid">' +
+        '<div><p class="mini-stat-label">Formule</p><p class="mini-stat-value">' + plan.name +
+          '<small> · ' + monthly + ' €/mois</small></p></div>' +
+        '<div><p class="mini-stat-label">Client depuis</p><p class="mini-stat-value">' +
+          window.ALLY_DATE(user.createdAt) + '</p></div>' +
+        '<div><p class="mini-stat-label">Appels traités</p><p class="mini-stat-value">' +
+          user.usage.calls.toLocaleString('fr-FR') + '</p></div>' +
+        '<div><p class="mini-stat-label">Minutes consommées</p><p class="mini-stat-value">' +
+          user.usage.minutes.toLocaleString('fr-FR') + '</p></div>' +
+      '</div>' +
+
+      '<div class="drawer-block">' +
+        '<p class="card-title">Consommation du forfait</p>' +
+        meter('Appels', Math.min(user.usage.calls, plan.quota.calls), plan.quota.calls,
+          user.usage.calls > plan.quota.calls * 0.8 ? 'tone-warn' : '') +
+        meter('Emails', Math.min(user.usage.emails, plan.quota.emails), plan.quota.emails, 'tone-cyan') +
+        (user.usage.calls > plan.quota.calls
+          ? '<p class="lock-note">Forfait dépassé de ' + (user.usage.calls - plan.quota.calls) +
+            ' appels. À facturer en supplément ou à faire basculer vers la formule supérieure.</p>'
+          : '') +
+      '</div>' +
+
+      (survey.volume ? '<div class="drawer-block">' +
+        '<p class="card-title">Réponses au questionnaire</p>' +
+        '<div class="recap-row"><span>Appels manqués / semaine</span><span>' + esc(survey.volume) + '</span></div>' +
+        '<div class="recap-row"><span>Répondait avant</span><span>' + esc(survey.today || '—') + '</span></div>' +
+        '<div class="recap-row"><span>Irritants</span><span>' + esc((survey.pain || []).join(', ') || '—') + '</span></div>' +
+        '<div class="recap-row"><span>Agenda utilisé</span><span>' + esc((survey.tools || []).join(', ') || '—') + '</span></div>' +
+        '<div class="recap-row"><span>Durée de rendez-vous</span><span>' + esc(survey.rdvDuration || '—') + ' min</span></div>' +
+      '</div>' : '') +
+
+      '<div class="drawer-block">' +
+        '<p class="card-title">Changer de formule</p>' +
+        '<div class="chip-group">' + window.ALLY_PLANS.map(function (p) {
+          return '<button type="button" class="chip" data-setplan="' + p.id + '"' +
+            ' aria-pressed="' + (p.id === user.planId) + '">' + p.name + '</button>';
+        }).join('') + '</div>' +
+      '</div>' +
+
+      '<div class="drawer-actions">' +
+        (user.status === 'suspended'
+          ? '<button type="button" class="btn btn-primary btn-md" data-act="activate">Réactiver le compte</button>'
+          : '<button type="button" class="btn btn-ghost btn-md" data-act="suspend">Suspendre le compte</button>') +
+        (user.verified
+          ? ''
+          : '<button type="button" class="btn btn-ghost btn-md" data-act="verify">Valider l\'adresse manuellement</button>') +
+        '<button type="button" class="btn btn-danger btn-md" data-act="delete">Supprimer</button>' +
+      '</div>' +
+
+      '<p class="note" style="margin-top:16px">' +
+        'Chaque action est inscrite au journal d\'activité, avec l\'auteur et l\'heure.' +
+      '</p>';
+
+    el.drawer.hidden = false;
+    bindDrawer(user);
+  }
+
+  function closeDrawer() {
+    el.drawer.hidden = true;
+    ui.open = null;
+  }
+
+  function bindDrawer(user) {
+    el.drawerBody.querySelectorAll('[data-setplan]').forEach(function (chip) {
+      chip.addEventListener('click', function () {
+        var planId = chip.getAttribute('data-setplan');
+        accounts.update(user.id, { planId: planId });
+        accounts.log('plan-changed', user.email + ' → ' + planName(planId));
+        UI.toast('Formule de ' + user.lastName + ' passée à ' + planName(planId), 'ok');
+        openDrawer(user.id);
+        renderPanel();
+      });
+    });
+
+    el.drawerBody.querySelectorAll('[data-act]').forEach(function (button) {
+      button.addEventListener('click', function () {
+        var act = button.getAttribute('data-act');
+
+        if (act === 'suspend') {
+          accounts.update(user.id, { status: 'suspended' });
+          accounts.log('suspended', user.email);
+          UI.toast('Compte suspendu — la connexion lui est refusée.', 'warn');
+        }
+        if (act === 'activate') {
+          accounts.update(user.id, { status: user.verified ? 'active' : 'pending' });
+          accounts.log('reactivated', user.email);
+          UI.toast('Compte réactivé.', 'ok');
+        }
+        if (act === 'verify') {
+          accounts.update(user.id, { verified: true, status: 'trial' });
+          accounts.log('verified-by-admin', user.email);
+          UI.toast('Adresse validée manuellement.', 'ok');
+        }
+        if (act === 'delete') {
+          if (!window.confirm('Supprimer définitivement le compte de ' + user.firstName + ' '
+              + user.lastName + ' ? Ses données de configuration seront effacées.')) return;
+          accounts.remove(user.id);
+          UI.toast('Compte supprimé.', 'warn');
+          closeDrawer();
+          renderPanel();
+          renderChrome();
+          return;
+        }
+
+        openDrawer(user.id);
+        renderPanel();
+        renderChrome();
+      });
+    });
+  }
+
+  /* ================= REVENUS ================= */
+  function viewRevenue() {
+    var s = accounts.stats();
+    var COST_FIXED = 45;
+
+    var rows = window.ALLY_PLANS.map(function (plan) {
+      var entry = s.byPlan[plan.id];
+      /* On compte les comptes actifs, pas tous les comptes : le MRR de la ligne
+         ne vient que d'eux, et une colonne « comptes » incluant les essais
+         rendrait l'arithmétique du tableau incompréhensible. */
+      return '<tr><td>' + plan.name + '</td>' +
+        '<td class="num" data-label="Actifs">' + entry.active + '</td>' +
+        '<td class="num" data-label="Prix">' + plan.price + ' €</td>' +
+        '<td class="num" data-label="MRR">' + money(entry.mrr) + '</td>' +
+        '<td class="num" data-label="Part">' +
+          (s.mrr ? Math.round((entry.mrr / s.mrr) * 100) : 0) + ' %</td></tr>';
+    }).join('');
+
+    var totalActive = window.ALLY_PLANS.reduce(function (sum, plan) {
+      return sum + s.byPlan[plan.id].active;
+    }, 0);
+
+    /* Projection simple : le rythme d'acquisition des 3 derniers mois, prolongé
+       sur 12. Volontairement grossier — c'est un ordre de grandeur, pas un
+       business plan. */
+    var lastThree = s.signups.slice(-3).reduce(function (sum, m) { return sum + m.count; }, 0);
+    var perMonth = Math.round(lastThree / 3);
+    var projected = s.mrr + perMonth * 12 * s.arpu;
+
+    return '' +
+      '<div class="stat-grid stat-grid-4">' +
+        '<div class="stat"><p class="stat-label">MRR</p>' +
+          '<p class="stat-value accent">' + money(s.mrr) + '</p>' +
+          '<p class="stat-foot">revenu récurrent mensuel</p></div>' +
+        '<div class="stat"><p class="stat-label">ARR</p>' +
+          '<p class="stat-value">' + money(s.arr) + '</p>' +
+          '<p class="stat-foot">projeté sur 12 mois à volume constant</p></div>' +
+        '<div class="stat"><p class="stat-label">Revenu moyen par client</p>' +
+          '<p class="stat-value">' + money(s.arpu) + '</p>' +
+          '<p class="stat-foot">sur ' + s.byStatus.active + ' comptes actifs</p></div>' +
+        '<div class="stat"><p class="stat-label">Marge brute</p>' +
+          '<p class="stat-value cyan">' + s.marginRate + ' %</p>' +
+          '<p class="stat-foot">' + money(s.margin) + ' par mois</p></div>' +
+      '</div>' +
+
+      '<div class="cols cols-13">' +
+        '<div class="card">' +
+          '<p class="card-title">Revenu par formule</p>' +
+          '<div class="table-wrap"><table class="admin-table">' +
+            '<thead><tr><th scope="col">Formule</th><th scope="col">Comptes actifs</th>' +
+            '<th scope="col">Prix</th><th scope="col">MRR</th><th scope="col">Part</th></tr></thead>' +
+            '<tbody>' + rows + '</tbody>' +
+            '<tfoot><tr><td>Total</td><td class="num">' + totalActive + '</td><td></td>' +
+            '<td class="num">' + money(s.mrr) + '</td><td class="num">100 %</td></tr></tfoot>' +
+          '</table></div>' +
+          '<p class="note" style="margin-top:14px">' +
+            'Les essais et les comptes suspendus ne sont pas comptés ici : ils ne ' +
+            'produisent aucun revenu. Ils apparaissent dans l\'onglet Comptes.' +
+          '</p>' +
+        '</div>' +
+
+        '<div class="card">' +
+          '<p class="card-title">Structure de coûts</p>' +
+          '<div class="recap-row"><span>Hébergement et base (fixe)</span><span>' + money(COST_FIXED) + '</span></div>' +
+          '<div class="recap-row"><span>Comptes actifs — ' + s.byStatus.active + ' × 12 €</span>' +
+            '<span>' + money(s.byStatus.active * 12) + '</span></div>' +
+          '<div class="recap-row"><span>Essais en cours — ' + s.byStatus.trial + ' × 7 €</span>' +
+            '<span>' + money(s.byStatus.trial * 7) + '</span></div>' +
+          '<div class="recap-row total"><span>Coût mensuel total</span><span>' + money(s.cost) + '</span></div>' +
+          '<p class="note" style="margin-top:16px">' +
+            'Le coût par compte suppose les optimisations retenues : appels courts, ' +
+            'filtrage du démarchage, prélèvement SEPA, cache du contexte LLM. ' +
+            'Sans elles, comptez 36 € au lieu de 12 €.' +
+          '</p>' +
+        '</div>' +
+      '</div>' +
+
+      '<div class="card" style="margin-top:20px">' +
+        '<p class="card-title">Projection à 12 mois</p>' +
+        '<p class="proj-value">' + money(projected) + ' <small>de MRR</small></p>' +
+        '<p class="note">' +
+          'Au rythme des 3 derniers mois (' + perMonth + ' inscription(s) par mois) et à revenu ' +
+          'moyen constant. Aucune hypothèse de résiliation n\'est intégrée : le chiffre est ' +
+          'optimiste par construction, à ne pas présenter tel quel à un investisseur.' +
+        '</p>' +
+      '</div>';
+  }
+
+  /* ================= ACTIVITÉ ================= */
+  var EVENT_LABEL = {
+    signup: 'Inscription', verified: 'Adresse vérifiée', login: 'Connexion',
+    logout: 'Déconnexion', 'login-failed': 'Échec de connexion',
+    'verify-code': 'Code de vérification émis', 'reset-code': 'Code de récupération émis',
+    'password-reset': 'Mot de passe modifié', 'plan-changed': 'Changement de formule',
+    suspended: 'Compte suspendu', reactivated: 'Compte réactivé',
+    'verified-by-admin': 'Validation manuelle', deleted: 'Compte supprimé',
+    reseed: 'Données de démonstration réinitialisées'
+  };
+
+  var EVENT_TONE = {
+    'login-failed': 'warn', suspended: 'warn', deleted: 'warn',
+    signup: 'ok', verified: 'ok', reactivated: 'ok'
+  };
+
+  function viewActivity() {
+    var events = accounts.events();
+    var failures = events.filter(function (e) { return e.action === 'login-failed'; }).length;
+
+    return '' +
+      '<div class="stat-grid stat-grid-3">' +
+        '<div class="stat"><p class="stat-label">Événements enregistrés</p>' +
+          '<p class="stat-value">' + events.length + '</p>' +
+          '<p class="stat-foot">120 derniers conservés</p></div>' +
+        '<div class="stat"><p class="stat-label">Échecs de connexion</p>' +
+          '<p class="stat-value' + (failures > 3 ? ' warn' : '') + '">' + failures + '</p>' +
+          '<p class="stat-foot">au-delà de 5 sur un même compte, blocage temporaire</p></div>' +
+        '<div class="stat"><p class="stat-label">En ligne</p>' +
+          '<p class="stat-value cyan">' + accounts.stats().online + '</p>' +
+          '<p class="stat-foot">fenêtre de 5 minutes</p></div>' +
+      '</div>' +
+
+      '<div class="card">' +
+        '<p class="card-title">Journal d\'activité</p>' +
+        (events.length ? '<ul class="log-list">' + events.map(function (event) {
+          var user = event.userId ? accounts.byId(event.userId) : null;
+          return '<li class="log-item">' +
+            '<span class="log-dot ' + (EVENT_TONE[event.action] || '') + '" aria-hidden="true"></span>' +
+            '<div class="log-main">' +
+              '<p class="row-name">' + esc(EVENT_LABEL[event.action] || event.action) + '</p>' +
+              '<p class="row-meta">' + esc(event.detail || (user ? user.email : '—')) + '</p>' +
+            '</div>' +
+            '<span class="row-meta">' + window.ALLY_SINCE(event.at) + '</span>' +
+          '</li>';
+        }).join('') + '</ul>'
+          : '<p class="empty">Aucun événement pour le moment.</p>') +
+        '<p class="note note-sep" style="margin-top:16px">' +
+          'Ce journal est la trace d\'accès exigée par le RGPD en cas d\'incident. ' +
+          'En production il est conservé côté serveur, en écriture seule, ' +
+          'et l\'administrateur ne peut pas l\'effacer.' +
+        '</p>' +
+      '</div>';
+  }
+
+  /* ================= SYSTÈME ================= */
+  var CHECKLIST = [
+    ['Cloisonnement des comptes', true,
+      'Chaque configuration est stockée sous une clé propre au compte. En production : filtre sur cabinet_id déduit du jeton de session.'],
+    ['Vérification de l\'adresse email', true,
+      'Code à 6 chiffres, valable 10 minutes, 5 tentatives maximum.'],
+    ['Récupération de mot de passe', true,
+      'Par code à usage unique. La page ne révèle pas si l\'adresse existe.'],
+    ['Journal d\'accès', true,
+      'Connexions, échecs, changements de formule et suppressions sont horodatés.'],
+    ['Hachage des mots de passe', false,
+      'Maquette : fonction non cryptographique côté navigateur. À remplacer par argon2id côté serveur.'],
+    ['Chiffrement applicatif des transcriptions', false,
+      'Demande un serveur et un gestionnaire de secrets. À écrire dès la première ligne de l\'API.'],
+    ['Signature des webhooks Retell et Stripe', false,
+      'Sans serveur, il n\'y a pas de webhook à signer.'],
+    ['Double authentification sur les comptes tiers', false,
+      'Action manuelle : hébergeur, Google, Stripe, GitHub.']
+  ];
+
+  function viewSystem() {
+    var done = CHECKLIST.filter(function (item) { return item[1]; }).length;
+
+    return '' +
+      '<div class="cols cols-13">' +
+        '<div class="card">' +
+          '<p class="card-title">État de la sécurité — ' + done + ' sur ' + CHECKLIST.length + '</p>' +
+          '<ul class="check-list">' + CHECKLIST.map(function (item) {
+            return '<li class="check-item' + (item[1] ? ' is-done' : '') + '">' +
+              '<span class="check-mark" aria-hidden="true"></span>' +
+              '<div><p class="row-name">' + esc(item[0]) + '</p>' +
+              '<p class="row-meta">' + esc(item[2]) + '</p></div>' +
+              '<span class="badge-status ' + (item[1] ? 'badge-ok' : 'badge-wait') + '">' +
+              (item[1] ? 'En place' : 'À faire') + '</span></li>';
+          }).join('') + '</ul>' +
+        '</div>' +
+
+        '<div class="stack">' +
+          '<div class="card">' +
+            '<p class="card-title">Stockage</p>' +
+            '<div class="recap-row"><span>Emplacement</span><span>navigateur (localStorage)</span></div>' +
+            '<div class="recap-row"><span>Comptes enregistrés</span><span>' + accounts.all().length + '</span></div>' +
+            '<div class="recap-row"><span>Événements</span><span>' + accounts.events().length + '</span></div>' +
+            '<p class="lock-note">Aucun serveur : ces données ne quittent pas cet appareil et ' +
+              'disparaissent si vous videz le cache du navigateur.</p>' +
+          '</div>' +
+
+          '<div class="card">' +
+            '<p class="card-title">Compte administrateur</p>' +
+            '<div class="recap-row"><span>Adresse</span><span>' + esc(me.email) + '</span></div>' +
+            '<div class="recap-row"><span>Rôle</span><span>Accès complet</span></div>' +
+            '<p class="lock-note">Identifiants de démonstration affichés sur la page de ' +
+              'connexion. À changer avant toute mise en ligne.</p>' +
+          '</div>' +
+
+          '<div class="card">' +
+            '<p class="card-title">Données de démonstration</p>' +
+            '<p class="note" style="margin-bottom:16px">' +
+              'Remet l\'annuaire à son état initial : 16 comptes fictifs, journal vidé. ' +
+              'Les configurations enregistrées par chaque compte ne sont pas effacées.' +
+            '</p>' +
+            '<button type="button" class="btn btn-ghost btn-md" id="sys-reseed">Réinitialiser l\'annuaire</button>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
+  }
+
+  /* ================= CHROME ================= */
+  var VIEWS = {
+    overview: viewOverview, accounts: viewAccounts,
+    revenue: viewRevenue, activity: viewActivity, system: viewSystem
+  };
+
+  var SUBS = {
+    overview: 'Ce que fait la plateforme, en un écran.',
+    accounts: 'Tous les professionnels inscrits, leur formule et leur consommation.',
+    revenue: 'Revenu récurrent, coûts et marge réelle.',
+    activity: 'Journal des connexions et des actions d\'administration.',
+    system: 'État de la sécurité et données de la maquette.'
+  };
+
+  function renderNav() {
+    var s = accounts.stats();
+    var counts = { accounts: s.total, activity: accounts.events().length };
+
+    el.navList.innerHTML = TABS.map(function (tab) {
+      return '<button type="button" class="nav-item" data-tab="' + tab.id + '"' +
+        (ui.tab === tab.id ? ' aria-current="page"' : '') + '>' +
+        '<span class="dot" aria-hidden="true"></span>' +
+        '<span class="nav-label">' + esc(tab.label) + '</span>' +
+        (counts[tab.id] ? '<span class="nav-count">' + counts[tab.id] + '</span>' : '') +
+        '</button>';
+    }).join('');
+
+    el.navList.querySelectorAll('[data-tab]').forEach(function (button) {
+      button.addEventListener('click', function () {
+        ui.tab = button.getAttribute('data-tab');
+        el.shell.classList.remove('drawer-open');
+        renderNav();
+        renderPanel();
+      });
+    });
+  }
+
+  function renderChrome() {
+    document.getElementById('adm-foot-email').textContent = me.email;
+    el.pulse.textContent = accounts.stats().online;
+    el.title.textContent = (TABS.filter(function (t) { return t.id === ui.tab; })[0] || TABS[0]).label;
+    el.sub.textContent = SUBS[ui.tab] || '';
+  }
+
+  function renderPanel() {
+    el.panel.innerHTML = VIEWS[ui.tab]();
+    renderChrome();
+    bindPanel();
+  }
+
+  function bindPanel() {
+    el.panel.querySelectorAll('[data-filter]').forEach(function (chip) {
+      chip.addEventListener('click', function () {
+        ui.filter = chip.getAttribute('data-filter');
+        renderPanel();
+      });
+    });
+
+    var search = document.getElementById('admin-search');
+    if (search) {
+      search.addEventListener('input', function () {
+        ui.search = search.value;
+        renderPanel();
+        var again = document.getElementById('admin-search');
+        again.focus();
+        again.setSelectionRange(again.value.length, again.value.length);
+      });
+    }
+
+    var sort = document.getElementById('admin-sort');
+    if (sort) {
+      sort.addEventListener('change', function () {
+        ui.sort = sort.value;
+        renderPanel();
+      });
+    }
+
+    el.panel.querySelectorAll('[data-open]').forEach(function (button) {
+      button.addEventListener('click', function () {
+        openDrawer(button.getAttribute('data-open'));
+      });
+    });
+
+    var reseed = document.getElementById('sys-reseed');
+    if (reseed) reseed.addEventListener('click', doReseed);
+  }
+
+  function doReseed() {
+    if (!window.confirm('Réinitialiser l\'annuaire de démonstration ? '
+        + 'Les comptes créés depuis seront perdus.')) return;
+    accounts.reseed();
+    accounts.open('admin');
+    me = accounts.current();
+    accounts.log('reseed', 'annuaire remis à zéro');
+    UI.toast('Annuaire réinitialisé.', 'ok');
+    renderNav();
+    renderPanel();
+  }
+
+  /* ---------- Barre latérale mobile ----------
+     Même mécanique que l'espace pro : la classe drawer-open est celle que
+     dashboard.css connaît, et le bouton n'existe qu'en dessous de 900 px —
+     l'attribut hidden doit être retiré par le script, puisque la règle
+     [hidden] est en !important. */
+  /* Noms distincts de ceux du tiroir de fiche : les déclarations de fonction
+     étant remontées, un doublon openDrawer écrasait silencieusement l'autre et
+     le bouton « Ouvrir » d'un compte n'ouvrait plus rien. */
+  function openSidebar() {
+    el.shell.classList.add('drawer-open');
+    el.menuToggle.setAttribute('aria-expanded', 'true');
+    el.sidebarClose.focus();
+  }
+  function closeSidebar() {
+    el.shell.classList.remove('drawer-open');
+    el.menuToggle.setAttribute('aria-expanded', 'false');
+  }
+
+  var mqMobile = window.matchMedia('(max-width: 900px)');
+  function syncMobile(event) {
+    el.menuToggle.hidden = !event.matches;
+    if (!event.matches) closeSidebar();
+  }
+  syncMobile(mqMobile);
+  if (mqMobile.addEventListener) mqMobile.addEventListener('change', syncMobile);
+  else mqMobile.addListener(syncMobile);
+
+  el.menuToggle.addEventListener('click', openSidebar);
+  el.scrim.addEventListener('click', closeSidebar);
+  el.sidebarClose.addEventListener('click', function () { closeSidebar(); el.menuToggle.focus(); });
+
+  document.getElementById('drawer-close').addEventListener('click', closeDrawer);
+  el.drawer.addEventListener('click', function (event) {
+    if (event.target === el.drawer) closeDrawer();
+  });
+  document.addEventListener('keydown', function (event) {
+    if (event.key === 'Escape' && !el.drawer.hidden) closeDrawer();
+  });
+
+  document.getElementById('adm-foot-logout').addEventListener('click', function () {
+    accounts.logout();
+    store.reload();
+    window.ALLY_GOTO('login.html');
+  });
+
+  document.getElementById('adm-foot-reseed').addEventListener('click', doReseed);
+
+  /* ---------- Horloge et présence ---------- */
+  function tick() {
+    el.clock.textContent = new Date().toLocaleTimeString('fr-FR',
+      { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  }
+  tick();
+  window.setInterval(tick, 1000);
+
+  /* Le « en ligne » de l'administrateur doit rester vrai tant que la console
+     est ouverte, sinon il disparaît de sa propre liste au bout de 5 minutes. */
+  window.setInterval(function () {
+    if (!me) return;
+    accounts.touch();
+    el.pulse.textContent = accounts.stats().online;
+  }, 30000);
+
+  /* ---------- Contrôle du rôle ----------
+     Version front d'un contrôle qui, en production, se fait côté serveur : le
+     rôle est déduit du jeton de session, jamais d'un paramètre du navigateur.
+     On affiche un refus plutôt que de rediriger — une redirection au chargement
+     casserait le fichier de démonstration, où tous les écrans coexistent. */
+  function boot() {
+    me = accounts.current();
+
+    if (!me || me.role !== 'admin') {
+      me = null;
+      el.navList.innerHTML = '';
+      el.title.textContent = 'Accès refusé';
+      el.sub.textContent = 'Console réservée à l\'administrateur.';
+      el.panel.innerHTML =
+        '<div class="card limit-640">' +
+          '<p class="card-title">Accès réservé</p>' +
+          '<p class="note">Cette console n\'est accessible qu\'avec le compte ' +
+          'administrateur. Un compte professionnel connecté ici ne verrait rien : ' +
+          'le contrôle porte sur le rôle, pas sur l\'adresse de la page.</p>' +
+          '<a class="btn btn-primary btn-md" href="login.html" style="margin-top:18px">' +
+          'Se connecter en administrateur</a>' +
+        '</div>';
+      return;
+    }
+
+    accounts.touch();
+    renderNav();
+    renderPanel();
+  }
+
+  boot();
+
+  /* Le fichier de démonstration change d'écran sans recharger la page :
+     la console doit relire la session à chaque fois qu'on l'ouvre. */
+  window.ALLY_ADMIN_REFRESH = boot;
 })();
 
 </script>

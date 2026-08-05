@@ -243,8 +243,16 @@
   border-radius: var(--r-lg); padding: 36px 32px;
   backdrop-filter: blur(10px);
 }
+.auth-card { max-width: 440px; }
 .auth-card h1 { font-size: 26px; font-weight: 700; margin-bottom: 8px; }
-.auth-card > p { color: var(--txt-3); font-size: 14px; line-height: 1.6; margin-bottom: 28px; }
+/* Le panneau intermédiaire est arrivé avec les écrans de vérification et de
+   récupération : le sélecteur direct ne suffisait plus. */
+.auth-card > p,
+.auth-card > [data-panel] > p:not(.auth-hint):not(.auth-error):not(.note) {
+  color: var(--txt-3); font-size: 14px; line-height: 1.6; margin-bottom: 28px;
+}
+.auth-card > [data-panel] > p.auth-hint,
+.auth-card > [data-panel] > p.auth-error { margin-bottom: 22px; }
 .auth-field { margin-bottom: 16px; }
 .auth-field label { display: block; font-size: 13px; color: var(--txt-3); margin-bottom: 7px; }
 .auth-card .btn { width: 100%; margin-top: 12px; }
@@ -260,6 +268,69 @@
 .auth-note a { color: var(--cyan); }
 .auth-back { color: var(--txt-4); font-size: 13px; text-decoration: none; }
 .auth-back:hover { color: var(--txt); }
+
+/* Ligne « rester connecté » / « mot de passe oublié ». */
+.auth-row {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 14px; flex-wrap: wrap; margin-top: 18px;
+}
+.auth-row-center { justify-content: center; gap: 22px; margin-top: 18px; }
+.consent-inline { margin-top: 0; font-size: 13px; align-items: center; }
+.consent-inline input { margin-top: 0; }
+
+/* Code affiché à l'écran : sans serveur d'envoi, c'est le seul moyen de faire
+   fonctionner la démonstration. Le cartouche dit clairement que ce n'est pas
+   le comportement du produit. */
+.code-sent {
+  background: oklch(0.3 0.10 90 / 0.14); border: 1px dashed oklch(0.8 0.10 90 / 0.4);
+  border-radius: var(--r-sm); padding: 14px 16px; margin-bottom: 20px;
+  font-size: 13px; color: var(--yellow); line-height: 1.6;
+}
+.code-sent code {
+  font-family: var(--ff-h); font-size: 20px; font-weight: 700;
+  letter-spacing: .18em; color: var(--txt); margin-left: 6px;
+}
+.code-sent em { display: block; margin-top: 8px; font-size: 11px; color: var(--txt-4); font-style: normal; }
+
+/* Accès de démonstration listés sous le formulaire de connexion. */
+.demo-keys {
+  margin-top: 22px; padding-top: 20px; border-top: 1px solid var(--hair);
+}
+.demo-keys-title {
+  font-size: 11px; text-transform: uppercase; letter-spacing: .08em;
+  color: var(--txt-5); margin-bottom: 12px;
+}
+.demo-keys ul { list-style: none; margin: 0 0 12px; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.demo-keys li { display: flex; flex-direction: column; gap: 3px; }
+.demo-keys strong { font-size: 12px; font-weight: 600; color: var(--txt-3); }
+.demo-keys code {
+  font-size: 12px; color: var(--cyan); background: var(--s1);
+  border-radius: 6px; padding: 6px 9px; word-break: break-all;
+}
+
+/* ============ VÉRIFICATION D'ADRESSE (inscription) ============ */
+.verify-shell { display: grid; grid-template-columns: 1.15fr 1fr; gap: 20px; align-items: start; }
+.verify-why .why-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 16px; }
+.verify-why .why-list li { font-size: 13px; color: var(--txt-4); line-height: 1.6; padding-left: 16px; position: relative; }
+.verify-why .why-list li::before { content: ''; position: absolute; left: 0; top: 7px; width: 6px; height: 6px; border-radius: 50%; background: var(--accent-bright); }
+.verify-why .why-list strong { display: block; color: var(--txt-2); font-weight: 600; margin-bottom: 3px; }
+
+/* ============ RECOMMANDATION DE FORMULE (récapitulatif) ============ */
+.reco-card {
+  background: linear-gradient(135deg, oklch(0.24 0.05 296 / 0.7), oklch(0.2 0.03 200 / 0.55));
+  border-color: oklch(0.72 0.19 296 / 0.35);
+}
+.reco-kicker {
+  font-size: 11px; text-transform: uppercase; letter-spacing: .08em;
+  color: oklch(0.8 0.12 296); margin-bottom: 8px;
+}
+.reco-title { font-family: var(--ff-h); font-size: 19px; font-weight: 700; margin-bottom: 8px; }
+.reco-text { font-size: 14px; color: var(--txt-3); line-height: 1.6; }
+.reco-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 18px; }
+
+@media (max-width: 860px) {
+  .verify-shell { grid-template-columns: 1fr; }
+}
 
 /* ============ ONBOARDING ============ */
 .ob-shell {
@@ -330,12 +401,7 @@
 .rule-row span { font-size: 13px; color: var(--txt-4); line-height: 1.5; }
 .rule-locked { font-size: 11px; color: var(--yellow); }
 
-.recap-row {
-  display: flex; justify-content: space-between; gap: 16px;
-  padding: 12px 0; border-bottom: 1px solid var(--hair); font-size: 14px;
-}
-.recap-row:last-child { border-bottom: none; }
-.recap-row span:last-child { color: var(--txt-3); text-align: right; }
+/* .recap-row vit dans base.css : la console d'administration s'en sert aussi. */
 .ob-nav { display: flex; justify-content: space-between; gap: 12px; margin-top: 32px; }
 
 @media (max-width: 560px) {

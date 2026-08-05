@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Administration — Ally</title>
+<meta name="robots" content="noindex">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/dashboard.css">
+<link rel="stylesheet" href="css/admin.css">
+</head>
+<body>
+<a class="skip-link" href="#adm-tabpanel">Aller au contenu</a>
+
+<div class="shell" id="adm-shell">
+  <div class="scrim" id="adm-scrim"></div>
+
+  <aside class="sidebar" id="adm-sidebar">
+    <button class="sidebar-close" id="adm-sidebar-close" type="button" aria-label="Fermer le menu">×</button>
+
+    <div class="sidebar-head">
+      <span class="logo-mark" aria-hidden="true"></span>
+      <span class="logo-word">Ally</span>
+      <span class="badge-pro badge-admin">Admin</span>
+    </div>
+
+    <nav class="nav-list" id="adm-nav-list" aria-label="Sections de l'administration"></nav>
+
+    <div class="admin-pulse" id="admin-pulse">
+      <span class="pulse-dot" aria-hidden="true"></span>
+      <span><strong id="pulse-online">0</strong> professionnel(s) en ligne</span>
+    </div>
+
+    <div class="sidebar-foot">
+      <p class="foot-account">
+        <span id="adm-foot-email">—</span>
+        <button type="button" class="btn-link" id="adm-foot-logout">Déconnexion</button>
+      </p>
+      <ul class="foot-links">
+        <li><a class="foot-link" href="dashboard.html">Voir un espace pro →</a></li>
+        <li><a class="foot-link" href="index.html">← Site public</a></li>
+        <li><button type="button" class="foot-link" id="adm-foot-reseed">Réinitialiser les données de démonstration</button></li>
+      </ul>
+      <p class="foot-version">Ally — console d'administration v0.7</p>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <div class="topbar-id">
+        <h1 id="adm-tab-title">Vue d'ensemble</h1>
+        <p class="topbar-sub" id="adm-tab-sub"></p>
+      </div>
+      <div class="topbar-actions" id="adm-topbar-actions"></div>
+      <div class="topbar-tools">
+        <button class="icon-btn" id="adm-menu-toggle" type="button" aria-label="Ouvrir le menu"
+                aria-controls="adm-sidebar" aria-expanded="false" hidden>
+          <span class="glyph-sq" aria-hidden="true"></span>
+        </button>
+        <span class="live-clock" id="live-clock">—</span>
+      </div>
+    </div>
+
+    <div id="adm-tabpanel" role="region" aria-live="polite" aria-labelledby="adm-tab-title"></div>
+  </main>
+</div>
+
+<div class="drawer-overlay" id="drawer-overlay" role="dialog" aria-modal="true"
+     aria-labelledby="drawer-title" hidden>
+  <div class="drawer">
+    <div class="drawer-head">
+      <h2 id="drawer-title">Compte</h2>
+      <button class="icon-btn" id="drawer-close" type="button" aria-label="Fermer">×</button>
+    </div>
+    <div class="drawer-body" id="drawer-body"></div>
+  </div>
+</div>
+
+<script src="js/profiles.js"></script>
+<script src="js/plans.js"></script>
+<script src="js/accounts.js"></script>
+<script src="js/store.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/admin.js"></script>
+</body>
+</html>

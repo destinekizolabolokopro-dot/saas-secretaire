@@ -180,6 +180,12 @@
     document.title = 'Espace pro — ' + name() + ' — Ally';
 
     document.getElementById('foot-email').textContent = S.identity.email || store.fullName();
+
+    /* Le raccourci vers la console n'apparaît que pour le rôle admin. */
+    var adminItem = document.getElementById('foot-admin-item');
+    if (adminItem) {
+      adminItem.hidden = !(window.ALLY_ACCOUNTS && window.ALLY_ACCOUNTS.isAdmin());
+    }
     document.getElementById('foot-transfer').setAttribute('aria-checked', String(!!S.rules.transfer));
     document.getElementById('foot-digest').setAttribute('aria-checked', String(S.notif.email));
     document.getElementById('foot-storage').textContent =
@@ -287,8 +293,19 @@
     flash(S.notif.email ? 'Résumé quotidien activé' : 'Résumé quotidien désactivé');
   });
   document.getElementById('foot-logout').addEventListener('click', function () {
+    if (window.ALLY_ACCOUNTS) {
+      window.ALLY_ACCOUNTS.logout();
+      store.reload();
+    }
     window.location.href = 'login.html';
   });
+
+  /* Présence : c'est ce battement qui alimente le « en ligne » de la console
+     d'administration. Sans lui, un professionnel actif y paraîtrait absent. */
+  if (window.ALLY_ACCOUNTS && window.ALLY_ACCOUNTS.currentId()) {
+    window.ALLY_ACCOUNTS.touch();
+    window.setInterval(function () { window.ALLY_ACCOUNTS.touch(); }, 60000);
+  }
   document.getElementById('foot-palette').addEventListener('click', function () {
     window.ALLY_PALETTE.open();
   });

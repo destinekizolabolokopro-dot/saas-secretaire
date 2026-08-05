@@ -129,6 +129,31 @@ Une sauvegarde jamais restaurée n'existe pas.
   sauvegardes.
 - Un test de restauration réel, tous les trimestres, noté quelque part.
 
+### Ce que la maquette applique déjà
+
+Quatre des mesures ci-dessus existent dans le front, pour que le serveur les
+reprenne au lieu de les inventer :
+
+- **Cloisonnement.** La configuration de chaque professionnel est stockée sous
+  une clé dérivée de son identifiant de session, jamais d'un paramètre lisible
+  dans l'URL. Côté serveur, ce sera le même principe : `cabinet_id` déduit du
+  jeton.
+- **Séparation des rôles.** L'administrateur voit des volumes et des statuts.
+  Il ne voit aucune transcription, aucun email, aucun nom de client final. Un
+  compte professionnel qui ouvre la console d'administration reçoit un refus —
+  le contrôle porte sur le rôle, pas sur l'adresse de la page.
+- **Vérification d'adresse et récupération de mot de passe** par code à usage
+  unique : 6 chiffres, 10 minutes, 5 tentatives. La page de récupération répond
+  la même chose que l'adresse existe ou non.
+- **Journal d'activité.** Connexions, échecs, changements de formule,
+  suspensions et suppressions sont horodatés. En production ce journal vit côté
+  serveur, en écriture seule, et l'administrateur ne peut pas l'effacer.
+
+Ce qui reste impossible sans serveur : le hachage argon2id, le chiffrement
+applicatif des transcriptions, la signature des webhooks. L'onglet **Système**
+de la console les affiche comme « à faire », plutôt que de laisser croire que le
+sujet est traité.
+
 ### Le reste, à tenir
 
 Requêtes paramétrées, validation des entrées, dépendances à jour

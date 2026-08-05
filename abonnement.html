@@ -72,8 +72,13 @@
 
             <div class="ob-field">
               <label class="ob-label" for="sub-pass">Mot de passe</label>
-              <input class="field" id="sub-pass" type="password" autocomplete="new-password" placeholder="8 caractères minimum">
+              <div class="field-wrap">
+                <input class="field" id="sub-pass" type="password" autocomplete="new-password" placeholder="8 caractères minimum">
+              </div>
+              <div class="pass-meter" id="sub-meter"></div>
             </div>
+
+            <p class="auth-error" id="sub-error" role="alert" hidden></p>
 
             <p class="demo-warning">
               Démonstration : aucun compte n'est créé sur un serveur, aucun paiement
@@ -108,13 +113,58 @@
           </aside>
         </div>
       </section>
+
+      <!-- Étape 3 — Vérification de l'adresse -->
+      <section id="sub-step-3" hidden>
+        <div class="verify-shell">
+          <div class="card">
+            <p class="card-title">Confirmez votre adresse</p>
+            <p class="note" style="margin-bottom:20px">
+              Un code à 6 chiffres a été envoyé à <strong id="ver-target">—</strong>.
+              Il est valable 10 minutes.
+            </p>
+
+            <div class="code-sent">
+              <span>Démonstration — code&nbsp;:</span> <code id="ver-code">——————</code>
+              <em>Dans le produit réel, ce code arrive par email et n'apparaît jamais à l'écran.</em>
+            </div>
+
+            <p class="auth-error" id="ver-error" role="alert" hidden></p>
+
+            <div class="ob-field" style="margin-top:20px">
+              <span class="ob-label">Code de vérification</span>
+              <div id="ver-boxes"></div>
+            </div>
+
+            <button class="btn btn-primary" id="ver-submit" type="button" style="width:100%;margin-top:18px">
+              Vérifier et continuer
+            </button>
+
+            <div class="auth-row auth-row-center" style="margin-top:14px">
+              <button type="button" class="btn-link" id="ver-resend">Renvoyer le code</button>
+              <button type="button" class="btn-link" id="ver-change">Changer d'adresse</button>
+            </div>
+          </div>
+
+          <aside class="card verify-why">
+            <p class="card-title">Pourquoi cette étape ?</p>
+            <ul class="why-list">
+              <li><strong>Votre adresse est votre identifiant.</strong> Une faute de frappe et vous ne pourriez plus vous connecter, ni récupérer votre mot de passe.</li>
+              <li><strong>Ally vous écrit.</strong> Résumé quotidien, alertes d'urgence, notifications de rendez-vous : tout passe par cette adresse.</li>
+              <li><strong>Elle protège vos clients.</strong> Un compte non vérifié ne peut pas déclencher d'envoi d'email en votre nom.</li>
+            </ul>
+          </aside>
+        </div>
+      </section>
     </main>
   </div>
 </div>
 
 <script src="js/profiles.js"></script>
 <script src="js/plans.js"></script>
+<script src="js/accounts.js"></script>
 <script src="js/store.js"></script>
+<script src="js/ui.js"></script>
 <script src="js/subscribe.js"></script>
 </body>
 </html>

@@ -25,12 +25,12 @@
     </div>
 
     <div class="ob-progress" id="ob-progress" role="progressbar" aria-label="Progression de la configuration"
-         aria-valuemin="1" aria-valuemax="5" aria-valuenow="1">
-      <span class="done"></span><span></span><span></span><span></span><span></span>
+         aria-valuemin="1" aria-valuemax="7" aria-valuenow="1">
+      <span class="done"></span><span></span><span></span><span></span><span></span><span></span><span></span>
     </div>
 
     <main>
-      <p class="ob-step-label" id="ob-step-label">Étape 1 sur 5</p>
+      <p class="ob-step-label" id="ob-step-label">Étape 1 sur 7</p>
       <h1 id="ob-title">Quel métier exercez-vous ?</h1>
       <p class="ob-lede" id="ob-lede"></p>
 
@@ -88,8 +88,36 @@
         </div>
       </section>
 
-      <!-- Étape 3 — Disponibilités -->
+      <!-- Étape 3 — Votre activité -->
       <section class="ob-panel" id="step-3" hidden>
+        <div class="card">
+          <p class="card-title">Combien d'appels manquez-vous, par semaine ?</p>
+          <p class="note" style="margin-bottom:14px">
+            C'est la seule réponse qui a une conséquence sur le prix : elle
+            détermine la formule dont vous avez réellement besoin.
+          </p>
+          <div class="chip-group" id="q-volume"></div>
+        </div>
+
+        <div class="card">
+          <p class="card-title">Qui répond, aujourd'hui, quand vous ne pouvez pas ?</p>
+          <div class="chip-group" id="q-today"></div>
+        </div>
+
+        <div class="card">
+          <p class="card-title">Qu'est-ce qui vous prend le plus de temps ?</p>
+          <p class="note" style="margin-bottom:14px">Plusieurs réponses possibles. Ally traitera ces cas en priorité.</p>
+          <div class="chip-group" id="q-pain"></div>
+        </div>
+
+        <div class="card">
+          <p class="card-title">Où tenez-vous votre agenda ?</p>
+          <div class="chip-group" id="q-tools"></div>
+        </div>
+      </section>
+
+      <!-- Étape 4 — Disponibilités -->
+      <section class="ob-panel" id="step-4" hidden>
         <div class="card">
           <p class="card-title">Horaires d'ouverture</p>
           <div id="hours-list"></div>
@@ -101,20 +129,65 @@
         </div>
       </section>
 
-      <!-- Étape 4 — Règles -->
-      <section class="ob-panel" id="step-4" hidden>
+      <!-- Étape 5 — Les demandes que vous recevez -->
+      <section class="ob-panel" id="step-5" hidden>
+        <div class="card">
+          <p class="card-title">À quelles questions Ally peut-elle répondre seule ?</p>
+          <p class="note" style="margin-bottom:14px">
+            Décochez ce qu'elle ne doit jamais traiter à votre place. Sur ces
+            sujets-là, elle prendra un message au lieu de répondre.
+          </p>
+          <div class="chip-group" id="q-motifs"></div>
+        </div>
+
+        <div class="ob-grid-2">
+          <div class="card">
+            <p class="card-title">Durée d'un rendez-vous</p>
+            <div class="chip-group" id="q-duration"></div>
+          </div>
+          <div class="card">
+            <p class="card-title">Sous quel délai rappelez-vous ?</p>
+            <div class="chip-group" id="q-callback"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <p class="card-title" id="firsttime-title">Acceptez-vous de nouveaux clients ?</p>
+          <div class="chip-group" id="q-firsttime"></div>
+        </div>
+
+        <div class="card">
+          <p class="card-title">Ce qu'Ally ne doit jamais dire</p>
+          <label class="sr-only" for="q-notes">Consignes particulières</label>
+          <textarea class="field" id="q-notes" placeholder="Ex. : ne jamais donner d'estimation d'honoraires, ne jamais confirmer qu'un dossier existe."></textarea>
+          <p class="note" style="margin-top:12px">
+            Cette consigne est reprise telle quelle dans le script d'appel.
+          </p>
+        </div>
+      </section>
+
+      <!-- Étape 6 — Règles -->
+      <section class="ob-panel" id="step-6" hidden>
         <div class="card">
           <p class="card-title">Règles de comportement</p>
           <div id="rules-list"></div>
         </div>
       </section>
 
-      <!-- Étape 5 — Récapitulatif -->
-      <section class="ob-panel" id="step-5" hidden>
+      <!-- Étape 7 — Récapitulatif -->
+      <section class="ob-panel" id="step-7" hidden>
+        <div class="card reco-card" id="reco" hidden>
+          <p class="reco-kicker">D'après vos réponses</p>
+          <p class="reco-title" id="reco-title">—</p>
+          <p class="reco-text" id="reco-text">—</p>
+          <div class="reco-actions" id="reco-actions"></div>
+        </div>
+
         <div class="card">
           <p class="card-title">Profil généré</p>
           <div id="recap"></div>
         </div>
+
         <div class="card">
           <p class="card-title">Script d'accueil téléphonique</p>
           <label class="sr-only" for="greeting">Script d'accueil</label>
@@ -133,7 +206,10 @@
 </div>
 
 <script src="js/profiles.js"></script>
+<script src="js/plans.js"></script>
+<script src="js/accounts.js"></script>
 <script src="js/store.js"></script>
+<script src="js/ui.js"></script>
 <script src="js/onboarding.js"></script>
 </body>
 </html>

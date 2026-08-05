@@ -4,7 +4,15 @@
 (function () {
   'use strict';
 
-  var KEY = 'ally.account.v1';
+  /* Une clé par compte : deux professionnels qui se connectent depuis le même
+     navigateur ne doivent pas voir la configuration l'un de l'autre. C'est la
+     version « front » du cloisonnement décrit dans ARCHITECTURE.md — côté
+     serveur, ce sera un filtre sur cabinet_id déduit du jeton de session. */
+  function storageKey() {
+    return 'ally.account.v1' +
+      (window.ALLY_ACCOUNTS ? window.ALLY_ACCOUNTS.suffix() : '');
+  }
+  var KEY = storageKey();
 
   var DEFAULT_HOURS = [
     { id: 'lun', label: 'Lundi',    on: true,  from: '09:00', to: '18:30' },
@@ -27,6 +35,14 @@
       trade: trade,
       hours: JSON.parse(JSON.stringify(DEFAULT_HOURS)),
       closures: 'Jours fériés, mercredi après-midi',
+      /* Réponses au questionnaire d'installation. Elles ne servent pas qu'à
+         faire joli : le volume d'appels choisit la formule recommandée, les
+         motifs alimentent la base de connaissances, la durée de rendez-vous
+         est reprise par l'agenda. */
+      survey: {
+        volume: '', clients: '', pain: [], tools: [], today: '',
+        motifs: [], rdvDuration: '45', callback: '24h', firstTime: '', notes: ''
+      },
       rules: { transfer: true, draft: false, record: true, autobook: true, voice: true },
       autonomy: { calls: profile.autonomy.calls, emails: profile.autonomy.emails, agenda: profile.autonomy.agenda },
       greeting: '',
@@ -211,6 +227,54 @@
       catch (e) { return false; }
     },
 
+    /* Relit le compte de l'utilisateur connecté. Appelé après une connexion ou
+       une déconnexion : la clé de stockage a changé, l'état en mémoire doit
+       suivre, sans recharger la page. */
+    reload: function () {
+      KEY = storageKey();
+      var fresh = defaults();
+      try {
+        var stored = window.localStorage.getItem(KEY);
+        if (stored) fresh = merge(defaults(), JSON.parse(stored));
+      } catch (e) {}
+
+      /* L'annuaire fait autorité sur l'identité et la formule : c'est lui que
+         l'administrateur modifie. */
+      var user = window.ALLY_ACCOUNTS && window.ALLY_ACCOUNTS.current();
+      if (user) {
+        fresh.identity.civility = user.civility || fresh.identity.civility;
+        fresh.identity.firstName = user.firstName || fresh.identity.firstName;
+        fresh.identity.lastName = user.lastName || fresh.identity.lastName;
+        fresh.identity.email = user.email || fresh.identity.email;
+        if (user.org) fresh.identity.org = user.org;
+        if (user.trade) fresh.trade = user.trade;
+        fresh.planId = user.planId || fresh.planId;
+        fresh.plan = window.ALLY_PLAN_BY_ID(fresh.planId).name;
+        fresh.configured = !!user.onboarded;
+      }
+
+      Object.keys(state).forEach(function (key) { delete state[key]; });
+      Object.keys(fresh).forEach(function (key) { state[key] = fresh[key]; });
+      return state;
+    },
+
+    /* Reporte dans l'annuaire ce que le professionnel vient de configurer,
+       pour que la console d'administration le voie. */
+    syncAccount: function () {
+      var accounts = window.ALLY_ACCOUNTS;
+      if (!accounts || !accounts.currentId()) return;
+      accounts.update(accounts.currentId(), {
+        civility: state.identity.civility,
+        firstName: state.identity.firstName,
+        lastName: state.identity.lastName,
+        org: state.identity.org,
+        trade: state.trade,
+        planId: state.planId,
+        onboarded: !!state.configured,
+        survey: state.survey
+      });
+    },
+
     /* On réécrit l'objet sur place : les modules qui en gardent une référence
        (l'onboarding, par exemple) restent synchronisés. */
     reset: function () {
@@ -220,6 +284,12 @@
       Object.keys(fresh).forEach(function (key) { state[key] = fresh[key]; });
     }
   };
+
+  /* Session ouverte au chargement : l'annuaire fait autorité sur l'identité,
+     le métier et la formule. */
+  if (window.ALLY_ACCOUNTS && window.ALLY_ACCOUNTS.currentId()) {
+    window.ALLY_STORE.reload();
+  }
 
   /* Repart du questionnaire. Le fichier de démonstration autonome remplace
      cette fonction par un simple rechargement, puisqu'il n'a pas de pages. */
