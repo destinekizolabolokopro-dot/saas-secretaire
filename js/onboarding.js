@@ -1,9 +1,10 @@
-/* Ally — questionnaire de configuration (7 étapes).
+/* Ally — questionnaire de configuration (8 étapes).
    Le métier génère le profil (vocabulaire, autonomie, script d'accueil),
-   l'identité est reprise partout dans l'espace pro, et les réponses sur
-   l'activité ne servent pas qu'à remplir un formulaire : elles choisissent la
-   formule recommandée, filtrent la base de connaissances et fixent la durée
-   par défaut des rendez-vous. */
+   l'identité est reprise partout dans l'espace pro, et les réponses ne servent
+   pas qu'à remplir un formulaire : elles choisissent la formule recommandée,
+   filtrent la base de connaissances, fixent la durée par défaut des
+   rendez-vous et définissent ce qu'est une urgence — c'est-à-dire quand le
+   téléphone du professionnel sonne réellement. */
 (function () {
   'use strict';
 
@@ -11,7 +12,7 @@
   var S = store.state;
   var PROFILES = window.ALLY_PROFILES;
   var TRADE_IDS = Object.keys(PROFILES);
-  var STEP_COUNT = 7;
+  var STEP_COUNT = 8;
 
   var RULES = [
     { id: 'transfer', label: 'Transférer les urgences vers mon portable',
@@ -37,6 +38,8 @@
       lede: 'Ally s\'y tient strictement : aucun rendez-vous ne sera proposé en dehors de ces créneaux.' },
     { title: 'Que doit-elle savoir répondre ?',
       lede: 'Ce qu\'Ally peut traiter seule, et ce sur quoi elle doit se taire et prendre un message.' },
+    { title: 'Qu\'est-ce qu\'une urgence, chez vous ?',
+      lede: 'C\'est la question qui décide quand votre téléphone sonne. Sans elle, Ally ne peut que deviner — et une IA qui devine vous dérange trop, ou pas assez.' },
     { title: 'Quelles règles Ally doit-elle suivre ?',
       lede: 'Ce cadre vaut pour les appels comme pour les emails. Modifiable à tout moment.' },
     { title: null, /* personnalisé : « Ally est prête, Maître Dubois. » */
@@ -58,11 +61,23 @@
   var CALLBACK = ['Le jour même', 'Sous 24 h', 'Sous 48 h', 'Sans engagement'];
   var FIRSTTIME = ['Oui, sans condition', 'Oui, après qualification', 'Sur recommandation uniquement'];
 
+  var FALLBACK = [
+    'Je prends un message',
+    'Je propose un rendez-vous',
+    'J\'annonce un rappel de votre part'
+  ];
+  var WINDOW = [
+    { value: 'always', label: 'À toute heure' },
+    { value: 'open', label: 'Pendant mes horaires' },
+    { value: 'day', label: 'Entre 8 h et 20 h' }
+  ];
+
   var AUTONOMY = ['Toujours valider', 'Semi-autonome', 'IA autonome'];
   function autonomyLabel(v) { return v < 34 ? AUTONOMY[0] : v < 67 ? AUTONOMY[1] : AUTONOMY[2]; }
 
   var step = 1;
   var motifsTouched = false;
+  var urgencyTouched = false;
 
   var el = {
     progress: document.getElementById('ob-progress'),
@@ -155,7 +170,9 @@
         // liste des sujets qu'Ally peut traiter.
         S.autonomy = { calls: p.autonomy.calls, emails: p.autonomy.emails, agenda: p.autonomy.agenda };
         motifsTouched = false;
+        urgencyTouched = false;
         S.survey.motifs = [];
+        S.survey.urgency.motifs = [];
         renderTrades();
         renderIdentityLabels();
         renderRules();
@@ -303,7 +320,47 @@
     }
   }
 
-  /* ---- Étape 6 : règles ---- */
+  /* ---- Étape 6 : définition de l'urgence ---- */
+  function urgencyField(key) {
+    return {
+      read: function () { return S.survey.urgency[key]; },
+      write: function (value) { S.survey.urgency[key] = value; }
+    };
+  }
+
+  function renderUrgency() {
+    var p = profile();
+    var list = p.urgencies || [];
+
+    document.getElementById('urg-title').textContent =
+      'Qu\'est-ce qui justifie de vous déranger, ' + store.displayName() + ' ?';
+
+    /* Tout est coché au départ : un professionnel qui passe l'étape sans y
+       toucher garde le comportement le plus sûr, celui qui transfère. */
+    if (!urgencyTouched && !S.survey.urgency.motifs.length) {
+      S.survey.urgency.motifs = list.map(function (u) { return u.label; });
+    }
+
+    var motifs = urgencyField('motifs');
+    chipGroup(document.getElementById('q-urgency'),
+      list.map(function (u) { return { value: u.label, label: u.label }; }),
+      motifs.read, function (value) { urgencyTouched = true; motifs.write(value); }, true);
+
+    var fallback = urgencyField('fallback');
+    chipGroup(document.getElementById('q-fallback'), FALLBACK, fallback.read, fallback.write, false);
+
+    var win = urgencyField('window');
+    chipGroup(document.getElementById('q-window'), WINDOW, win.read, win.write, false);
+
+    var words = document.getElementById('q-urgwords');
+    words.value = S.survey.urgency.words || '';
+    if (!words.dataset.bound) {
+      words.dataset.bound = '1';
+      words.addEventListener('input', function () { S.survey.urgency.words = words.value; });
+    }
+  }
+
+  /* ---- Étape 7 : règles ---- */
   function renderRules() {
     var p = profile();
     el.rules.innerHTML = '';
@@ -422,7 +479,7 @@
     actions.appendChild(keep);
   }
 
-  /* ---- Étape 7 : récapitulatif ---- */
+  /* ---- Étape 8 : récapitulatif ---- */
   function renderRecap() {
     var p = profile();
     var openDays = S.hours.filter(function (d) { return d.on; });
@@ -440,6 +497,13 @@
       ['Durée d\'un rendez-vous', S.survey.rdvDuration + ' min'],
       ['Délai de rappel annoncé', S.survey.callback || '—'],
       ['Sujets traités par Ally', S.survey.motifs.length + ' sur ' + p.faq.length],
+      ['Motifs de transfert', S.survey.urgency.motifs.length
+        ? S.survey.urgency.motifs.length + ' sur ' + (p.urgencies || []).length
+        : 'Aucun — Ally ne transférera jamais'],
+      ['Transfert autorisé', WINDOW.filter(function (w) {
+        return w.value === S.survey.urgency.window;
+      }).map(function (w) { return w.label; })[0] || '—'],
+      ['Si ce n\'est pas urgent', S.survey.urgency.fallback || '—'],
       ['Autonomie appels', autonomyLabel(S.autonomy.calls)],
       ['Autonomie emails', autonomyLabel(S.autonomy.emails)],
       ['Règles actives', activeRules.length + ' sur ' + RULES.length],
@@ -511,6 +575,7 @@
     if (step === 2) renderIdentityLabels();
     if (step === 3) renderActivity();
     if (step === 5) renderTopics();
+    if (step === 6) renderUrgency();
     if (step === STEP_COUNT) { renderReco(); renderRecap(); }
   }
 
@@ -554,6 +619,7 @@
   window.ALLY_ONBOARDING_REFRESH = function () {
     step = 1;
     motifsTouched = false;
+    urgencyTouched = false;
     S = store.state;
     renderTrades();
     syncIdentity();

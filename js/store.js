@@ -41,7 +41,11 @@
          est reprise par l'agenda. */
       survey: {
         volume: '', clients: '', pain: [], tools: [], today: '',
-        motifs: [], rdvDuration: '45', callback: '24h', firstTime: '', notes: ''
+        motifs: [], rdvDuration: '45', callback: '24h', firstTime: '', notes: '',
+        /* Définition de l'urgence, par métier. La règle « transférer les
+           urgences » existait sans qu'on ait jamais dit ce qu'était une
+           urgence : c'est ce que remplit cette section. */
+        urgency: { motifs: [], words: '', fallback: 'Je prends un message', window: 'always' }
       },
       rules: { transfer: true, draft: false, record: true, autobook: true, voice: true },
       autonomy: { calls: profile.autonomy.calls, emails: profile.autonomy.emails, agenda: profile.autonomy.agenda },

@@ -23,6 +23,33 @@
     return words.some(function (w) { return text.indexOf(w) !== -1; });
   }
 
+  /* Mots qui déclenchent un transfert pendant un appel.
+     « urgent » et « urgence » sont irréductibles : un appelant qui le dit
+     explicitement doit toujours être entendu. Le reste vient du questionnaire —
+     les motifs cochés apportent leur vocabulaire métier, et le professionnel
+     peut en ajouter à la main. */
+  var CORE_URGENCY = ['urgence', 'urgent'];
+
+  function urgencyWords() {
+    var store = window.ALLY_STORE;
+    var chosen = store.state.survey.urgency || { motifs: [], words: '' };
+    var list = CORE_URGENCY.slice();
+
+    (store.profile().urgencies || []).forEach(function (item) {
+      if (chosen.motifs.indexOf(item.label) < 0) return;
+      item.words.forEach(function (word) {
+        if (list.indexOf(word) < 0) list.push(word);
+      });
+    });
+
+    String(chosen.words || '').split(',').forEach(function (word) {
+      var clean = norm(word);
+      if (clean && list.indexOf(clean) < 0) list.push(clean);
+    });
+
+    return list;
+  }
+
   /* Extrait une heure : « 14h », « 14 h 30 », « 9:30 ». */
   function findTime(text) {
     var m = text.match(/(\d{1,2})\s*(?:h|:)\s*(\d{2})?/);
@@ -477,7 +504,18 @@
       var D = store.data();
       var t = norm(input);
 
-      if (hasAny(t, ['urgence', 'urgent', 'grave', 'tout de suite', 'immediatement'])) {
+      if (hasAny(t, urgencyWords())) {
+        /* La règle « transférer les urgences » a longtemps été décorative : la
+           simulation transférait quoi qu'il arrive. Désactivée, Ally reconnaît
+           toujours l'urgence, mais elle la signale au lieu de faire sonner. */
+        if (!store.state.rules.transfer) {
+          return {
+            kind: 'note',
+            reply: 'Je comprends que c\'est urgent. ' + store.displayName()
+              + ' n\'est pas joignable dans l\'immédiat : je note votre demande '
+              + 'en priorité et je la lui signale tout de suite.'
+          };
+        }
         return {
           kind: 'transfer',
           reply: 'Je comprends qu\'il s\'agit d\'une urgence. Je vous mets en relation '

@@ -30,26 +30,30 @@
      vocale et le chat. */
   var call = { running: false, turns: [], step: 0 };
 
+  /* Les troisièmes répliques ne contiennent volontairement pas le mot
+     « urgent » : elles emploient le vocabulaire du métier. C'est ce qui rend
+     visible le réglage de l'étape « Qu'est-ce qu'une urgence » — décocher le
+     motif correspondant change ce qu'Ally répond ici. */
   var SCENARIOS = {
     avocat: [
       { caller: 'Bonjour, je voudrais prendre rendez-vous pour un litige avec mon employeur.' },
       { caller: 'Quels sont vos tarifs pour une première consultation ?' },
-      { caller: 'En fait c\'est urgent, j\'ai une audience demain matin.' }
+      { caller: 'En fait, j\'ai une audience demain matin, je dois vous parler avant.' }
     ],
     medecin: [
       { caller: 'Bonjour, je souhaite une consultation cette semaine.' },
       { caller: 'Quel est le tarif de la consultation ?' },
-      { caller: 'J\'ai une douleur dans la poitrine depuis ce matin, c\'est urgent.' }
+      { caller: 'J\'ai une douleur dans la poitrine depuis ce matin.' }
     ],
     artisan: [
       { caller: 'Bonjour, je voudrais un devis pour refaire ma salle de bain.' },
       { caller: 'Vous intervenez dans quel secteur ?' },
-      { caller: 'J\'ai une fuite qui coule en ce moment, c\'est urgent.' }
+      { caller: 'J\'ai une fuite d\'eau qui coule en ce moment sous l\'évier.' }
     ],
     consultant: [
       { caller: 'Bonjour, je cherche un accompagnement sur une réorganisation.' },
       { caller: 'Quel est votre tarif journalier ?' },
-      { caller: 'C\'est urgent, nous avons un comité lundi.' }
+      { caller: 'Nous avons un comité lundi et le dossier n\'est pas prêt.' }
     ]
   };
 

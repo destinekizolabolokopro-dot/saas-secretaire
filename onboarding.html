@@ -25,12 +25,12 @@
     </div>
 
     <div class="ob-progress" id="ob-progress" role="progressbar" aria-label="Progression de la configuration"
-         aria-valuemin="1" aria-valuemax="7" aria-valuenow="1">
-      <span class="done"></span><span></span><span></span><span></span><span></span><span></span><span></span>
+         aria-valuemin="1" aria-valuemax="8" aria-valuenow="1">
+      <span class="done"></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
     </div>
 
     <main>
-      <p class="ob-step-label" id="ob-step-label">Étape 1 sur 7</p>
+      <p class="ob-step-label" id="ob-step-label">Étape 1 sur 8</p>
       <h1 id="ob-title">Quel métier exercez-vous ?</h1>
       <p class="ob-lede" id="ob-lede"></p>
 
@@ -166,16 +166,51 @@
         </div>
       </section>
 
-      <!-- Étape 6 — Règles -->
+      <!-- Étape 6 — Urgences -->
       <section class="ob-panel" id="step-6" hidden>
+        <div class="card">
+          <p class="card-title" id="urg-title">Qu'est-ce qui justifie de vous déranger ?</p>
+          <p class="note" style="margin-bottom:14px">
+            Ally transfère l'appel sur votre portable dans ces cas-là, et
+            seulement dans ces cas-là. Tout le reste attend.
+          </p>
+          <div class="chip-group" id="q-urgency"></div>
+        </div>
+
+        <div class="card">
+          <p class="card-title">D'autres mots à surveiller</p>
+          <label class="sr-only" for="q-urgwords">Mots déclenchant un transfert</label>
+          <input class="field" id="q-urgwords" type="text"
+                 placeholder="Ex. : référé, expertise, mise en demeure">
+          <p class="note" style="margin-top:12px">
+            Séparés par des virgules. Ally écoute ces mots en plus des cas
+            cochés ci-dessus. « Urgent » déclenche toujours un transfert, quoi
+            qu'il arrive.
+          </p>
+        </div>
+
+        <div class="ob-grid-2">
+          <div class="card">
+            <p class="card-title">Quand ce n'est pas urgent</p>
+            <div class="chip-group" id="q-fallback"></div>
+          </div>
+          <div class="card">
+            <p class="card-title">À quelles heures peut-elle transférer ?</p>
+            <div class="chip-group" id="q-window"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Étape 7 — Règles -->
+      <section class="ob-panel" id="step-7" hidden>
         <div class="card">
           <p class="card-title">Règles de comportement</p>
           <div id="rules-list"></div>
         </div>
       </section>
 
-      <!-- Étape 7 — Récapitulatif -->
-      <section class="ob-panel" id="step-7" hidden>
+      <!-- Étape 8 — Récapitulatif -->
+      <section class="ob-panel" id="step-8" hidden>
         <div class="card reco-card" id="reco" hidden>
           <p class="reco-kicker">D'après vos réponses</p>
           <p class="reco-title" id="reco-title">—</p>

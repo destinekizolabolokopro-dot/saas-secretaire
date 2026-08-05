@@ -29,7 +29,7 @@ le reste du produit est identique.
 | `index.html` | Landing marketing, tarifs, liste d'attente |
 | `abonnement.html` | Choix de formule → création de compte → vérification par code |
 | `login.html` | Connexion, vérification d'adresse, mot de passe oublié |
-| `onboarding.html` | Questionnaire en 7 étapes → génération du profil métier |
+| `onboarding.html` | Questionnaire en 8 étapes → génération du profil métier |
 | `dashboard.html` | Espace pro : 5 onglets + espace Compte |
 | `admin.html` | Console d'administration, réservée au rôle admin |
 
@@ -76,8 +76,8 @@ qui le dit explicitement.
 
 ## Questionnaire
 
-Sept étapes : métier, identité, activité, disponibilités, sujets traités,
-règles, récapitulatif.
+Huit étapes : métier, identité, activité, disponibilités, sujets traités,
+urgences, règles, récapitulatif.
 
 Les réponses ne servent pas qu'à remplir un formulaire :
 
@@ -85,9 +85,18 @@ Les réponses ne servent pas qu'à remplir un formulaire :
   récapitulatif propose d'en changer si celle souscrite ne colle pas ;
 - les **sujets décochés** sont retirés de la base de connaissances — Ally
   prendra un message au lieu de répondre ;
+- les **motifs d'urgence cochés** sont ce que le moteur écoute pendant l'appel :
+  décocher « une audience dans les 48 heures » et Ally cesse de transférer
+  l'appelant qui en parle. Chaque motif porte le vocabulaire réel de son métier,
+  et le professionnel peut ajouter ses propres mots ;
 - la **consigne « ce qu'Ally ne doit jamais dire »** est reprise telle quelle
   dans le script d'appel ;
 - la **durée de rendez-vous** est celle que l'agenda utilise par défaut.
+
+« Urgent » et « urgence » déclenchent toujours un transfert, quels que soient
+les réglages : un appelant qui le dit explicitement doit être entendu. Et si la
+règle « transférer les urgences » est désactivée, Ally reconnaît toujours
+l'urgence — elle la signale en priorité au lieu de faire sonner.
 
 ## Structure
 

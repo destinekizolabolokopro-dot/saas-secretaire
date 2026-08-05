@@ -20,6 +20,16 @@ window.ALLY_PROFILES = {
         + 'Comment puis-je vous aider aujourd\'hui ?';
     },
     quota: { calls: [142, 200], emails: [88, 150] },
+    /* Ce qui, chez un avocat, justifie de déranger tout de suite. Chaque motif
+       porte les mots que l'appelant emploiera vraiment : c'est cette liste que
+       le moteur écoute pendant l'appel, pas le libellé affiché. */
+    urgencies: [
+      { label: 'Une audience dans les 48 heures', words: ['audience', 'tribunal', 'convocation', 'plaidoirie'] },
+      { label: 'Une garde à vue en cours', words: ['garde a vue', 'commissariat', 'police', 'gendarmerie'] },
+      { label: 'Un délai de procédure qui expire', words: ['delai', 'expire', 'forclusion', 'prescription', 'derniere minute'] },
+      { label: 'Une saisie ou une expulsion', words: ['saisie', 'expulsion', 'huissier'] },
+      { label: 'Un client bloqué chez un tiers', words: ['devant le notaire', 'chez l huissier', 'a la banque'] }
+    ],
 
     calls: [
       { id: 1, caller: 'Mme Aubert', time: '09:12', duration: '2 min 40', status: "Traité par l'IA", kind: 'ok',
@@ -105,6 +115,15 @@ window.ALLY_PROFILES = {
         + 'Quel est le motif de votre appel ?';
     },
     quota: { calls: [268, 400], emails: [61, 150] },
+    /* Un médecin ne délègue pas le tri à une machine : Ally ne diagnostique
+       rien, elle reconnaît des mots et transfère. Tout le reste attend. */
+    urgencies: [
+      { label: 'Douleur dans la poitrine', words: ['poitrine', 'thorax', 'coeur', 'oppression'] },
+      { label: 'Difficulté à respirer', words: ['respirer', 'souffle', 'etouffe', 'asthme'] },
+      { label: 'Perte de connaissance ou malaise', words: ['malaise', 'evanoui', 'connaissance', 'convulsion'] },
+      { label: 'Fièvre élevée chez un nourrisson', words: ['nourrisson', 'bebe', 'fievre', 'bebe fievre'] },
+      { label: 'Saignement qui ne s\'arrête pas', words: ['saigne', 'saignement', 'hemorragie'] }
+    ],
 
     calls: [
       { id: 1, caller: 'Mme Fontaine', time: '08:35', duration: '1 min 52', status: "Traité par l'IA", kind: 'ok',
@@ -190,6 +209,14 @@ window.ALLY_PROFILES = {
         + 'Vous appelez pour un devis ou un chantier en cours ?';
     },
     quota: { calls: [96, 150], emails: [104, 150] },
+    /* Chez un artisan, l'urgence est ce qui aggrave les dégâts chaque minute. */
+    urgencies: [
+      { label: 'Une fuite d\'eau en cours', words: ['fuite', 'inonde', 'inondation', 'coule', 'degat des eaux'] },
+      { label: 'Une panne de chauffage en hiver', words: ['chauffage', 'chaudiere', 'plus de chauffage', 'froid'] },
+      { label: 'Une odeur de gaz', words: ['gaz', 'odeur de gaz'] },
+      { label: 'Une porte ou un volet bloqué', words: ['bloque', 'coince', 'enferme', 'ne ferme plus'] },
+      { label: 'Une panne électrique totale', words: ['electricite', 'disjoncte', 'plus de courant', 'court circuit'] }
+    ],
 
     calls: [
       { id: 1, caller: 'M. Renaud', time: '07:48', duration: '3 min 05', status: "Traité par l'IA", kind: 'ok',
@@ -273,6 +300,14 @@ window.ALLY_PROFILES = {
       return p.org + ', bonjour. Je suis Ally, l\'assistante. Comment puis-je vous orienter ?';
     },
     quota: { calls: [58, 100], emails: [122, 200] },
+    /* Pour un consultant, l'urgence est calendaire : c'est la réunion qui a
+       lieu demain et qu'on ne peut pas décaler. */
+    urgencies: [
+      { label: 'Un comité ou un conseil imminent', words: ['comite', 'conseil', 'board', 'reunion demain'] },
+      { label: 'Un incident chez un client', words: ['incident', 'panne', 'bloque', 'production'] },
+      { label: 'Une remise de livrable aujourd\'hui', words: ['livrable', 'remise', 'deadline', 'aujourd hui'] },
+      { label: 'Une réponse à appel d\'offres qui ferme', words: ['appel d offres', 'candidature', 'cloture'] }
+    ],
 
     calls: [
       { id: 1, caller: 'Sté Novaris', time: '09:05', duration: '4 min 18', status: "Traité par l'IA", kind: 'ok',

@@ -2594,12 +2594,12 @@ input[type="range"] {
     </div>
 
     <div class="ob-progress" id="ob-progress" role="progressbar" aria-label="Progression de la configuration"
-         aria-valuemin="1" aria-valuemax="7" aria-valuenow="1">
-      <span class="done"></span><span></span><span></span><span></span><span></span><span></span><span></span>
+         aria-valuemin="1" aria-valuemax="8" aria-valuenow="1">
+      <span class="done"></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
     </div>
 
     <main>
-      <p class="ob-step-label" id="ob-step-label">Étape 1 sur 7</p>
+      <p class="ob-step-label" id="ob-step-label">Étape 1 sur 8</p>
       <h1 id="ob-title">Quel métier exercez-vous ?</h1>
       <p class="ob-lede" id="ob-lede"></p>
 
@@ -2735,16 +2735,51 @@ input[type="range"] {
         </div>
       </section>
 
-      <!-- Étape 6 — Règles -->
+      <!-- Étape 6 — Urgences -->
       <section class="ob-panel" id="step-6" hidden>
+        <div class="card">
+          <p class="card-title" id="urg-title">Qu'est-ce qui justifie de vous déranger ?</p>
+          <p class="note" style="margin-bottom:14px">
+            Ally transfère l'appel sur votre portable dans ces cas-là, et
+            seulement dans ces cas-là. Tout le reste attend.
+          </p>
+          <div class="chip-group" id="q-urgency"></div>
+        </div>
+
+        <div class="card">
+          <p class="card-title">D'autres mots à surveiller</p>
+          <label class="sr-only" for="q-urgwords">Mots déclenchant un transfert</label>
+          <input class="field" id="q-urgwords" type="text"
+                 placeholder="Ex. : référé, expertise, mise en demeure">
+          <p class="note" style="margin-top:12px">
+            Séparés par des virgules. Ally écoute ces mots en plus des cas
+            cochés ci-dessus. « Urgent » déclenche toujours un transfert, quoi
+            qu'il arrive.
+          </p>
+        </div>
+
+        <div class="ob-grid-2">
+          <div class="card">
+            <p class="card-title">Quand ce n'est pas urgent</p>
+            <div class="chip-group" id="q-fallback"></div>
+          </div>
+          <div class="card">
+            <p class="card-title">À quelles heures peut-elle transférer ?</p>
+            <div class="chip-group" id="q-window"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Étape 7 — Règles -->
+      <section class="ob-panel" id="step-7" hidden>
         <div class="card">
           <p class="card-title">Règles de comportement</p>
           <div id="rules-list"></div>
         </div>
       </section>
 
-      <!-- Étape 7 — Récapitulatif -->
-      <section class="ob-panel" id="step-7" hidden>
+      <!-- Étape 8 — Récapitulatif -->
+      <section class="ob-panel" id="step-8" hidden>
         <div class="card reco-card" id="reco" hidden>
           <p class="reco-kicker">D'après vos réponses</p>
           <p class="reco-title" id="reco-title">—</p>
@@ -3024,6 +3059,16 @@ window.ALLY_PROFILES = {
         + 'Comment puis-je vous aider aujourd\'hui ?';
     },
     quota: { calls: [142, 200], emails: [88, 150] },
+    /* Ce qui, chez un avocat, justifie de déranger tout de suite. Chaque motif
+       porte les mots que l'appelant emploiera vraiment : c'est cette liste que
+       le moteur écoute pendant l'appel, pas le libellé affiché. */
+    urgencies: [
+      { label: 'Une audience dans les 48 heures', words: ['audience', 'tribunal', 'convocation', 'plaidoirie'] },
+      { label: 'Une garde à vue en cours', words: ['garde a vue', 'commissariat', 'police', 'gendarmerie'] },
+      { label: 'Un délai de procédure qui expire', words: ['delai', 'expire', 'forclusion', 'prescription', 'derniere minute'] },
+      { label: 'Une saisie ou une expulsion', words: ['saisie', 'expulsion', 'huissier'] },
+      { label: 'Un client bloqué chez un tiers', words: ['devant le notaire', 'chez l huissier', 'a la banque'] }
+    ],
 
     calls: [
       { id: 1, caller: 'Mme Aubert', time: '09:12', duration: '2 min 40', status: "Traité par l'IA", kind: 'ok',
@@ -3109,6 +3154,15 @@ window.ALLY_PROFILES = {
         + 'Quel est le motif de votre appel ?';
     },
     quota: { calls: [268, 400], emails: [61, 150] },
+    /* Un médecin ne délègue pas le tri à une machine : Ally ne diagnostique
+       rien, elle reconnaît des mots et transfère. Tout le reste attend. */
+    urgencies: [
+      { label: 'Douleur dans la poitrine', words: ['poitrine', 'thorax', 'coeur', 'oppression'] },
+      { label: 'Difficulté à respirer', words: ['respirer', 'souffle', 'etouffe', 'asthme'] },
+      { label: 'Perte de connaissance ou malaise', words: ['malaise', 'evanoui', 'connaissance', 'convulsion'] },
+      { label: 'Fièvre élevée chez un nourrisson', words: ['nourrisson', 'bebe', 'fievre', 'bebe fievre'] },
+      { label: 'Saignement qui ne s\'arrête pas', words: ['saigne', 'saignement', 'hemorragie'] }
+    ],
 
     calls: [
       { id: 1, caller: 'Mme Fontaine', time: '08:35', duration: '1 min 52', status: "Traité par l'IA", kind: 'ok',
@@ -3194,6 +3248,14 @@ window.ALLY_PROFILES = {
         + 'Vous appelez pour un devis ou un chantier en cours ?';
     },
     quota: { calls: [96, 150], emails: [104, 150] },
+    /* Chez un artisan, l'urgence est ce qui aggrave les dégâts chaque minute. */
+    urgencies: [
+      { label: 'Une fuite d\'eau en cours', words: ['fuite', 'inonde', 'inondation', 'coule', 'degat des eaux'] },
+      { label: 'Une panne de chauffage en hiver', words: ['chauffage', 'chaudiere', 'plus de chauffage', 'froid'] },
+      { label: 'Une odeur de gaz', words: ['gaz', 'odeur de gaz'] },
+      { label: 'Une porte ou un volet bloqué', words: ['bloque', 'coince', 'enferme', 'ne ferme plus'] },
+      { label: 'Une panne électrique totale', words: ['electricite', 'disjoncte', 'plus de courant', 'court circuit'] }
+    ],
 
     calls: [
       { id: 1, caller: 'M. Renaud', time: '07:48', duration: '3 min 05', status: "Traité par l'IA", kind: 'ok',
@@ -3277,6 +3339,14 @@ window.ALLY_PROFILES = {
       return p.org + ', bonjour. Je suis Ally, l\'assistante. Comment puis-je vous orienter ?';
     },
     quota: { calls: [58, 100], emails: [122, 200] },
+    /* Pour un consultant, l'urgence est calendaire : c'est la réunion qui a
+       lieu demain et qu'on ne peut pas décaler. */
+    urgencies: [
+      { label: 'Un comité ou un conseil imminent', words: ['comite', 'conseil', 'board', 'reunion demain'] },
+      { label: 'Un incident chez un client', words: ['incident', 'panne', 'bloque', 'production'] },
+      { label: 'Une remise de livrable aujourd\'hui', words: ['livrable', 'remise', 'deadline', 'aujourd hui'] },
+      { label: 'Une réponse à appel d\'offres qui ferme', words: ['appel d offres', 'candidature', 'cloture'] }
+    ],
 
     calls: [
       { id: 1, caller: 'Sté Novaris', time: '09:05', duration: '4 min 18', status: "Traité par l'IA", kind: 'ok',
@@ -3930,7 +4000,11 @@ window.ALLY_PLAN_BY_ID = function (id) {
          est reprise par l'agenda. */
       survey: {
         volume: '', clients: '', pain: [], tools: [], today: '',
-        motifs: [], rdvDuration: '45', callback: '24h', firstTime: '', notes: ''
+        motifs: [], rdvDuration: '45', callback: '24h', firstTime: '', notes: '',
+        /* Définition de l'urgence, par métier. La règle « transférer les
+           urgences » existait sans qu'on ait jamais dit ce qu'était une
+           urgence : c'est ce que remplit cette section. */
+        urgency: { motifs: [], words: '', fallback: 'Je prends un message', window: 'always' }
       },
       rules: { transfer: true, draft: false, record: true, autobook: true, voice: true },
       autonomy: { calls: profile.autonomy.calls, emails: profile.autonomy.emails, agenda: profile.autonomy.agenda },
@@ -4858,6 +4932,33 @@ window.ALLY_PLAN_BY_ID = function (id) {
     return words.some(function (w) { return text.indexOf(w) !== -1; });
   }
 
+  /* Mots qui déclenchent un transfert pendant un appel.
+     « urgent » et « urgence » sont irréductibles : un appelant qui le dit
+     explicitement doit toujours être entendu. Le reste vient du questionnaire —
+     les motifs cochés apportent leur vocabulaire métier, et le professionnel
+     peut en ajouter à la main. */
+  var CORE_URGENCY = ['urgence', 'urgent'];
+
+  function urgencyWords() {
+    var store = window.ALLY_STORE;
+    var chosen = store.state.survey.urgency || { motifs: [], words: '' };
+    var list = CORE_URGENCY.slice();
+
+    (store.profile().urgencies || []).forEach(function (item) {
+      if (chosen.motifs.indexOf(item.label) < 0) return;
+      item.words.forEach(function (word) {
+        if (list.indexOf(word) < 0) list.push(word);
+      });
+    });
+
+    String(chosen.words || '').split(',').forEach(function (word) {
+      var clean = norm(word);
+      if (clean && list.indexOf(clean) < 0) list.push(clean);
+    });
+
+    return list;
+  }
+
   /* Extrait une heure : « 14h », « 14 h 30 », « 9:30 ». */
   function findTime(text) {
     var m = text.match(/(\d{1,2})\s*(?:h|:)\s*(\d{2})?/);
@@ -5312,7 +5413,18 @@ window.ALLY_PLAN_BY_ID = function (id) {
       var D = store.data();
       var t = norm(input);
 
-      if (hasAny(t, ['urgence', 'urgent', 'grave', 'tout de suite', 'immediatement'])) {
+      if (hasAny(t, urgencyWords())) {
+        /* La règle « transférer les urgences » a longtemps été décorative : la
+           simulation transférait quoi qu'il arrive. Désactivée, Ally reconnaît
+           toujours l'urgence, mais elle la signale au lieu de faire sonner. */
+        if (!store.state.rules.transfer) {
+          return {
+            kind: 'note',
+            reply: 'Je comprends que c\'est urgent. ' + store.displayName()
+              + ' n\'est pas joignable dans l\'immédiat : je note votre demande '
+              + 'en priorité et je la lui signale tout de suite.'
+          };
+        }
         return {
           kind: 'transfer',
           reply: 'Je comprends qu\'il s\'agit d\'une urgence. Je vous mets en relation '
@@ -5603,26 +5715,30 @@ window.ALLY_PLAN_BY_ID = function (id) {
      vocale et le chat. */
   var call = { running: false, turns: [], step: 0 };
 
+  /* Les troisièmes répliques ne contiennent volontairement pas le mot
+     « urgent » : elles emploient le vocabulaire du métier. C'est ce qui rend
+     visible le réglage de l'étape « Qu'est-ce qu'une urgence » — décocher le
+     motif correspondant change ce qu'Ally répond ici. */
   var SCENARIOS = {
     avocat: [
       { caller: 'Bonjour, je voudrais prendre rendez-vous pour un litige avec mon employeur.' },
       { caller: 'Quels sont vos tarifs pour une première consultation ?' },
-      { caller: 'En fait c\'est urgent, j\'ai une audience demain matin.' }
+      { caller: 'En fait, j\'ai une audience demain matin, je dois vous parler avant.' }
     ],
     medecin: [
       { caller: 'Bonjour, je souhaite une consultation cette semaine.' },
       { caller: 'Quel est le tarif de la consultation ?' },
-      { caller: 'J\'ai une douleur dans la poitrine depuis ce matin, c\'est urgent.' }
+      { caller: 'J\'ai une douleur dans la poitrine depuis ce matin.' }
     ],
     artisan: [
       { caller: 'Bonjour, je voudrais un devis pour refaire ma salle de bain.' },
       { caller: 'Vous intervenez dans quel secteur ?' },
-      { caller: 'J\'ai une fuite qui coule en ce moment, c\'est urgent.' }
+      { caller: 'J\'ai une fuite d\'eau qui coule en ce moment sous l\'évier.' }
     ],
     consultant: [
       { caller: 'Bonjour, je cherche un accompagnement sur une réorganisation.' },
       { caller: 'Quel est votre tarif journalier ?' },
-      { caller: 'C\'est urgent, nous avons un comité lundi.' }
+      { caller: 'Nous avons un comité lundi et le dossier n\'est pas prêt.' }
     ]
   };
 
@@ -6705,12 +6821,13 @@ window.ALLY_PLAN_BY_ID = function (id) {
   };
 })();
 
-/* Ally — questionnaire de configuration (7 étapes).
+/* Ally — questionnaire de configuration (8 étapes).
    Le métier génère le profil (vocabulaire, autonomie, script d'accueil),
-   l'identité est reprise partout dans l'espace pro, et les réponses sur
-   l'activité ne servent pas qu'à remplir un formulaire : elles choisissent la
-   formule recommandée, filtrent la base de connaissances et fixent la durée
-   par défaut des rendez-vous. */
+   l'identité est reprise partout dans l'espace pro, et les réponses ne servent
+   pas qu'à remplir un formulaire : elles choisissent la formule recommandée,
+   filtrent la base de connaissances, fixent la durée par défaut des
+   rendez-vous et définissent ce qu'est une urgence — c'est-à-dire quand le
+   téléphone du professionnel sonne réellement. */
 (function () {
   'use strict';
 
@@ -6718,7 +6835,7 @@ window.ALLY_PLAN_BY_ID = function (id) {
   var S = store.state;
   var PROFILES = window.ALLY_PROFILES;
   var TRADE_IDS = Object.keys(PROFILES);
-  var STEP_COUNT = 7;
+  var STEP_COUNT = 8;
 
   var RULES = [
     { id: 'transfer', label: 'Transférer les urgences vers mon portable',
@@ -6744,6 +6861,8 @@ window.ALLY_PLAN_BY_ID = function (id) {
       lede: 'Ally s\'y tient strictement : aucun rendez-vous ne sera proposé en dehors de ces créneaux.' },
     { title: 'Que doit-elle savoir répondre ?',
       lede: 'Ce qu\'Ally peut traiter seule, et ce sur quoi elle doit se taire et prendre un message.' },
+    { title: 'Qu\'est-ce qu\'une urgence, chez vous ?',
+      lede: 'C\'est la question qui décide quand votre téléphone sonne. Sans elle, Ally ne peut que deviner — et une IA qui devine vous dérange trop, ou pas assez.' },
     { title: 'Quelles règles Ally doit-elle suivre ?',
       lede: 'Ce cadre vaut pour les appels comme pour les emails. Modifiable à tout moment.' },
     { title: null, /* personnalisé : « Ally est prête, Maître Dubois. » */
@@ -6765,11 +6884,23 @@ window.ALLY_PLAN_BY_ID = function (id) {
   var CALLBACK = ['Le jour même', 'Sous 24 h', 'Sous 48 h', 'Sans engagement'];
   var FIRSTTIME = ['Oui, sans condition', 'Oui, après qualification', 'Sur recommandation uniquement'];
 
+  var FALLBACK = [
+    'Je prends un message',
+    'Je propose un rendez-vous',
+    'J\'annonce un rappel de votre part'
+  ];
+  var WINDOW = [
+    { value: 'always', label: 'À toute heure' },
+    { value: 'open', label: 'Pendant mes horaires' },
+    { value: 'day', label: 'Entre 8 h et 20 h' }
+  ];
+
   var AUTONOMY = ['Toujours valider', 'Semi-autonome', 'IA autonome'];
   function autonomyLabel(v) { return v < 34 ? AUTONOMY[0] : v < 67 ? AUTONOMY[1] : AUTONOMY[2]; }
 
   var step = 1;
   var motifsTouched = false;
+  var urgencyTouched = false;
 
   var el = {
     progress: document.getElementById('ob-progress'),
@@ -6862,7 +6993,9 @@ window.ALLY_PLAN_BY_ID = function (id) {
         // liste des sujets qu'Ally peut traiter.
         S.autonomy = { calls: p.autonomy.calls, emails: p.autonomy.emails, agenda: p.autonomy.agenda };
         motifsTouched = false;
+        urgencyTouched = false;
         S.survey.motifs = [];
+        S.survey.urgency.motifs = [];
         renderTrades();
         renderIdentityLabels();
         renderRules();
@@ -7010,7 +7143,47 @@ window.ALLY_PLAN_BY_ID = function (id) {
     }
   }
 
-  /* ---- Étape 6 : règles ---- */
+  /* ---- Étape 6 : définition de l'urgence ---- */
+  function urgencyField(key) {
+    return {
+      read: function () { return S.survey.urgency[key]; },
+      write: function (value) { S.survey.urgency[key] = value; }
+    };
+  }
+
+  function renderUrgency() {
+    var p = profile();
+    var list = p.urgencies || [];
+
+    document.getElementById('urg-title').textContent =
+      'Qu\'est-ce qui justifie de vous déranger, ' + store.displayName() + ' ?';
+
+    /* Tout est coché au départ : un professionnel qui passe l'étape sans y
+       toucher garde le comportement le plus sûr, celui qui transfère. */
+    if (!urgencyTouched && !S.survey.urgency.motifs.length) {
+      S.survey.urgency.motifs = list.map(function (u) { return u.label; });
+    }
+
+    var motifs = urgencyField('motifs');
+    chipGroup(document.getElementById('q-urgency'),
+      list.map(function (u) { return { value: u.label, label: u.label }; }),
+      motifs.read, function (value) { urgencyTouched = true; motifs.write(value); }, true);
+
+    var fallback = urgencyField('fallback');
+    chipGroup(document.getElementById('q-fallback'), FALLBACK, fallback.read, fallback.write, false);
+
+    var win = urgencyField('window');
+    chipGroup(document.getElementById('q-window'), WINDOW, win.read, win.write, false);
+
+    var words = document.getElementById('q-urgwords');
+    words.value = S.survey.urgency.words || '';
+    if (!words.dataset.bound) {
+      words.dataset.bound = '1';
+      words.addEventListener('input', function () { S.survey.urgency.words = words.value; });
+    }
+  }
+
+  /* ---- Étape 7 : règles ---- */
   function renderRules() {
     var p = profile();
     el.rules.innerHTML = '';
@@ -7129,7 +7302,7 @@ window.ALLY_PLAN_BY_ID = function (id) {
     actions.appendChild(keep);
   }
 
-  /* ---- Étape 7 : récapitulatif ---- */
+  /* ---- Étape 8 : récapitulatif ---- */
   function renderRecap() {
     var p = profile();
     var openDays = S.hours.filter(function (d) { return d.on; });
@@ -7147,6 +7320,13 @@ window.ALLY_PLAN_BY_ID = function (id) {
       ['Durée d\'un rendez-vous', S.survey.rdvDuration + ' min'],
       ['Délai de rappel annoncé', S.survey.callback || '—'],
       ['Sujets traités par Ally', S.survey.motifs.length + ' sur ' + p.faq.length],
+      ['Motifs de transfert', S.survey.urgency.motifs.length
+        ? S.survey.urgency.motifs.length + ' sur ' + (p.urgencies || []).length
+        : 'Aucun — Ally ne transférera jamais'],
+      ['Transfert autorisé', WINDOW.filter(function (w) {
+        return w.value === S.survey.urgency.window;
+      }).map(function (w) { return w.label; })[0] || '—'],
+      ['Si ce n\'est pas urgent', S.survey.urgency.fallback || '—'],
       ['Autonomie appels', autonomyLabel(S.autonomy.calls)],
       ['Autonomie emails', autonomyLabel(S.autonomy.emails)],
       ['Règles actives', activeRules.length + ' sur ' + RULES.length],
@@ -7218,6 +7398,7 @@ window.ALLY_PLAN_BY_ID = function (id) {
     if (step === 2) renderIdentityLabels();
     if (step === 3) renderActivity();
     if (step === 5) renderTopics();
+    if (step === 6) renderUrgency();
     if (step === STEP_COUNT) { renderReco(); renderRecap(); }
   }
 
@@ -7261,6 +7442,7 @@ window.ALLY_PLAN_BY_ID = function (id) {
   window.ALLY_ONBOARDING_REFRESH = function () {
     step = 1;
     motifsTouched = false;
+    urgencyTouched = false;
     S = store.state;
     renderTrades();
     syncIdentity();
