@@ -52,6 +52,11 @@ let js = ['js/profiles.js', 'js/plans.js', 'js/accounts.js', 'js/store.js', 'js/
 
 js = js
   .replace(/window\.location\.href = ([^;]+);/g, 'window.ALLY_GOTO($1);')
+  // Certains liens sont écrits par le script, pas par le HTML : les cartes de
+  // tarifs de la vitrine, le bouton « se connecter » de la console. Sans cette
+  // reprise, ils pointaient vers un fichier absent et ne faisaient rien.
+  .replace(/href="(index|abonnement|login|onboarding|dashboard|admin)\.html"/g,
+    (_, target) => 'href="#" data-goto="' + target.replace('index', 'landing') + '"')
   // #greeting existe côté onboarding (statique) et côté Ally (généré) :
   // l'un devient ob-greeting, l'autre dash-greeting.
   .replace(/getElementById\('greeting'\)/g, "getElementById('ob-greeting')")
@@ -72,6 +77,7 @@ window.ALLY_GOTO = function (target) {
   if (id === 'dashboard' && window.ALLY_DASHBOARD_REFRESH) window.ALLY_DASHBOARD_REFRESH();
   if (id === 'onboarding' && window.ALLY_ONBOARDING_REFRESH) window.ALLY_ONBOARDING_REFRESH();
   if (id === 'admin' && window.ALLY_ADMIN_REFRESH) window.ALLY_ADMIN_REFRESH();
+  if (id === 'abonnement' && window.ALLY_SUBSCRIBE_REFRESH) window.ALLY_SUBSCRIBE_REFRESH();
 };
 document.addEventListener('click', function (event) {
   var link = event.target.closest('[data-goto]');

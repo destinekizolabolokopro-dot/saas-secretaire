@@ -81,7 +81,17 @@
         return '<li>' + esc(f) + '</li>';
       }).join('') + '</ul>' +
       '<a class="btn ' + (plan.popular ? 'btn-primary' : 'btn-ghost') +
-        '" href="abonnement.html">Essayer 14 jours</a>' +
+        '" href="abonnement.html" data-plan="' + plan.id + '">Essayer ' + esc(plan.name) + '</a>' +
       '</article>';
   }).join('');
+
+  /* Choisir une formule ici doit valoir choix : sans ça, on retombait sur les
+     trois cartes et il fallait recliquer sur celle qu'on venait de choisir.
+     Le relais passe par sessionStorage, qui survit au changement de page. */
+  box.addEventListener('click', function (event) {
+    var link = event.target.closest('[data-plan]');
+    if (!link) return;
+    try { window.sessionStorage.setItem('ally.pickedPlan', link.getAttribute('data-plan')); }
+    catch (e) { window.ALLY_PICKED_PLAN = link.getAttribute('data-plan'); }
+  });
 })();

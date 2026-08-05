@@ -2994,6 +2994,7 @@ window.ALLY_GOTO = function (target) {
   if (id === 'dashboard' && window.ALLY_DASHBOARD_REFRESH) window.ALLY_DASHBOARD_REFRESH();
   if (id === 'onboarding' && window.ALLY_ONBOARDING_REFRESH) window.ALLY_ONBOARDING_REFRESH();
   if (id === 'admin' && window.ALLY_ADMIN_REFRESH) window.ALLY_ADMIN_REFRESH();
+  if (id === 'abonnement' && window.ALLY_SUBSCRIBE_REFRESH) window.ALLY_SUBSCRIBE_REFRESH();
 };
 document.addEventListener('click', function (event) {
   var link = event.target.closest('[data-goto]');
@@ -6253,9 +6254,19 @@ window.ALLY_PLAN_BY_ID = function (id) {
         return '<li>' + esc(f) + '</li>';
       }).join('') + '</ul>' +
       '<a class="btn ' + (plan.popular ? 'btn-primary' : 'btn-ghost') +
-        '" href="abonnement.html">Essayer 14 jours</a>' +
+        '" href="#" data-goto="abonnement" data-plan="' + plan.id + '">Essayer ' + esc(plan.name) + '</a>' +
       '</article>';
   }).join('');
+
+  /* Choisir une formule ici doit valoir choix : sans ça, on retombait sur les
+     trois cartes et il fallait recliquer sur celle qu'on venait de choisir.
+     Le relais passe par sessionStorage, qui survit au changement de page. */
+  box.addEventListener('click', function (event) {
+    var link = event.target.closest('[data-plan]');
+    if (!link) return;
+    try { window.sessionStorage.setItem('ally.pickedPlan', link.getAttribute('data-plan')); }
+    catch (e) { window.ALLY_PICKED_PLAN = link.getAttribute('data-plan'); }
+  });
 })();
 
 /* Ally — connexion, vérification d'adresse et récupération de mot de passe.
@@ -6668,8 +6679,35 @@ window.ALLY_PLAN_BY_ID = function (id) {
     if (state.step === 3) codeBoxes.focus();
   }
 
+  /* Formule choisie depuis la vitrine : on saute directement à la création du
+     compte. Le choix est consommé, pour qu'un retour ultérieur sur la page
+     reparte bien de l'étape 1. */
+  function adoptPickedPlan() {
+    var picked = null;
+    try {
+      picked = window.sessionStorage.getItem('ally.pickedPlan');
+      if (picked) window.sessionStorage.removeItem('ally.pickedPlan');
+    } catch (e) {
+      picked = window.ALLY_PICKED_PLAN || null;
+      window.ALLY_PICKED_PLAN = null;
+    }
+    if (!picked || !window.ALLY_PLANS.some(function (p) { return p.id === picked; })) return;
+    state.plan = picked;
+    state.step = 2;
+  }
+
+  adoptPickedPlan();
   renderPlans();
   render();
+
+  /* Le fichier de démonstration change d'écran sans recharger la page : la
+     formule choisie sur la vitrine doit quand même être reprise. */
+  window.ALLY_SUBSCRIBE_REFRESH = function () {
+    if (state.step === 3) return;   /* vérification en cours : on ne coupe pas */
+    state.step = 1;
+    adoptPickedPlan();
+    render();
+  };
 })();
 
 /* Ally — questionnaire de configuration (7 étapes).
@@ -9685,7 +9723,7 @@ window.ALLY_PLAN_BY_ID = function (id) {
           '<p class="note">Cette console n\'est accessible qu\'avec le compte ' +
           'administrateur. Un compte professionnel connecté ici ne verrait rien : ' +
           'le contrôle porte sur le rôle, pas sur l\'adresse de la page.</p>' +
-          '<a class="btn btn-primary btn-md" href="login.html" style="margin-top:18px">' +
+          '<a class="btn btn-primary btn-md" href="#" data-goto="login" style="margin-top:18px">' +
           'Se connecter en administrateur</a>' +
         '</div>';
       return;

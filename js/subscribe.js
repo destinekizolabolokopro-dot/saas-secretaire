@@ -227,6 +227,33 @@
     if (state.step === 3) codeBoxes.focus();
   }
 
+  /* Formule choisie depuis la vitrine : on saute directement à la création du
+     compte. Le choix est consommé, pour qu'un retour ultérieur sur la page
+     reparte bien de l'étape 1. */
+  function adoptPickedPlan() {
+    var picked = null;
+    try {
+      picked = window.sessionStorage.getItem('ally.pickedPlan');
+      if (picked) window.sessionStorage.removeItem('ally.pickedPlan');
+    } catch (e) {
+      picked = window.ALLY_PICKED_PLAN || null;
+      window.ALLY_PICKED_PLAN = null;
+    }
+    if (!picked || !window.ALLY_PLANS.some(function (p) { return p.id === picked; })) return;
+    state.plan = picked;
+    state.step = 2;
+  }
+
+  adoptPickedPlan();
   renderPlans();
   render();
+
+  /* Le fichier de démonstration change d'écran sans recharger la page : la
+     formule choisie sur la vitrine doit quand même être reprise. */
+  window.ALLY_SUBSCRIBE_REFRESH = function () {
+    if (state.step === 3) return;   /* vérification en cours : on ne coupe pas */
+    state.step = 1;
+    adoptPickedPlan();
+    render();
+  };
 })();
