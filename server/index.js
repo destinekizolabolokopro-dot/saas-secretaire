@@ -17,6 +17,7 @@ const store = require('./lib/store');
 const auth = require('./lib/auth');
 const repo = require('./lib/repo');
 const H = require('./lib/http');
+const statics = require('./lib/static');
 const { verifySignature } = require('./lib/crypto');
 
 const PORT = Number(process.env.PORT || 8787);
@@ -29,7 +30,11 @@ const PUBLIC = new Set([
   'POST /api/auth/forgot',
   'POST /api/auth/reset',
   'POST /api/webhooks/retell',
-  'GET /api/health'
+  'GET /api/health',
+  /* « Qui suis-je » a une réponse valable sans session : « personne ». Répondre
+     401 obligeait le navigateur à journaliser une erreur rouge à chaque
+     chargement de page, pour un état parfaitement normal. */
+  'GET /api/me'
 ]);
 
 /* ------------------------------------------------------------------ Routes */
@@ -118,8 +123,10 @@ const routes = {
   /* ------------------------------------------------------------- Cabinet */
 
   'GET /api/me': async (ctx) => {
+    if (!ctx.session) return H.json(ctx.res, 200, { authenticated: false });
     const data = repo.forCabinet(ctx.session.cabinetId);
     H.json(ctx.res, 200, {
+      authenticated: true,
       role: ctx.session.role,
       cabinet: data.cabinet(),
       members: data.members()
@@ -244,7 +251,12 @@ const server = http.createServer(async (req, res) => {
     const url = new URL(req.url, 'http://localhost');
     const found = match(req.method, url.pathname);
 
-    if (!found) return H.fail(res, 404, 'Route inconnue.');
+    /* Hors /api, on sert la maquette : une seule commande fait tourner
+       l'ensemble. En production, ces fichiers viendront de l'hébergeur. */
+    if (!found) {
+      if (!url.pathname.startsWith('/api/') && statics.serve(req, res, url.pathname)) return;
+      return H.fail(res, 404, 'Route inconnue.');
+    }
 
     const raw = ['POST', 'PUT', 'PATCH'].includes(req.method) ? await H.readBody(req) : '';
     let body = {};

@@ -163,6 +163,13 @@ async function newCabinet(email, org) {
     assert.strictEqual(anonymous.status, 401);
   });
 
+  await test('« qui suis-je » répond « personne » sans erreur', async () => {
+    const me = await call('GET', '/api/me');
+    assert.strictEqual(me.status, 200);
+    assert.strictEqual(me.body.authenticated, false);
+    assert.ok(!me.body.cabinet, 'un cabinet est renvoyé sans session');
+  });
+
   await test('un jeton inventé ne vaut pas une session', async () => {
     const forged = await call('GET', '/api/calls', { cookie: 'ally_session=nimportequoi' });
     assert.strictEqual(forged.status, 401);

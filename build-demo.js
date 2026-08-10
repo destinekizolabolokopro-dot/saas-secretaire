@@ -45,10 +45,10 @@ let screens = SCREENS.map(([id, file]) => {
 }).join('\n');
 
 /* ---- JS : mêmes fichiers, navigation redirigée vers le routeur ---- */
-let js = ['js/profiles.js', 'js/plans.js', 'js/accounts.js', 'js/store.js', 'js/ui.js',
-          'js/voice.js', 'js/agenda.js', 'js/brain.js', 'js/converse.js', 'js/telephony.js',
-          'js/palette.js', 'js/landing.js', 'js/login.js', 'js/subscribe.js',
-          'js/onboarding.js', 'js/dashboard.js', 'js/admin.js'].map(read).join('\n');
+let js = ['js/profiles.js', 'js/plans.js', 'js/accounts.js', 'js/api.js', 'js/store.js',
+          'js/ui.js', 'js/voice.js', 'js/agenda.js', 'js/brain.js', 'js/converse.js',
+          'js/live.js', 'js/telephony.js', 'js/palette.js', 'js/landing.js', 'js/login.js',
+          'js/subscribe.js', 'js/onboarding.js', 'js/dashboard.js', 'js/admin.js'].map(read).join('\n');
 
 js = js
   .replace(/window\.location\.href = ([^;]+);/g, 'window.ALLY_GOTO($1);')

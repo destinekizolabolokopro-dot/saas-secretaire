@@ -1929,6 +1929,27 @@ input[type="range"] {
 .insight-text { font-size: 15px; line-height: 1.6; color: var(--txt-2); max-width: 68ch; }
 .insight-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 18px; }
 
+
+/* ============ LIGNE RÉELLE ============
+   La seule carte de la maquette alimentée par le serveur. Elle se distingue
+   volontairement du reste : ce qui s'y affiche n'est pas une simulation. */
+.live-card {
+  border-color: oklch(0.75 0.15 200 / 0.3);
+  background: linear-gradient(135deg, oklch(0.2 0.03 200 / 0.5), var(--card));
+  margin-bottom: 20px;
+}
+.live-badge {
+  display: inline-block; margin-left: 10px; vertical-align: middle;
+  font-size: 11px; font-weight: 500; padding: 3px 10px; border-radius: var(--pill);
+  background: oklch(0.28 0.02 264); color: var(--txt-4);
+}
+.live-badge.is-on {
+  background: oklch(0.3 0.10 200 / 0.3); color: oklch(0.82 0.12 200);
+}
+.live-connect { margin-top: 18px; }
+.live-list { margin-top: 18px; }
+.live-list .row:first-child { padding-top: 0; }
+
 /* Ally — console d'administration.
    Reprend la coque de l'espace pro (barre latérale, topbar, cartes) et n'ajoute
    que ce qui lui est propre : tableaux, graphiques, tiroir de fiche compte. */
@@ -4123,6 +4144,130 @@ window.ALLY_PLAN_BY_ID = function (id) {
   };
 
   window.ALLY_ACCOUNTS = API;
+})();
+
+/* Ally — pont vers l'API.
+
+   Le front sait fonctionner sans serveur : c'est ce qui permet d'ouvrir le
+   fichier de démonstration par double-clic, et de montrer le produit sans rien
+   installer. Ce module ajoute la seconde possibilité — quand une API répond, on
+   s'en sert.
+
+   La détection est faite une fois au chargement, avec un délai court : une
+   page qui attend un serveur absent est pire qu'une page sans serveur. */
+(function () {
+  'use strict';
+
+  /* L'API se déclare, elle ne se devine pas. Le serveur d'Ally pose
+     window.ALLY_API_BASE dans les pages qu'il sert ; partout ailleurs — fichier
+     ouvert par double-clic, hébergeur statique — le front reste en mode local
+     sans émettre la moindre requête. Sonder à l'aveugle produirait un 404
+     rouge dans la console de chaque visiteur, pour un état normal. */
+  var BASE = window.ALLY_API_BASE || null;
+  var PROBE_MS = 1200;
+
+  var state = { checked: false, online: false, cabinetId: null, role: null };
+  var waiting = [];
+
+  function request(method, path, body) {
+    var options = {
+      method: method,
+      headers: { 'content-type': 'application/json' },
+      /* Le jeton de session est un cookie httpOnly : le JavaScript ne le voit
+         jamais, mais il part avec la requête. C'est précisément l'intérêt —
+         une faille XSS ne suffit pas à voler la session. */
+      credentials: 'same-origin'
+    };
+    if (body !== undefined) options.body = JSON.stringify(body);
+
+    return window.fetch(BASE + path, options).then(function (response) {
+      return response.json().catch(function () { return {}; })
+        .then(function (payload) {
+          return { status: response.status, ok: response.ok, body: payload };
+        });
+    });
+  }
+
+  /* Sonde de disponibilité, une seule fois, sans bloquer l'affichage. */
+  function probe() {
+    if (!BASE) return Promise.resolve(false);
+    if (!window.fetch || !window.AbortController) return Promise.resolve(false);
+    if (window.location.protocol === 'file:') return Promise.resolve(false);
+
+    var controller = new AbortController();
+    var timer = window.setTimeout(function () { controller.abort(); }, PROBE_MS);
+
+    return window.fetch(BASE + '/health', { signal: controller.signal, credentials: 'same-origin' })
+      .then(function (response) { return response.ok; })
+      .catch(function () { return false; })
+      .then(function (ok) {
+        window.clearTimeout(timer);
+        return ok;
+      });
+  }
+
+  var ready = probe().then(function (online) {
+    state.checked = true;
+    state.online = online;
+    if (!online) { flush(); return false; }
+
+    /* Session déjà ouverte dans un onglet précédent ? */
+    return request('GET', '/me').then(function (res) {
+      if (res.ok && res.body.authenticated) {
+        state.cabinetId = res.body.cabinet && res.body.cabinet.id;
+        state.role = res.body.role;
+      }
+      flush();
+      return true;
+    }).catch(function () { flush(); return true; });
+  });
+
+  function flush() {
+    waiting.forEach(function (fn) { fn(state.online); });
+    waiting = [];
+  }
+
+  window.ALLY_API = {
+    /* Synchrone : utilisable dans un rendu. Faux tant que la sonde n'a pas
+       répondu, ce qui est le bon défaut — on part du mode local. */
+    online: function () { return state.online; },
+    checked: function () { return state.checked; },
+    cabinetId: function () { return state.cabinetId; },
+    role: function () { return state.role; },
+
+    /* Prévenu dès que la sonde a tranché. Si elle a déjà répondu, rappel
+       immédiat : un abonné tardif ne doit pas rester en attente. */
+    onReady: function (fn) {
+      if (state.checked) fn(state.online); else waiting.push(fn);
+    },
+
+    ready: function () { return ready; },
+
+    /* ---------------------------------------------------------- Comptes */
+    signup: function (payload) { return request('POST', '/auth/signup', payload); },
+    verify: function (userId, code) { return request('POST', '/auth/verify', { userId: userId, code: code }); },
+    login: function (email, password) { return request('POST', '/auth/login', { email: email, password: password }); },
+    logout: function () { return request('POST', '/auth/logout', {}); },
+    forgot: function (email) { return request('POST', '/auth/forgot', { email: email }); },
+    reset: function (userId, code, password) {
+      return request('POST', '/auth/reset', { userId: userId, code: code, password: password });
+    },
+
+    /* ----------------------------------------------------------- Données */
+    me: function () { return request('GET', '/me'); },
+    calls: function () { return request('GET', '/calls'); },
+    messages: function () { return request('GET', '/messages'); },
+    send: function (payload) { return request('POST', '/messages', payload); },
+    cancel: function (id) { return request('POST', '/messages/' + id + '/cancel', {}); },
+
+    /* Mémorise la session ouverte, pour que l'interface s'y réfère. */
+    remember: function (body) {
+      state.cabinetId = body.cabinetId || state.cabinetId;
+      state.role = body.role || state.role;
+    },
+
+    forget: function () { state.cabinetId = null; state.role = null; }
+  };
 })();
 
 /* Ally — état du compte, persisté en localStorage.
@@ -6459,6 +6604,190 @@ window.ALLY_PLAN_BY_ID = function (id) {
   };
 })();
 
+/* Ally — la ligne réelle.
+
+   Tout le reste de la maquette tourne dans le navigateur. Cette carte-ci est la
+   seule qui parle au serveur : elle affiche les appels réellement reçus par
+   l'API, c'est-à-dire ceux que l'agent vocal lui a transmis.
+
+   Elle n'apparaît que si une API répond. Sans serveur — fichier ouvert par
+   double-clic, page servie par un simple hébergeur statique — elle reste
+   masquée : mieux vaut ne rien montrer qu'un panneau vide et inexplicable. */
+(function () {
+  'use strict';
+
+  var api = window.ALLY_API;
+
+  var state = { calls: [], error: null, busy: false, timer: null };
+
+  function esc(v) {
+    return String(v === undefined || v === null ? '' : v)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  function clock(at) {
+    var d = new Date(at);
+    return (d.getHours() < 10 ? '0' : '') + d.getHours() + ':' +
+      (d.getMinutes() < 10 ? '0' : '') + d.getMinutes();
+  }
+
+  /* ------------------------------------------------------------------ Vue */
+
+  function view() {
+    if (!api || !api.online()) return '';
+
+    var connected = !!api.cabinetId();
+
+    return '<div class="card live-card" data-live>' +
+      '<div class="script-head">' +
+        '<div>' +
+          '<p class="card-title" style="margin-bottom:4px">La ligne réelle' +
+            '<span class="live-badge' + (connected ? ' is-on' : '') + '">' +
+            (connected ? 'connectée' : 'serveur détecté') + '</span></p>' +
+          '<p class="note">Les appels transmis par l\'agent vocal arrivent ici. ' +
+            'C\'est le seul endroit de la maquette qui lise de vraies données ' +
+            'du serveur, et non celles du navigateur.</p>' +
+        '</div>' +
+      '</div>' +
+
+      (connected ? liveList() : connectForm()) +
+    '</div>';
+  }
+
+  function connectForm() {
+    return '<div class="live-connect">' +
+      '<p class="note" style="margin-bottom:14px">Ce navigateur n\'est rattaché à ' +
+        'aucun cabinet du serveur. Connectez-vous pour voir la ligne.</p>' +
+      '<div class="ob-grid-2">' +
+        '<div class="ob-field">' +
+          '<label class="ob-label" for="live-email">Email</label>' +
+          '<input class="field" id="live-email" type="email" autocomplete="email"' +
+            ' placeholder="vous@cabinet.fr"></div>' +
+        '<div class="ob-field">' +
+          '<label class="ob-label" for="live-pass">Mot de passe</label>' +
+          '<input class="field" id="live-pass" type="password" autocomplete="current-password"></div>' +
+      '</div>' +
+      '<p class="auth-error" data-live-error hidden></p>' +
+      '<div class="voice-try" style="margin-top:16px">' +
+        '<button type="button" class="btn btn-primary btn-md" data-live-login>Connecter la ligne</button>' +
+      '</div>' +
+    '</div>';
+  }
+
+  function liveList() {
+    if (state.error) {
+      return '<p class="lock-note">' + esc(state.error) + '</p>';
+    }
+    if (!state.calls.length) {
+      return '<div class="empty">Aucun appel reçu pour l\'instant. ' +
+        'La liste se met à jour toute seule.</div>' + footer();
+    }
+
+    return '<div class="live-list">' + state.calls.slice().reverse().map(function (call) {
+      var tone = call.outcome === 'transferred' ? 'badge-urgent'
+        : call.outcome === 'noted' ? 'badge-pending' : 'badge-ok';
+      var label = call.outcome === 'transferred' ? 'Transféré'
+        : call.outcome === 'noted' ? 'Message pris' : 'Traité';
+
+      return '<div class="row">' +
+        '<div class="row-main">' +
+          '<p class="row-name">' + esc(call.from || 'Numéro inconnu') + '</p>' +
+          '<p class="row-meta">' + esc(call.summary || 'Sans résumé') + '</p>' +
+        '</div>' +
+        '<div class="row-side">' +
+          '<span class="badge-status ' + tone + '">' + label + '</span>' +
+          '<span class="row-meta">' + clock(call.at || call.createdAt) + '</span>' +
+        '</div>' +
+      '</div>';
+    }).join('') + '</div>' + footer();
+  }
+
+  function footer() {
+    return '<p class="note note-sep" style="margin-top:16px">' +
+      state.calls.length + ' appel' + (state.calls.length > 1 ? 's' : '') +
+      ' sur cette ligne. Le résumé est chiffré en base : il n\'est lisible que ' +
+      'par votre cabinet, jamais par l\'administrateur de la plateforme.' +
+    '</p>';
+  }
+
+  /* -------------------------------------------------------------- Liaison */
+
+  function refresh(rerender) {
+    if (!api.online() || !api.cabinetId() || state.busy) return;
+    state.busy = true;
+    api.calls().then(function (res) {
+      state.busy = false;
+      if (res.status === 401) {
+        /* Session expirée côté serveur : on repasse au formulaire plutôt que
+           de boucler sur des erreurs invisibles. */
+        api.forget();
+        state.calls = [];
+        if (rerender) rerender();
+        return;
+      }
+      if (!res.ok) { state.error = res.body.error || 'Le serveur a refusé la demande.'; }
+      else { state.error = null; state.calls = res.body.calls || []; }
+      if (rerender) rerender();
+    }).catch(function () {
+      state.busy = false;
+      state.error = 'Serveur injoignable.';
+      if (rerender) rerender();
+    });
+  }
+
+  function bind(panel, rerender) {
+    if (!api || !api.online()) return;
+    var host = panel.querySelector('[data-live]');
+    if (!host) return;
+
+    var loginBtn = host.querySelector('[data-live-login]');
+    if (loginBtn) {
+      loginBtn.addEventListener('click', function () {
+        var email = host.querySelector('#live-email').value;
+        var pass = host.querySelector('#live-pass').value;
+        var box = host.querySelector('[data-live-error]');
+
+        api.login(email, pass).then(function (res) {
+          if (!res.ok) {
+            box.textContent = res.body.error === 'unverified'
+              ? 'Ce compte n\'a pas encore vérifié son adresse.'
+              : (res.body.error || 'Connexion refusée.');
+            box.hidden = false;
+            return;
+          }
+          api.remember(res.body);
+          refresh(rerender);
+          if (rerender) rerender();
+          /* La barre latérale annonce où vivent les données : elle passe de
+             « serveur détecté » à « ligne connectée ». */
+          if (window.ALLY_CHROME_REFRESH) window.ALLY_CHROME_REFRESH();
+        }).catch(function () {
+          box.textContent = 'Serveur injoignable.';
+          box.hidden = false;
+        });
+      });
+    }
+
+    /* Rafraîchissement pendant que l'onglet est affiché. Le minuteur est
+       remplacé à chaque liaison : sans cela, changer d'onglet dix fois
+       laisserait dix minuteurs actifs. */
+    if (state.timer) window.clearInterval(state.timer);
+    state.timer = window.setInterval(function () {
+      if (!document.body.contains(host)) {
+        window.clearInterval(state.timer);
+        state.timer = null;
+        return;
+      }
+      refresh(rerender);
+    }, 5000);
+
+    refresh(rerender);
+  }
+
+  window.ALLY_LIVE = { view: view, bind: bind, refresh: refresh };
+})();
+
 /* Ally — onglet Téléphonie : voix, script d'appel, simulation d'appel entrant.
    Exporte des fragments de vue et leurs liaisons, consommés par dashboard.js. */
 (function () {
@@ -6588,6 +6917,8 @@ window.ALLY_PLAN_BY_ID = function (id) {
         '</div>' +
 
         /* ---- Voix d'Ally ---- */
+        (window.ALLY_LIVE ? window.ALLY_LIVE.view() : '') +
+
         '<div class="card">' +
           '<p class="card-title">La voix d\'Ally</p>' +
           '<p class="note" style="margin-bottom:16px">C\'est la voix que vos ' + esc(p.clientWord) +
@@ -6660,6 +6991,9 @@ window.ALLY_PLAN_BY_ID = function (id) {
     /* ---------------------------- LIAISONS ---------------------------- */
     bind: function (panel, refresh) {
       var S = store.state;
+
+      /* La ligne réelle se rebranche à chaque rendu du panneau. */
+      if (window.ALLY_LIVE) window.ALLY_LIVE.bind(panel, refresh);
 
       /* ---- Sélecteur de voix ---- */
       /* Le choix de la voix vient du composant partagé : il est identique
@@ -8520,8 +8854,13 @@ window.ALLY_PLAN_BY_ID = function (id) {
     }
     document.getElementById('foot-transfer').setAttribute('aria-checked', String(!!S.rules.transfer));
     document.getElementById('foot-digest').setAttribute('aria-checked', String(S.notif.email));
+    /* Dire où vivent réellement les données. Tant qu'aucune API ne répond,
+       tout est dans le navigateur, et le prétendre autrement serait mentir. */
+    var api = window.ALLY_API;
     document.getElementById('foot-storage').textContent =
-      S.subscription ? 'navigateur (compte actif)' : 'navigateur (démonstration)';
+      (api && api.online())
+        ? (api.cabinetId() ? 'serveur Ally (ligne connectée)' : 'serveur Ally détecté')
+        : (S.subscription ? 'navigateur (compte actif)' : 'navigateur (démonstration)');
     var v = window.ALLY_VOICE.resolveVoice(S.voice.uri);
     document.getElementById('foot-voice-name').textContent =
       v ? v.name.replace(/\s*\(.*\)\s*/, '') : 'par défaut';
@@ -10372,6 +10711,16 @@ window.ALLY_PLAN_BY_ID = function (id) {
   /* Permet aux composants partagés (le choix de la voix, par exemple) de
      rafraîchir la barre latérale sans re-rendre tout le panneau. */
   window.ALLY_CHROME_REFRESH = renderChrome;
+
+  /* La sonde de l'API répond après le premier rendu : on remet à jour le
+     libellé de stockage, et l'onglet Téléphonie si c'est celui qui est
+     affiché — c'est lui qui porte la ligne réelle. */
+  if (window.ALLY_API) {
+    window.ALLY_API.onReady(function (online) {
+      renderChrome();
+      if (online && ui.tab === 'telephony') renderPanel();
+    });
+  }
 
   window.ALLY_DASHBOARD_REFRESH = function () {
     renderChrome();

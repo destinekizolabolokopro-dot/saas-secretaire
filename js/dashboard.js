@@ -304,8 +304,13 @@
     }
     document.getElementById('foot-transfer').setAttribute('aria-checked', String(!!S.rules.transfer));
     document.getElementById('foot-digest').setAttribute('aria-checked', String(S.notif.email));
+    /* Dire où vivent réellement les données. Tant qu'aucune API ne répond,
+       tout est dans le navigateur, et le prétendre autrement serait mentir. */
+    var api = window.ALLY_API;
     document.getElementById('foot-storage').textContent =
-      S.subscription ? 'navigateur (compte actif)' : 'navigateur (démonstration)';
+      (api && api.online())
+        ? (api.cabinetId() ? 'serveur Ally (ligne connectée)' : 'serveur Ally détecté')
+        : (S.subscription ? 'navigateur (compte actif)' : 'navigateur (démonstration)');
     var v = window.ALLY_VOICE.resolveVoice(S.voice.uri);
     document.getElementById('foot-voice-name').textContent =
       v ? v.name.replace(/\s*\(.*\)\s*/, '') : 'par défaut';
@@ -2156,6 +2161,16 @@
   /* Permet aux composants partagés (le choix de la voix, par exemple) de
      rafraîchir la barre latérale sans re-rendre tout le panneau. */
   window.ALLY_CHROME_REFRESH = renderChrome;
+
+  /* La sonde de l'API répond après le premier rendu : on remet à jour le
+     libellé de stockage, et l'onglet Téléphonie si c'est celui qui est
+     affiché — c'est lui qui porte la ligne réelle. */
+  if (window.ALLY_API) {
+    window.ALLY_API.onReady(function (online) {
+      renderChrome();
+      if (online && ui.tab === 'telephony') renderPanel();
+    });
+  }
 
   window.ALLY_DASHBOARD_REFRESH = function () {
     renderChrome();

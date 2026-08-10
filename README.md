@@ -271,12 +271,32 @@ aujourd'hui — sinon le graphique des inscriptions serait toujours vide.
 ## Le serveur
 
 La fondation de l'API est dans [`server/`](server/README.md) — sans aucune
-dépendance :
+dépendance. Elle sert aussi la maquette, donc **une seule commande fait tourner
+l'ensemble** :
 
 ```bash
-node server/index.js       # http://localhost:8787
-node server/test.js        # 35 contrôles
+node server/index.js       # http://localhost:8787 — API et maquette
+node server/test.js        # 36 contrôles
 ```
+
+### La ligne réelle
+
+Ouvrez http://localhost:8787, onglet **Téléphonie** : une carte **« La ligne
+réelle »** apparaît. C'est le seul endroit de la maquette alimenté par le
+serveur — les appels transmis par le webhook de l'agent vocal, chiffrés en base,
+visibles du seul cabinet concerné.
+
+Sans API — fichier ouvert par double-clic, hébergeur statique — **la carte reste
+masquée et tout le reste continue de fonctionner en local**. Le front ne devine
+pas l'API : le serveur la déclare dans les pages qu'il sert. Sonder à l'aveugle
+laisserait une erreur 404 dans la console de chaque visiteur, pour un état
+parfaitement normal.
+
+Un test de bout en bout (14 contrôles) démarre le vrai serveur et un vrai
+navigateur : il envoie un appel signé, vérifie qu'il s'affiche chez le bon
+cabinet, **qu'il reste invisible pour l'autre à l'écran comme par l'API**, que
+le résumé n'est pas lisible dans le fichier de données, et que la liste se met à
+jour sans rechargement.
 
 Elle ne contient pas encore les intégrations (Retell, Brevo, Google, Stripe),
 qui demandent des comptes et des clés. Elle contient ce qui coûte le plus cher

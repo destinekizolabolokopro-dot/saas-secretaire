@@ -4,8 +4,28 @@ Fondation du serveur. **Aucune dépendance** : uniquement des modules Node
 natifs, pour qu'il démarre partout et qu'il n'y ait rien de plus à auditer.
 
 ```bash
-node server/index.js       # http://localhost:8787
-node server/test.js        # 35 contrôles
+node server/index.js       # http://localhost:8787 — API *et* maquette
+node server/test.js        # 36 contrôles
+```
+
+Le serveur sert aussi les fichiers du front : une seule commande fait tourner
+l'ensemble. Ouvrez http://localhost:8787, allez dans **Téléphonie**, et la carte
+**« La ligne réelle »** apparaît — c'est le seul endroit de la maquette alimenté
+par le serveur. Sans API, elle reste masquée et tout continue de fonctionner en
+local.
+
+Pour y voir un appel, il faut le signer comme le ferait Retell :
+
+```bash
+CAB=cab_xxx   # renvoyé par /api/auth/signup
+SECRET=$RETELL_WEBHOOK_SECRET
+BODY=$(printf '{"cabinetId":"%s","from":"06 11 22 33 44","outcome":"transferred","summary":"Audience demain"}' "$CAB")
+TS=$(date +%s)
+SIG=$(printf '%s.%s' "$TS" "$BODY" | openssl dgst -sha256 -hmac "$SECRET" -hex | awk '{print $2}')
+curl -X POST http://localhost:8787/api/webhooks/retell \
+  -H "content-type: application/json" \
+  -H "x-retell-signature: t=$TS,v1=$SIG" \
+  -d "$BODY"
 ```
 
 ## Pourquoi cette forme
@@ -29,6 +49,7 @@ un test qui échoue si on le casse.
 | Limitation du débit | `lib/http.js` | plafond sur la connexion |
 | Journal d'accès | `lib/store.js` | présence des événements sensibles |
 | Séparation des rôles | `index.js` | un pro reçoit 403 sur l'administration |
+| Service de fichiers sans traversée | `lib/static.js` | `/server/...` et `/../etc/passwd` refusés |
 | Envoi différé de 10 s | `index.js` | part après le délai, jamais si annulé |
 
 ## Le cloisonnement, en une règle

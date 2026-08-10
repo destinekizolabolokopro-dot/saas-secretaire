@@ -127,6 +127,8 @@
         '</div>' +
 
         /* ---- Voix d'Ally ---- */
+        (window.ALLY_LIVE ? window.ALLY_LIVE.view() : '') +
+
         '<div class="card">' +
           '<p class="card-title">La voix d\'Ally</p>' +
           '<p class="note" style="margin-bottom:16px">C\'est la voix que vos ' + esc(p.clientWord) +
@@ -199,6 +201,9 @@
     /* ---------------------------- LIAISONS ---------------------------- */
     bind: function (panel, refresh) {
       var S = store.state;
+
+      /* La ligne réelle se rebranche à chaque rendu du panneau. */
+      if (window.ALLY_LIVE) window.ALLY_LIVE.bind(panel, refresh);
 
       /* ---- Sélecteur de voix ---- */
       /* Le choix de la voix vient du composant partagé : il est identique
