@@ -132,24 +132,7 @@
           '<p class="note" style="margin-bottom:16px">C\'est la voix que vos ' + esc(p.clientWord) +
             's entendront au téléphone, et celle qui vous répond dans l\'application. ' +
             'Écoutez-les avant de choisir.</p>' +
-          '<div id="voice-picker" class="voice-picker"></div>' +
-
-          '<div class="voice-sliders">' +
-            '<div class="slider-block">' +
-              '<div class="slider-head"><label for="voice-rate">Débit</label>' +
-                '<output id="out-rate">' + S.voice.rate.toFixed(1) + '×</output></div>' +
-              '<input type="range" id="voice-rate" min="0.6" max="1.6" step="0.1" value="' + S.voice.rate + '">' +
-            '</div>' +
-            '<div class="slider-block">' +
-              '<div class="slider-head"><label for="voice-pitch">Hauteur</label>' +
-                '<output id="out-pitch">' + S.voice.pitch.toFixed(1) + '</output></div>' +
-              '<input type="range" id="voice-pitch" min="0.6" max="1.5" step="0.1" value="' + S.voice.pitch + '">' +
-            '</div>' +
-          '</div>' +
-          '<div class="voice-try">' +
-            '<button type="button" class="btn btn-primary btn-md" id="try-voice">Essayer cette voix</button>' +
-            '<button type="button" class="btn btn-ghost btn-md" id="stop-voice">Arrêter</button>' +
-          '</div>' +
+          '<div data-voice-picker></div>' +
         '</div>' +
 
       /* ---- Script d'appel ---- */
@@ -218,75 +201,17 @@
       var S = store.state;
 
       /* ---- Sélecteur de voix ---- */
-      var picker = panel.querySelector('#voice-picker');
-
-      function renderVoices(list) {
-        if (!picker) return;
-        if (!voice.canSpeak()) {
-          picker.innerHTML = '<p class="lock-note">Votre navigateur ne gère pas la synthèse vocale.</p>';
-          return;
+      /* Le choix de la voix vient du composant partagé : il est identique
+         ici, dans l'onglet Ally et dans le questionnaire. */
+      window.ALLY_UI.voicePicker(panel.querySelector('[data-voice-picker]'), {
+        sliders: true,
+        sample: sampleLine,
+        /* Pas de re-rendu du panneau : on perdrait le curseur en cours de
+           glissement. Seul le libellé de la barre latérale est rafraîchi. */
+        onChange: function () {
+          if (window.ALLY_CHROME_REFRESH) window.ALLY_CHROME_REFRESH();
         }
-        if (!list.length) {
-          // Certains navigateurs chargent les voix en différé ; d'autres
-          // (Linux sans moteur vocal, Chrome headless) n'en ont aucune.
-          picker.innerHTML = '<p class="note">Recherche des voix installées…</p>';
-          window.setTimeout(function () {
-            if (!voice.voices().length) {
-              picker.innerHTML = '<p class="lock-note">Aucune voix trouvée sur cet appareil. '
-                + 'Chrome et Edge sur Windows ou macOS en proposent plusieurs en français ; '
-                + 'sur Linux, il faut installer un moteur vocal comme espeak-ng.</p>';
-            }
-          }, 1500);
-          return;
-        }
-        var current = voice.resolveVoice(S.voice.uri);
-        picker.innerHTML = list.map(function (v) {
-          var active = current && v.voiceURI === current.voiceURI;
-          return '<button type="button" class="voice-chip" data-voice="' + esc(v.voiceURI) + '"' +
-            ' aria-pressed="' + active + '">' +
-            '<span class="voice-name">' + esc(v.name.replace(/\s*\(.*\)\s*/, '')) + '</span>' +
-            '<span class="voice-lang">' + esc(v.lang) + '</span>' +
-            '</button>';
-        }).join('');
-
-        picker.querySelectorAll('[data-voice]').forEach(function (chip) {
-          chip.addEventListener('click', function () {
-            S.voice.uri = chip.getAttribute('data-voice');
-            store.save();
-            picker.querySelectorAll('[data-voice]').forEach(function (other) {
-              other.setAttribute('aria-pressed', String(other === chip));
-            });
-            // Retour immédiat : on entend la voix qu'on vient de choisir.
-            store.markStep('heard');
-            voice.speak(sampleLine(), store.voiceOptions());
-          });
-        });
-      }
-
-      voice.onVoices(renderVoices);
-      renderVoices(voice.voices());
-
-      var rate = panel.querySelector('#voice-rate');
-      if (rate) rate.addEventListener('input', function () {
-        S.voice.rate = Number(rate.value);
-        panel.querySelector('#out-rate').textContent = S.voice.rate.toFixed(1) + '×';
-        store.save();
       });
-
-      var pitch = panel.querySelector('#voice-pitch');
-      if (pitch) pitch.addEventListener('input', function () {
-        S.voice.pitch = Number(pitch.value);
-        panel.querySelector('#out-pitch').textContent = S.voice.pitch.toFixed(1);
-        store.save();
-      });
-
-      var tryBtn = panel.querySelector('#try-voice');
-      if (tryBtn) tryBtn.addEventListener('click', function () {
-        voice.speak(sampleLine(), store.voiceOptions());
-      });
-
-      var stopBtn = panel.querySelector('#stop-voice');
-      if (stopBtn) stopBtn.addEventListener('click', function () { voice.stopSpeaking(); });
 
       /* ---- Codes de renvoi ---- */
       panel.querySelectorAll('[data-copy]').forEach(function (button) {

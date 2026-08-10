@@ -174,6 +174,28 @@ Le journal ne contient que des types d'événements et des horodatages, jamais d
 contenu métier. Une IA qui suggère au hasard use la patience plus vite qu'elle
 ne rend service : sans geste compté, aucune carte ne s'affiche.
 
+## Changer la voix d'Ally
+
+Le sélecteur est le même composant à trois endroits, pour qu'il ne diverge pas :
+
+- **au questionnaire**, étape 2, sous le registre de parole — cliquer une voix
+  la fait dire votre phrase d'accueil ;
+- **dans l'onglet Ally**, avec les curseurs de débit et de hauteur ;
+- **dans l'onglet Téléphonie**, à côté du script d'appel.
+
+Les voix proposées sont celles installées sur l'appareil : le navigateur ne
+donne accès à rien d'autre. Sur un poste qui n'en a aucune (Linux sans moteur
+vocal, navigateur sans synthèse), l'écran le dit et explique quoi installer,
+plutôt que d'afficher une liste vide.
+
+Le choix s'applique partout — accueil téléphonique, simulation d'appel,
+réponses du chat — et survit au rechargement. La barre latérale affiche la voix
+retenue.
+
+> Cette voix est celle du **navigateur**, pour écouter et régler. La voix
+> entendue au téléphone sera choisie côté serveur, chez le fournisseur de
+> l'agent vocal.
+
 ## Structure
 
 ```

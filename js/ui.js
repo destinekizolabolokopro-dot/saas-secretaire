@@ -129,6 +129,139 @@
     wrap.appendChild(button);
   }
 
+  /* ---------- Choix de la voix d'Ally ----------
+     Un seul composant, posé partout où le choix a du sens : pendant le
+     questionnaire, dans l'onglet Ally et dans l'onglet Téléphonie. Trois
+     copies auraient fini par diverger. Aucun identifiant n'est utilisé — les
+     trois écrans coexistent dans le fichier de démonstration autonome. */
+  function voicePicker(container, options) {
+    if (!container) return null;
+    options = options || {};
+
+    var store = window.ALLY_STORE;
+    var voice = window.ALLY_VOICE;
+    var S = store.state;
+
+    var sample = options.sample || function () {
+      return S.identity.org
+        ? S.identity.org + ', bonjour. Je suis Ally, l\'assistante. Comment puis-je vous aider ?'
+        : store.greeting();
+    };
+
+    container.className = 'voice-block';
+    container.innerHTML =
+      '<div class="voice-picker" data-role="chips"></div>' +
+      (options.sliders !== false
+        ? '<div class="voice-sliders">' +
+            '<div class="slider-block">' +
+              '<div class="slider-head"><span>Débit</span>' +
+                '<output data-role="out-rate">' + S.voice.rate.toFixed(1) + '×</output></div>' +
+              '<input type="range" data-role="rate" aria-label="Débit de la voix"' +
+                ' min="0.6" max="1.6" step="0.1" value="' + S.voice.rate + '">' +
+            '</div>' +
+            '<div class="slider-block">' +
+              '<div class="slider-head"><span>Hauteur</span>' +
+                '<output data-role="out-pitch">' + S.voice.pitch.toFixed(1) + '</output></div>' +
+              '<input type="range" data-role="pitch" aria-label="Hauteur de la voix"' +
+                ' min="0.6" max="1.5" step="0.1" value="' + S.voice.pitch + '">' +
+            '</div>' +
+          '</div>'
+        : '') +
+      (options.tryButton === false
+        ? ''
+        : '<div class="voice-try">' +
+            '<button type="button" class="btn btn-ghost btn-md" data-role="try">' +
+              '<span aria-hidden="true">▶</span> Écouter cette voix</button>' +
+            '<button type="button" class="btn btn-ghost btn-md" data-role="stop">Arrêter</button>' +
+          '</div>');
+
+    var chips = container.querySelector('[data-role="chips"]');
+
+    function say() {
+      store.markStep('heard');
+      voice.speak(sample(), store.voiceOptions());
+    }
+
+    function renderVoices(list) {
+      if (!voice.canSpeak()) {
+        chips.innerHTML = '<p class="lock-note">Votre navigateur ne gère pas la synthèse '
+          + 'vocale. Le choix de la voix se fera depuis un autre appareil.</p>';
+        return;
+      }
+      if (!list.length) {
+        /* Certains navigateurs chargent les voix en différé ; d'autres
+           (Linux sans moteur vocal) n'en ont aucune. On le dit franchement
+           plutôt que d'afficher une liste vide sans explication. */
+        chips.innerHTML = '<p class="note">Recherche des voix installées…</p>';
+        window.setTimeout(function () {
+          if (!voice.voices().length) {
+            chips.innerHTML = '<p class="lock-note">Aucune voix trouvée sur cet appareil. '
+              + 'Chrome et Edge, sur Windows ou macOS, en proposent plusieurs en français ; '
+              + 'sur Linux, il faut installer un moteur vocal comme espeak-ng. '
+              + 'La voix du téléphone, elle, sera choisie côté serveur — celle-ci ne concerne '
+              + 'que ce navigateur.</p>';
+          }
+        }, 1500);
+        return;
+      }
+
+      var current = voice.resolveVoice(S.voice.uri);
+      chips.innerHTML = list.map(function (v) {
+        var active = current && v.voiceURI === current.voiceURI;
+        return '<button type="button" class="voice-chip" data-voice="' + esc(v.voiceURI) + '"' +
+          ' aria-pressed="' + active + '">' +
+          '<span class="voice-name">' + esc(v.name.replace(/\s*\(.*\)\s*/, '')) + '</span>' +
+          '<span class="voice-lang">' + esc(v.lang) + '</span>' +
+          '</button>';
+      }).join('');
+
+      chips.querySelectorAll('[data-voice]').forEach(function (chip) {
+        chip.addEventListener('click', function () {
+          S.voice.uri = chip.getAttribute('data-voice');
+          store.save();
+          chips.querySelectorAll('[data-voice]').forEach(function (other) {
+            other.setAttribute('aria-pressed', String(other === chip));
+          });
+          /* Retour immédiat : on entend la voix qu'on vient de choisir. */
+          say();
+          if (options.onChange) options.onChange();
+        });
+      });
+    }
+
+    voice.onVoices(renderVoices);
+    renderVoices(voice.voices());
+
+    var rate = container.querySelector('[data-role="rate"]');
+    if (rate) {
+      rate.addEventListener('input', function () {
+        S.voice.rate = Number(rate.value);
+        container.querySelector('[data-role="out-rate"]').textContent = S.voice.rate.toFixed(1) + '×';
+        store.save();
+        if (options.onChange) options.onChange();
+      });
+    }
+
+    var pitch = container.querySelector('[data-role="pitch"]');
+    if (pitch) {
+      pitch.addEventListener('input', function () {
+        S.voice.pitch = Number(pitch.value);
+        container.querySelector('[data-role="out-pitch"]').textContent = S.voice.pitch.toFixed(1);
+        store.save();
+        if (options.onChange) options.onChange();
+      });
+    }
+
+    /* Boutons d'essai facultatifs : dans le questionnaire, cliquer une voix la
+       fait déjà parler, et l'aperçu juste en dessous a son propre bouton. */
+    var tryBtn = container.querySelector('[data-role="try"]');
+    if (tryBtn) tryBtn.addEventListener('click', say);
+    var stopBtn = container.querySelector('[data-role="stop"]');
+    if (stopBtn) stopBtn.addEventListener('click', function () { voice.stopSpeaking(); });
+
+    return { refresh: function () { renderVoices(voice.voices()); } };
+  }
+
   /* ---------- Message éphémère ---------- */
   var toastHost = null;
   function toast(message, kind) {
@@ -150,6 +283,7 @@
   window.ALLY_UI = {
     esc: esc,
     codeInput: codeInput,
+    voicePicker: voicePicker,
     passwordMeter: passwordMeter,
     revealToggle: revealToggle,
     scorePassword: scorePassword,

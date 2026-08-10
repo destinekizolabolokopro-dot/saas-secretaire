@@ -429,8 +429,10 @@
   document.getElementById('foot-invite').addEventListener('click', function () {
     flash('Invitation en lecture seule envoyée (démonstration)');
   });
+  /* Le raccourci « Voix » mène désormais à l'onglet Ally, où le sélecteur
+     voisine avec le registre de parole et le script d'accueil. */
   document.getElementById('foot-voice').addEventListener('click', function () {
-    setTab('telephony');
+    setTab('ally');
   });
 
   /* ---------- Recherche transversale ---------- */
@@ -1052,6 +1054,13 @@
         '<p class="note" style="margin-top:12px">' + esc(store.tone().desc) + '</p>' +
       '</div>' +
 
+      '<div class="card"><p class="card-title">La voix d\'Ally</p>' +
+        '<p class="note" style="margin-bottom:14px">Celle que vos ' + esc(p.clientWord) +
+          's entendront au téléphone, et celle qui vous répond ici. Les voix ' +
+          'proposées sont celles installées sur cet appareil.</p>' +
+        '<div data-voice-picker></div>' +
+      '</div>' +
+
       '<div class="card"><p class="card-title">Script d\'accueil téléphonique</p>' +
         '<label class="sr-only" for="greeting">Script d\'accueil téléphonique</label>' +
         '<textarea class="field" id="greeting">' + esc(store.greeting()) + '</textarea>' +
@@ -1085,7 +1094,8 @@
       (store.can('voiceCommand') ? '<div class="card"><p class="card-title">Commande vocale</p>' +
         switchRow('flat', 'voiceEnabled', 'Parler à Ally depuis l\'application',
           'Affiche le bouton micro en bas de l\'écran.') +
-        '<p class="note" style="margin-top:12px">Le choix de la voix et son essai se font dans ' +
+        '<p class="note" style="margin-top:12px">La voix se choisit plus haut sur cette page. ' +
+          'Le script d\'appel complet et la simulation sont dans ' +
           '<button type="button" class="btn-link" data-jump="telephony">l\'onglet Téléphonie</button>.</p>' +
         '<p class="sub-label">Confirmation orale avant exécution</p>' +
         '<div class="choice-row" role="group" aria-label="Niveau de confirmation requis">' +
@@ -1722,6 +1732,18 @@
       });
     });
 
+    var pickerHost = panel.querySelector('[data-voice-picker]');
+    if (pickerHost) {
+      window.ALLY_UI.voicePicker(pickerHost, {
+        sliders: true,
+        sample: function () {
+          var box = panel.querySelector('#greeting');
+          return (box && box.value) || store.greeting();
+        },
+        onChange: renderChrome
+      });
+    }
+
     var allyListen = panel.querySelector('#ally-listen');
     if (allyListen) {
       allyListen.addEventListener('click', function () {
@@ -2131,6 +2153,10 @@
 
   /* Le fichier de démonstration autonome n'a pas de rechargement de page :
      il appelle ce point d'entrée pour relire le compte après l'onboarding. */
+  /* Permet aux composants partagés (le choix de la voix, par exemple) de
+     rafraîchir la barre latérale sans re-rendre tout le panneau. */
+  window.ALLY_CHROME_REFRESH = renderChrome;
+
   window.ALLY_DASHBOARD_REFRESH = function () {
     renderChrome();
     setTab(ui.tab);

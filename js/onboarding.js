@@ -213,6 +213,20 @@
     document.getElementById('tone-desc').textContent = (TONES[S.tone] || TONES.sobre).desc;
   }
 
+  /* Le choix de la voix, au moment où l'on écrit ce qu'elle dira. Rendu à
+     l'entrée de l'étape 2 seulement : la liste des voix du navigateur peut
+     arriver en différé, et le composant s'en charge. */
+  var voicePickerReady = false;
+  function renderVoicePicker() {
+    if (voicePickerReady) return;
+    voicePickerReady = true;
+    window.ALLY_UI.voicePicker(document.getElementById('ob-voice'), {
+      sliders: false,
+      tryButton: false,
+      sample: function () { return store.greeting(); }
+    });
+  }
+
   function bindListen(buttonId, noteId, text) {
     var button = document.getElementById(buttonId);
     if (!button) return;
@@ -608,7 +622,7 @@
     el.prev.hidden = (step === 1);
     el.next.textContent = (step === STEP_COUNT) ? 'Ouvrir mon espace pro' : 'Continuer';
 
-    if (step === 2) { renderIdentityLabels(); renderTone(); }
+    if (step === 2) { renderIdentityLabels(); renderTone(); renderVoicePicker(); }
     if (step === 3) renderActivity();
     if (step === 5) renderTopics();
     if (step === 6) renderUrgency();
