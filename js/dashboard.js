@@ -222,6 +222,53 @@
     window.setTimeout(function () { node.remove(); }, 2600);
   }
 
+  /* Message éphémère assorti d'un bouton : c'est le seul endroit où
+     l'annulation d'un envoi est réellement à portée de clic. */
+  function flashUndo(text, onUndo) {
+    var node = document.createElement('div');
+    node.className = 'flash flash-undo';
+    var label = document.createElement('span');
+    label.textContent = text;
+    var button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'btn btn-ghost btn-sm';
+    button.textContent = 'Annuler';
+    node.appendChild(label);
+    node.appendChild(button);
+    document.body.appendChild(node);
+
+    var closed = false;
+    function close() {
+      if (closed) return;
+      closed = true;
+      node.classList.add('is-out');
+      window.setTimeout(function () { node.remove(); }, 400);
+    }
+    button.addEventListener('click', function () { close(); onUndo(); });
+    window.setTimeout(close, store.UNDO_MS);
+  }
+
+  /* Décompte affiché sur les brouillons en cours d'envoi. */
+  var undoTicker = null;
+
+  function startUndoTicker() {
+    if (undoTicker) return;
+    undoTicker = window.setInterval(function () {
+      var pending = store.sending();
+      if (!pending.length) { stopUndoTicker(); return; }
+      pending.forEach(function (mail) {
+        var node = document.querySelector('[data-countdown="' + mail.id + '"]');
+        if (node) node.textContent = store.secondsLeft(mail);
+      });
+    }, 500);
+  }
+
+  function stopUndoTicker() {
+    if (!undoTicker) return;
+    window.clearInterval(undoTicker);
+    undoTicker = null;
+  }
+
   function renderActions() {
     var box = document.getElementById('topbar-actions');
     var list = ACTIONS[ui.tab] || [];
@@ -583,19 +630,15 @@
       }
     }
 
-    var usage = store.usage();
-    [['calls', 'appels'], ['emails', 'emails']].forEach(function (pair) {
-      var u = usage[pair[0]];
-      var ratio = u.used / u.limit;
-      if (ratio >= 1) {
-        points.push({ level: 'danger', text: 'Forfait ' + pair[1] + ' dépassé : ' + u.used +
-          ' sur ' + u.limit + '. Les dépassements sont facturés à l\'unité.' });
-      } else if (ratio > 0.8) {
-        points.push({ level: 'danger', text: 'Forfait ' + pair[1] + ' bientôt atteint : ' +
-          u.used + ' sur ' + u.limit + ' (' + Math.round(ratio * 100) + ' %). ' +
-          'La formule supérieure vous laisserait de la marge.' });
-      }
-    });
+    /* Le forfait d'appels a désormais son propre bandeau, avec le surcoût réel
+       et la montée en gamme : le répéter ici serait redondant. Seuls les
+       emails restent signalés à cet endroit. */
+    var mails = store.usage().emails;
+    if (mails.used / mails.limit > 0.8) {
+      points.push({ level: 'danger', text: 'Forfait emails à ' +
+        Math.round((mails.used / mails.limit) * 100) + ' % : ' + mails.used +
+        ' sur ' + mails.limit + '.' });
+    }
 
     if (!S.links.gcal) {
       points.push({ level: 'info', text: 'Google Calendar n\'est pas connecté : Ally ne voit pas vos vraies disponibilités.' });
@@ -699,11 +742,69 @@
     '</section>';
   }
 
+  /* ---- Forfait ----
+     On ne coupe jamais la ligne : les appels continuent d'être pris et sont
+     facturés au détail. Le professionnel est prévenu à 80 %, puis informé du
+     surcoût réel, avec la formule supérieure à portée de clic. */
+  function viewQuota() {
+    var q = store.quotaState();
+    if (q.level === 'ok') return '';
+
+    var plans = window.ALLY_PLANS;
+    var current = store.planData();
+    var better = plans[plans.indexOf(current) + 1];
+
+    if (q.level === 'warn') {
+      return '<div class="alert"><span class="dot"></span><div>' +
+        '<strong>Forfait bientôt atteint</strong>' +
+        '<p class="row-meta">' + q.used + ' appels sur ' + q.limit + '. Au-delà, ' +
+          'Ally continue de décrocher : les appels supplémentaires sont facturés ' +
+          current.overage.toFixed(2).replace('.', ',') + ' € pièce.' +
+          (better ? ' La formule ' + better.name + ' en inclut ' + better.quota.calls + '.' : '') +
+        '</p></div>' +
+        (better ? '<button type="button" class="btn btn-ghost btn-sm" data-upgrade="' +
+          better.id + '">Passer à ' + better.name + '</button>' : '') +
+      '</div>';
+    }
+
+    return '<div class="alert alert-over"><span class="dot"></span><div>' +
+      '<strong>Forfait dépassé de ' + q.over + ' appel' + (q.over > 1 ? 's' : '') + '</strong>' +
+      '<p class="row-meta">Votre ligne n\'a pas été coupée — un appel refusé vous coûterait ' +
+        'plus cher qu\'un appel facturé. Supplément en cours : ' +
+        q.cost.toFixed(2).replace('.', ',') + ' €' +
+        (better ? '. La formule ' + better.name + ' (' + better.price + ' €) inclut ' +
+          better.quota.calls + ' appels.' : '.') +
+      '</p></div>' +
+      (better ? '<button type="button" class="btn btn-primary btn-sm" data-upgrade="' +
+        better.id + '">Passer à ' + better.name + '</button>' : '') +
+    '</div>';
+  }
+
+  /* ---- Ce qu'Ally a remarqué ----
+     Une seule suggestion à la fois, appuyée sur des gestes réellement comptés,
+     et refusable définitivement. Une IA qui propose au hasard use la patience
+     plus vite qu'elle ne rend service. */
+  function viewInsight() {
+    var insight = store.insight();
+    if (!insight) return '';
+
+    return '<section class="insight-card">' +
+      '<p class="insight-kicker">Ally a remarqué</p>' +
+      '<p class="insight-text">' + esc(insight.text()) + '</p>' +
+      '<div class="insight-actions">' +
+        '<button type="button" class="btn btn-primary btn-md" data-insight-yes="' +
+          insight.id + '">' + esc(insight.action) + '</button>' +
+        '<button type="button" class="btn btn-ghost btn-md" data-insight-no="' +
+          insight.id + '">Non, ne me le repropose plus</button>' +
+      '</div>' +
+    '</section>';
+  }
+
   /* Un compte neuf n'a pas d'historique : on décrit ce qui va se passer plutôt
      que d'afficher les chiffres d'un autre cabinet. */
   function viewEmptyToday() {
     var status = lineStatus();
-    return viewFirstSteps() +
+    return viewFirstSteps() + viewQuota() + viewInsight() +
       '<section class="card blank-card">' +
         '<p class="blank-kicker">Votre ligne n\'a pas encore sonné</p>' +
         '<h2 class="blank-title">Tout est prêt, ' + esc(name()) + '.</h2>' +
@@ -746,7 +847,7 @@
     var p = P();
     var items = todoItems();
 
-    return viewFirstSteps() +
+    return viewFirstSteps() + viewQuota() + viewInsight() +
       '<section class="todo-card">' +
         '<div class="todo-head">' +
           '<p class="card-title" style="margin:0">Actions requises</p>' +
@@ -839,7 +940,7 @@
 
   function draftItem(mail) {
     var open = ui.expanded === 'draft-' + mail.id;
-    return '<div class="conv is-draft">' +
+    return '<div class="conv is-draft' + (mail.sending ? ' is-sending' : '') + '">' +
       '<button type="button" class="conv-head" data-expand="draft-' + mail.id + '"' +
         ' aria-expanded="' + open + '" aria-controls="body-draft-' + mail.id + '">' +
         '<span class="conv-chan chan-mail" aria-hidden="true"></span>' +
@@ -856,10 +957,17 @@
           '<p class="transcript-label">Brouillon préparé par Ally</p>' +
           '<p class="transcript-text">' + esc(mail.preview) + '</p>' +
           '<p class="mail-sign">' + esc(signature()) + '</p>' +
-          '<div class="transcript-actions">' +
-            '<button type="button" class="btn btn-primary btn-sm" data-send="' + mail.id + '">Envoyer</button>' +
-            '<button type="button" class="btn btn-ghost btn-sm" data-edit="' + mail.id + '">Modifier</button>' +
-          '</div>' +
+          (mail.sending
+            ? '<div class="sending-bar">' +
+                '<span class="sending-dot" aria-hidden="true"></span>' +
+                '<span>Envoi à ' + esc(mail.to) + ' dans ' +
+                  '<strong data-countdown="' + mail.id + '">' + store.secondsLeft(mail) + '</strong> s</span>' +
+                '<button type="button" class="btn btn-ghost btn-sm" data-undo="' + mail.id + '">Annuler</button>' +
+              '</div>'
+            : '<div class="transcript-actions">' +
+                '<button type="button" class="btn btn-primary btn-sm" data-send="' + mail.id + '">Envoyer</button>' +
+                '<button type="button" class="btn btn-ghost btn-sm" data-edit="' + mail.id + '">Modifier</button>' +
+              '</div>') +
         '</div>' +
       '</div></div>';
   }
@@ -1284,6 +1392,10 @@
     el.panel.innerHTML = VIEWS[ui.tab]();
     var panel = el.panel;
 
+    /* Un envoi peut être en cours au moment où l'on change d'onglet : le
+       décompte doit repartir, sinon il se fige sur l'écran suivant. */
+    if (store.sending().length) startUndoTicker(); else stopUndoTicker();
+
     if (ui.tab === 'telephony') window.ALLY_TELEPHONY.bind(panel, renderPanel);
     if (ui.tab === 'agenda') window.ALLY_AGENDA.bind(panel, renderPanel);
 
@@ -1293,13 +1405,22 @@
     panel.querySelectorAll('[data-send]').forEach(function (button) {
       button.addEventListener('click', function () {
         var id = Number(button.getAttribute('data-send'));
-        var mail = drafts().filter(function (m) { return m.id === id; })[0];
+        var mail = store.sendMail(id, function () {
+          /* Passé les dix secondes, l'email est parti : on rafraîchit. */
+          if (ui.tab === 'conversations' || ui.tab === 'today') {
+            renderNav(); renderPanel(); renderChrome();
+          }
+        });
         if (!mail) return;
-        D().drafts = drafts().filter(function (m) { return m.id !== id; });
-        D().sent.unshift({ id: Date.now(), subject: mail.subject, to: mail.to, time: 'À l\'instant' });
-        store.log('Validation de « ' + mail.subject + ' »', 'Email envoyé à ' + mail.to);
-        store.save();
-        ui.expanded = null;
+
+        startUndoTicker();
+        flashUndo('Envoi à ' + mail.to + ' dans ' + (store.UNDO_MS / 1000) + ' s.', function () {
+          store.cancelSend(id);
+          stopUndoTicker();
+          renderNav(); renderPanel(); renderChrome();
+          flash('Envoi annulé. Le brouillon est toujours là.');
+        });
+
         renderNav(); renderPanel(); renderChrome();
         el.sub.textContent = SUBS[ui.tab]();
       });
@@ -1312,6 +1433,8 @@
         var id = Number(button.getAttribute('data-edit'));
         var mail = drafts().filter(function (m) { return m.id === id; })[0];
         if (!mail) return;
+        store.record('draft-edited');
+        mail.edited = true;
         var box = button.closest('.mail-preview');
         var text = box.querySelector('.transcript-text');
         var area = document.createElement('textarea');
@@ -1533,6 +1656,48 @@
         flash('Données d\'exemple retirées. Le compte repart à zéro.');
       });
     }
+
+    panel.querySelectorAll('[data-upgrade]').forEach(function (button) {
+      button.addEventListener('click', function () {
+        var id = button.getAttribute('data-upgrade');
+        S.planId = id;
+        S.plan = window.ALLY_PLAN_BY_ID(id).name;
+        store.save();
+        store.syncAccount();
+        renderNav(); renderPanel(); renderChrome();
+        flash('Formule ' + S.plan + ' active. Le forfait est réévalué immédiatement.');
+      });
+    });
+
+    panel.querySelectorAll('[data-insight-yes]').forEach(function (button) {
+      button.addEventListener('click', function () {
+        var insight = store.insight();
+        if (!insight || insight.id !== button.getAttribute('data-insight-yes')) return;
+        if (insight.apply) insight.apply();
+        store.dismissInsight(insight.id);
+        store.record('insight-accepted', insight.id);
+        if (insight.go) { setTab(insight.go); return; }
+        renderNav(); renderPanel(); renderChrome();
+        flash('C\'est appliqué.');
+      });
+    });
+
+    panel.querySelectorAll('[data-insight-no]').forEach(function (button) {
+      button.addEventListener('click', function () {
+        store.dismissInsight(button.getAttribute('data-insight-no'));
+        renderPanel();
+        flash('Entendu, je ne le reproposerai plus.');
+      });
+    });
+
+    panel.querySelectorAll('[data-undo]').forEach(function (button) {
+      button.addEventListener('click', function () {
+        store.cancelSend(Number(button.getAttribute('data-undo')));
+        stopUndoTicker();
+        renderNav(); renderPanel(); renderChrome();
+        flash('Envoi annulé. Le brouillon est toujours là.');
+      });
+    });
 
     /* ---- Registre, fiche du cabinet, écoute ---- */
     panel.querySelectorAll('[data-tone]').forEach(function (chip) {

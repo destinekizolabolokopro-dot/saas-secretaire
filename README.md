@@ -143,6 +143,37 @@ prise de message.
 données et le nom du compte. Un réglage qu'on n'a jamais vu à l'œuvre ne
 s'active pas.
 
+## Envoi rattrapable, forfait jamais coupé
+
+**Dix secondes pour se rétracter.** Un email validé — ou dicté à la voix — part
+au bout de dix secondes, pas immédiatement. Le décompte s'affiche sur le
+brouillon et dans un message flottant, avec un bouton *Annuler*. C'est le
+garde-fou du choix produit « aucune confirmation orale avant envoi » : une
+erreur de transcription reste rattrapable, sans imposer une validation à chaque
+fois.
+
+**Le forfait ne coupe jamais la ligne.** Au-delà du quota, Ally continue de
+décrocher et les appels sont facturés à l'unité (0,45 € / 0,35 € / 0,25 € selon
+la formule). Avertissement à 80 %, surcoût réel affiché ensuite, formule
+supérieure à portée de clic. Un appel refusé coûte plus cher au cabinet qu'un
+appel facturé.
+
+## Ce qu'Ally remarque
+
+Une suggestion au plus, jamais deux fois la même, refusable définitivement — et
+toujours appuyée sur des gestes réellement comptés dans `S.history` :
+
+- quatre brouillons validés d'affilée sans retouche → elle propose de les
+  envoyer directement ;
+- trois prises de message faute d'information → elle propose de remplir la
+  fiche du cabinet ;
+- deux envois rattrapés de justesse → elle propose de repasser en validation
+  systématique.
+
+Le journal ne contient que des types d'événements et des horodatages, jamais de
+contenu métier. Une IA qui suggère au hasard use la patience plus vite qu'elle
+ne rend service : sans geste compté, aucune carte ne s'affiche.
+
 ## Structure
 
 ```

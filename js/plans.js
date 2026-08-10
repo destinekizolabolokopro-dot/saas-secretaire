@@ -13,6 +13,10 @@ window.ALLY_PLANS = [
     forWho: 'Le pro qui veut d\'abord ne plus manquer d\'appel, sans changer ses habitudes',
     callMode: 'Menu vocal classique : « tapez 1 pour un rendez-vous, 2 pour… »',
     quota: { calls: 150, emails: 200 },
+    /* Prix de l'appel au-delà du forfait. On ne coupe jamais la ligne : un
+       appel refusé est un client perdu pour le cabinet, et c'est nous qu'il
+       tiendra pour responsable. */
+    overage: 0.45,
     /* Ce que la formule débloque réellement dans l'application. */
     caps: {
       app: true, aiCalls: false, autoNotes: false, aiEmails: false,
@@ -41,6 +45,7 @@ window.ALLY_PLANS = [
     forWho: 'Le cas courant : un professionnel seul, en activité pleine',
     callMode: 'Ally comprend la demande en langage naturel et répond',
     quota: { calls: 400, emails: 1200 },
+    overage: 0.35,
     caps: {
       app: true, aiCalls: true, autoNotes: true, aiEmails: true,
       voiceCommand: true, voiceAgenda: true, knowledge: true
@@ -65,6 +70,7 @@ window.ALLY_PLANS = [
     forWho: 'Activité dense, ou cabinet à plusieurs praticiens',
     callMode: 'Agent vocal avancé, routage par motif et par praticien',
     quota: { calls: 1200, emails: 4000 },
+    overage: 0.25,
     caps: {
       app: true, aiCalls: true, autoNotes: true, aiEmails: true,
       voiceCommand: true, voiceAgenda: true, knowledge: 'advanced'

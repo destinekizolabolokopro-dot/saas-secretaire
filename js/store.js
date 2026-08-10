@@ -76,6 +76,12 @@
          renvoi d'appel posé, la ligne ne sonne jamais et le pro conclut que le
          produit ne marche pas. */
       steps: { heard: false, forward: false, calendar: false, sheet: false, dismissed: false },
+      /* Journal des gestes du professionnel. C'est la seule base honnête pour
+         qu'Ally propose quelque chose : sans lui, une « suggestion » serait
+         une invention. Borné à 200 entrées, jamais de contenu métier. */
+      history: [],
+      /* Suggestions refusées, définitivement. */
+      insightsOff: [],
       /* « sample » : jeu de démonstration du métier. « empty » : compte neuf,
          aucune activité — c'est le cas d'un vrai professionnel qui s'inscrit. */
       dataMode: 'sample',
@@ -170,6 +176,22 @@
   }
 
   function clone(value) { return JSON.parse(JSON.stringify(value)); }
+
+  /* Fenêtre de rétractation après envoi d'un email. */
+  var UNDO_MS = 10000;
+  var timers = {};
+
+  function clearTimer(id) {
+    if (timers[id]) { window.clearTimeout(timers[id]); delete timers[id]; }
+  }
+
+  function scheduleCommit(store, id, onCommit) {
+    clearTimer(id);
+    timers[id] = window.setTimeout(function () {
+      store.commitSend(id);
+      if (onCommit) onCommit();
+    }, UNDO_MS);
+  }
 
   /* Jeu de données vivant du compte, initialisé depuis le profil métier.
      C'est lui que l'interface modifie : envoyer un brouillon, annuler un
@@ -357,6 +379,165 @@
       };
     },
 
+    /* ---------- Envoi différé ----------
+       L'email part, mais reste rattrapable dix secondes. C'est le compromis
+       retenu par la plupart des messageries, et le garde-fou qui manquait au
+       choix produit « aucune confirmation orale avant envoi » : une erreur de
+       transcription ou un mauvais destinataire reste récupérable, sans ajouter
+       une étape de validation à chaque envoi. */
+    UNDO_MS: UNDO_MS,
+
+    sendMail: function (id, onCommit) {
+      var mail = this.data().drafts.filter(function (m) { return m.id === id; })[0];
+      if (!mail || mail.sending) return null;
+      mail.sending = Date.now();
+      this.save();
+      scheduleCommit(this, id, onCommit);
+      return mail;
+    },
+
+    /* Email dicté à la voix : il passe par la même fenêtre de rétractation,
+       au lieu de partir sans retour possible. */
+    sendDirect: function (mail, onCommit) {
+      var entry = {
+        id: Date.now(), subject: mail.subject, to: mail.to,
+        preview: mail.body || '', category: mail.category || 'Dicté à la voix',
+        time: 'À l\'instant', sending: Date.now()
+      };
+      this.data().drafts.unshift(entry);
+      this.save();
+      scheduleCommit(this, entry.id, onCommit);
+      return entry;
+    },
+
+    commitSend: function (id) {
+      var D = this.data();
+      var mail = D.drafts.filter(function (m) { return m.id === id; })[0];
+      if (!mail) return false;
+      D.drafts = D.drafts.filter(function (m) { return m.id !== id; });
+      D.sent.unshift({ id: Date.now(), subject: mail.subject, to: mail.to, time: 'À l\'instant' });
+      this.record('draft-sent', mail.edited ? 'edited' : 'clean');
+      this.log('Envoi de « ' + mail.subject + ' »', 'Email envoyé à ' + mail.to);
+      clearTimer(id);
+      this.save();
+      return true;
+    },
+
+    cancelSend: function (id) {
+      clearTimer(id);
+      var mail = this.data().drafts.filter(function (m) { return m.id === id; })[0];
+      if (!mail) return false;
+      delete mail.sending;
+      this.record('send-cancelled');
+      this.save();
+      return true;
+    },
+
+    secondsLeft: function (mail) {
+      if (!mail || !mail.sending) return 0;
+      return Math.max(0, Math.ceil((UNDO_MS - (Date.now() - mail.sending)) / 1000));
+    },
+
+    sending: function () {
+      return this.data().drafts.filter(function (m) { return !!m.sending; });
+    },
+
+    /* ---------- Journal des gestes ---------- */
+    record: function (type, detail) {
+      state.history.unshift({ t: type, d: detail || '', at: Date.now() });
+      if (state.history.length > 200) state.history.length = 200;
+      this.save();
+    },
+
+    countOf: function (type, detail) {
+      return state.history.filter(function (item) {
+        return item.t === type && (detail === undefined || item.d === detail);
+      }).length;
+    },
+
+    /* ---------- Une suggestion, méritée ----------
+       Au plus une à la fois, jamais deux fois la même, et refusable
+       définitivement. Chacune s'appuie sur des gestes réellement comptés :
+       une IA qui suggère au hasard est plus agaçante qu'utile. */
+    insight: function () {
+      var self = this;
+      var off = state.insightsOff;
+
+      var candidates = [
+        {
+          id: 'auto-send',
+          ready: function () {
+            return self.countOf('draft-sent', 'clean') >= 4
+              && self.countOf('draft-edited') === 0
+              && self.countOf('send-cancelled') === 0
+              && state.rules.draft;
+          },
+          text: function () {
+            return 'Vous avez validé vos ' + self.countOf('draft-sent', 'clean')
+              + ' derniers brouillons sans en modifier un seul. Je peux les envoyer '
+              + 'directement, et vous garderez dix secondes pour me rattraper.';
+          },
+          action: 'Envoyer directement',
+          apply: function () { state.rules.draft = false; self.save(); }
+        },
+        {
+          id: 'fill-sheet',
+          ready: function () {
+            return self.countOf('call-note') >= 3 && self.sheetFilled() < 3;
+          },
+          text: function () {
+            return self.countOf('call-note') + ' appelants ont eu droit à une prise de '
+              + 'message parce que je n\'avais pas l\'information. Votre adresse, votre '
+              + 'tarif et vos moyens de paiement suffiraient à traiter la plupart.';
+          },
+          action: 'Remplir la fiche',
+          go: 'ally'
+        },
+        {
+          id: 'review-again',
+          ready: function () { return self.countOf('send-cancelled') >= 2; },
+          text: function () {
+            return 'Vous avez rattrapé ' + self.countOf('send-cancelled') + ' envois de '
+              + 'justesse. Je peux repasser en validation systématique : vous relirez '
+              + 'avant, plutôt que de courir après.';
+          },
+          action: 'Repasser en validation',
+          apply: function () { state.rules.draft = true; self.save(); }
+        }
+      ];
+
+      for (var i = 0; i < candidates.length; i++) {
+        var item = candidates[i];
+        if (off.indexOf(item.id) >= 0) continue;
+        if (item.ready()) return item;
+      }
+      return null;
+    },
+
+    dismissInsight: function (id) {
+      if (state.insightsOff.indexOf(id) < 0) state.insightsOff.push(id);
+      this.save();
+    },
+
+    /* ---------- Forfait ----------
+       Décision produit : on ne coupe jamais la ligne. Un appel refusé, c'est
+       un client perdu pour le cabinet, et c'est nous qu'il rendra responsable.
+       Au-delà du forfait, les appels passent et sont facturés au détail, avec
+       un avertissement dès 80 %. */
+    quotaState: function () {
+      var usage = this.usage();
+      var ratio = usage.calls.limit ? usage.calls.used / usage.calls.limit : 0;
+      var over = Math.max(0, usage.calls.used - usage.calls.limit);
+      return {
+        ratio: ratio,
+        used: usage.calls.used,
+        limit: usage.calls.limit,
+        over: over,
+        cost: over * this.planData().overage,
+        level: ratio >= 1 ? 'over' : ratio >= 0.8 ? 'warn' : 'ok'
+      };
+    },
+
     /* Journalise un ordre vocal ou une action d'Ally. */
     log: function (order, result, done) {
       this.data().voiceLog.unshift({
@@ -489,6 +670,15 @@
   if (window.ALLY_ACCOUNTS && window.ALLY_ACCOUNTS.currentId()) {
     window.ALLY_STORE.reload();
   }
+
+  /* Un email laissé « en cours d'envoi » au moment où l'onglet a été fermé est
+     bel et bien parti : les dix secondes se sont écoulées sans rétractation.
+     Le laisser en attente au rechargement donnerait un brouillon fantôme. */
+  (function () {
+    var pending = window.ALLY_STORE.sending();
+    if (!pending.length) return;
+    pending.forEach(function (mail) { window.ALLY_STORE.commitSend(mail.id); });
+  })();
 
   /* Repart du questionnaire. Le fichier de démonstration autonome remplace
      cette fonction par un simple rechargement, puisqu'il n'a pas de pages. */

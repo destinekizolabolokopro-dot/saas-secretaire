@@ -397,6 +397,9 @@
             return;
           }
 
+          /* Une prise de message faute d'information est le signal qui fait
+             proposer de remplir la fiche du cabinet. */
+          if (result.kind === 'note') store.record('call-note');
           say(result.reply, tags[result.kind] || tags.note);
           if (call.step >= lines.length) {
             window.setTimeout(function () {

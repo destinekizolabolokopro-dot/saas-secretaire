@@ -200,15 +200,42 @@ reconnaissance vocale a compris. Une erreur de transcription ou un mauvais
 destinataire s'envoie sans filet, chez des professionnels dont un écrit
 engage la responsabilité.
 
-Deux garde-fous peu coûteux, à considérer sans revenir sur la décision :
+Deux garde-fous, désormais en place :
 
-1. **Annulation de 10 secondes** après l'envoi — l'email part, mais reste
-   rattrapable. C'est le compromis retenu par la plupart des messageries.
+1. **Annulation de 10 secondes** après l'envoi. L'email part, mais reste
+   rattrapable — c'est le compromis retenu par la plupart des messageries.
+   Le décompte est visible sur le brouillon et repris dans un message flottant
+   avec un bouton *Annuler*. Les emails dictés à la voix passent par la même
+   fenêtre : c'est précisément là que le risque se situe.
 2. **Le réglage reste disponible** dans l'onglet Ally, sur trois niveaux. Un
    professionnel prudent peut le remonter lui-même.
 
-Le premier n'est pas encore implémenté. C'est ma recommandation principale
-avant une mise en production réelle.
+Ally va plus loin : si le professionnel rattrape deux envois de justesse, elle
+propose d'elle-même de repasser en validation systématique. Le produit ne
+s'entête pas dans un réglage qui ne convient manifestement pas.
+
+Côté serveur, l'annulation se traduit par une file d'attente de dix secondes
+avant remise au fournisseur d'envoi — pas par un rappel de message, qui
+n'existe pas en SMTP.
+
+## Le dépassement de forfait : on ne coupe jamais
+
+Quand un cabinet dépasse son forfait d'appels, **Ally continue de décrocher**.
+Les appels supplémentaires sont facturés à l'unité : 0,45 € en Permanence,
+0,35 € en Cabinet, 0,25 € en Expert — le tarif baisse avec la formule, ce qui
+récompense la montée en gamme au lieu de la punir.
+
+Le raisonnement est simple : un appel refusé est un client perdu **pour le
+cabinet**, et c'est nous qu'il tiendra pour responsable. Le surcoût, lui, se
+discute. Une ligne coupée, non.
+
+Le professionnel est prévenu à 80 % du forfait, avec le prix de l'appel
+supplémentaire annoncé, puis informé du surcoût réel en cours et de la formule
+qui l'absorberait. Rien n'est prélevé en silence.
+
+La marge tient : à 0,35 € l'appel pour un coût de revient d'environ 0,20 € en
+appels courts, le dépassement reste bénéficiaire. C'est la raison pour laquelle
+on peut se permettre de ne jamais bloquer.
 
 ## Concurrence
 

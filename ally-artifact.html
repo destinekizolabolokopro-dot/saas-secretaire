@@ -1871,6 +1871,51 @@ input[type="range"] {
   width: 5px; height: 5px; border-radius: 50%; background: var(--accent-bright);
 }
 
+
+/* ============ ENVOI DIFFÉRÉ ============
+   L'email part, mais reste rattrapable dix secondes. Le décompte est visible
+   là où l'on vient de cliquer, et repris dans un message flottant. */
+.sending-bar {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  background: oklch(0.3 0.10 90 / 0.14);
+  border: 1px solid oklch(0.8 0.10 90 / 0.35);
+  border-radius: var(--r-sm); padding: 12px 14px;
+  font-size: 13px; color: var(--yellow);
+}
+.sending-bar strong { font-family: var(--ff-h); font-size: 15px; color: var(--txt); }
+.sending-bar .btn { margin-left: auto; }
+.sending-dot {
+  width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+  background: var(--yellow); animation: pulse-dot 1s ease-in-out infinite;
+}
+.conv.is-sending { box-shadow: inset 2px 0 0 var(--yellow); }
+
+.flash-undo { display: flex; align-items: center; gap: 16px; }
+.flash-undo .btn { flex-shrink: 0; }
+
+/* ============ FORFAIT DÉPASSÉ ============ */
+.alert-over {
+  background: oklch(0.32 0.12 25 / 0.18);
+  border-color: oklch(0.7 0.16 25 / 0.35);
+}
+.alert-over .dot { background: var(--danger); }
+.alert .btn { flex-shrink: 0; align-self: center; }
+
+/* ============ SUGGESTION D'ALLY ============
+   Une seule à la fois, et refusable définitivement : la carte doit se
+   remarquer sans occuper la place d'une information. */
+.insight-card {
+  background: linear-gradient(135deg, oklch(0.21 0.03 200 / 0.6), oklch(0.2 0.03 296 / 0.45));
+  border: 1px solid oklch(0.75 0.15 200 / 0.28);
+  border-radius: var(--r); padding: 22px 24px; margin-bottom: 24px;
+}
+.insight-kicker {
+  font-size: 11px; text-transform: uppercase; letter-spacing: .08em;
+  color: oklch(0.8 0.12 200); margin-bottom: 10px;
+}
+.insight-text { font-size: 15px; line-height: 1.6; color: var(--txt-2); max-width: 68ch; }
+.insight-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 18px; }
+
 /* Ally — console d'administration.
    Reprend la coque de l'espace pro (barre latérale, topbar, cartes) et n'ajoute
    que ce qui lui est propre : tableaux, graphiques, tiroir de fiche compte. */
@@ -3530,6 +3575,10 @@ window.ALLY_PLANS = [
     forWho: 'Le pro qui veut d\'abord ne plus manquer d\'appel, sans changer ses habitudes',
     callMode: 'Menu vocal classique : « tapez 1 pour un rendez-vous, 2 pour… »',
     quota: { calls: 150, emails: 200 },
+    /* Prix de l'appel au-delà du forfait. On ne coupe jamais la ligne : un
+       appel refusé est un client perdu pour le cabinet, et c'est nous qu'il
+       tiendra pour responsable. */
+    overage: 0.45,
     /* Ce que la formule débloque réellement dans l'application. */
     caps: {
       app: true, aiCalls: false, autoNotes: false, aiEmails: false,
@@ -3558,6 +3607,7 @@ window.ALLY_PLANS = [
     forWho: 'Le cas courant : un professionnel seul, en activité pleine',
     callMode: 'Ally comprend la demande en langage naturel et répond',
     quota: { calls: 400, emails: 1200 },
+    overage: 0.35,
     caps: {
       app: true, aiCalls: true, autoNotes: true, aiEmails: true,
       voiceCommand: true, voiceAgenda: true, knowledge: true
@@ -3582,6 +3632,7 @@ window.ALLY_PLANS = [
     forWho: 'Activité dense, ou cabinet à plusieurs praticiens',
     callMode: 'Agent vocal avancé, routage par motif et par praticien',
     quota: { calls: 1200, emails: 4000 },
+    overage: 0.25,
     caps: {
       app: true, aiCalls: true, autoNotes: true, aiEmails: true,
       voiceCommand: true, voiceAgenda: true, knowledge: 'advanced'
@@ -4127,6 +4178,12 @@ window.ALLY_PLAN_BY_ID = function (id) {
          renvoi d'appel posé, la ligne ne sonne jamais et le pro conclut que le
          produit ne marche pas. */
       steps: { heard: false, forward: false, calendar: false, sheet: false, dismissed: false },
+      /* Journal des gestes du professionnel. C'est la seule base honnête pour
+         qu'Ally propose quelque chose : sans lui, une « suggestion » serait
+         une invention. Borné à 200 entrées, jamais de contenu métier. */
+      history: [],
+      /* Suggestions refusées, définitivement. */
+      insightsOff: [],
       /* « sample » : jeu de démonstration du métier. « empty » : compte neuf,
          aucune activité — c'est le cas d'un vrai professionnel qui s'inscrit. */
       dataMode: 'sample',
@@ -4221,6 +4278,22 @@ window.ALLY_PLAN_BY_ID = function (id) {
   }
 
   function clone(value) { return JSON.parse(JSON.stringify(value)); }
+
+  /* Fenêtre de rétractation après envoi d'un email. */
+  var UNDO_MS = 10000;
+  var timers = {};
+
+  function clearTimer(id) {
+    if (timers[id]) { window.clearTimeout(timers[id]); delete timers[id]; }
+  }
+
+  function scheduleCommit(store, id, onCommit) {
+    clearTimer(id);
+    timers[id] = window.setTimeout(function () {
+      store.commitSend(id);
+      if (onCommit) onCommit();
+    }, UNDO_MS);
+  }
 
   /* Jeu de données vivant du compte, initialisé depuis le profil métier.
      C'est lui que l'interface modifie : envoyer un brouillon, annuler un
@@ -4408,6 +4481,165 @@ window.ALLY_PLAN_BY_ID = function (id) {
       };
     },
 
+    /* ---------- Envoi différé ----------
+       L'email part, mais reste rattrapable dix secondes. C'est le compromis
+       retenu par la plupart des messageries, et le garde-fou qui manquait au
+       choix produit « aucune confirmation orale avant envoi » : une erreur de
+       transcription ou un mauvais destinataire reste récupérable, sans ajouter
+       une étape de validation à chaque envoi. */
+    UNDO_MS: UNDO_MS,
+
+    sendMail: function (id, onCommit) {
+      var mail = this.data().drafts.filter(function (m) { return m.id === id; })[0];
+      if (!mail || mail.sending) return null;
+      mail.sending = Date.now();
+      this.save();
+      scheduleCommit(this, id, onCommit);
+      return mail;
+    },
+
+    /* Email dicté à la voix : il passe par la même fenêtre de rétractation,
+       au lieu de partir sans retour possible. */
+    sendDirect: function (mail, onCommit) {
+      var entry = {
+        id: Date.now(), subject: mail.subject, to: mail.to,
+        preview: mail.body || '', category: mail.category || 'Dicté à la voix',
+        time: 'À l\'instant', sending: Date.now()
+      };
+      this.data().drafts.unshift(entry);
+      this.save();
+      scheduleCommit(this, entry.id, onCommit);
+      return entry;
+    },
+
+    commitSend: function (id) {
+      var D = this.data();
+      var mail = D.drafts.filter(function (m) { return m.id === id; })[0];
+      if (!mail) return false;
+      D.drafts = D.drafts.filter(function (m) { return m.id !== id; });
+      D.sent.unshift({ id: Date.now(), subject: mail.subject, to: mail.to, time: 'À l\'instant' });
+      this.record('draft-sent', mail.edited ? 'edited' : 'clean');
+      this.log('Envoi de « ' + mail.subject + ' »', 'Email envoyé à ' + mail.to);
+      clearTimer(id);
+      this.save();
+      return true;
+    },
+
+    cancelSend: function (id) {
+      clearTimer(id);
+      var mail = this.data().drafts.filter(function (m) { return m.id === id; })[0];
+      if (!mail) return false;
+      delete mail.sending;
+      this.record('send-cancelled');
+      this.save();
+      return true;
+    },
+
+    secondsLeft: function (mail) {
+      if (!mail || !mail.sending) return 0;
+      return Math.max(0, Math.ceil((UNDO_MS - (Date.now() - mail.sending)) / 1000));
+    },
+
+    sending: function () {
+      return this.data().drafts.filter(function (m) { return !!m.sending; });
+    },
+
+    /* ---------- Journal des gestes ---------- */
+    record: function (type, detail) {
+      state.history.unshift({ t: type, d: detail || '', at: Date.now() });
+      if (state.history.length > 200) state.history.length = 200;
+      this.save();
+    },
+
+    countOf: function (type, detail) {
+      return state.history.filter(function (item) {
+        return item.t === type && (detail === undefined || item.d === detail);
+      }).length;
+    },
+
+    /* ---------- Une suggestion, méritée ----------
+       Au plus une à la fois, jamais deux fois la même, et refusable
+       définitivement. Chacune s'appuie sur des gestes réellement comptés :
+       une IA qui suggère au hasard est plus agaçante qu'utile. */
+    insight: function () {
+      var self = this;
+      var off = state.insightsOff;
+
+      var candidates = [
+        {
+          id: 'auto-send',
+          ready: function () {
+            return self.countOf('draft-sent', 'clean') >= 4
+              && self.countOf('draft-edited') === 0
+              && self.countOf('send-cancelled') === 0
+              && state.rules.draft;
+          },
+          text: function () {
+            return 'Vous avez validé vos ' + self.countOf('draft-sent', 'clean')
+              + ' derniers brouillons sans en modifier un seul. Je peux les envoyer '
+              + 'directement, et vous garderez dix secondes pour me rattraper.';
+          },
+          action: 'Envoyer directement',
+          apply: function () { state.rules.draft = false; self.save(); }
+        },
+        {
+          id: 'fill-sheet',
+          ready: function () {
+            return self.countOf('call-note') >= 3 && self.sheetFilled() < 3;
+          },
+          text: function () {
+            return self.countOf('call-note') + ' appelants ont eu droit à une prise de '
+              + 'message parce que je n\'avais pas l\'information. Votre adresse, votre '
+              + 'tarif et vos moyens de paiement suffiraient à traiter la plupart.';
+          },
+          action: 'Remplir la fiche',
+          go: 'ally'
+        },
+        {
+          id: 'review-again',
+          ready: function () { return self.countOf('send-cancelled') >= 2; },
+          text: function () {
+            return 'Vous avez rattrapé ' + self.countOf('send-cancelled') + ' envois de '
+              + 'justesse. Je peux repasser en validation systématique : vous relirez '
+              + 'avant, plutôt que de courir après.';
+          },
+          action: 'Repasser en validation',
+          apply: function () { state.rules.draft = true; self.save(); }
+        }
+      ];
+
+      for (var i = 0; i < candidates.length; i++) {
+        var item = candidates[i];
+        if (off.indexOf(item.id) >= 0) continue;
+        if (item.ready()) return item;
+      }
+      return null;
+    },
+
+    dismissInsight: function (id) {
+      if (state.insightsOff.indexOf(id) < 0) state.insightsOff.push(id);
+      this.save();
+    },
+
+    /* ---------- Forfait ----------
+       Décision produit : on ne coupe jamais la ligne. Un appel refusé, c'est
+       un client perdu pour le cabinet, et c'est nous qu'il rendra responsable.
+       Au-delà du forfait, les appels passent et sont facturés au détail, avec
+       un avertissement dès 80 %. */
+    quotaState: function () {
+      var usage = this.usage();
+      var ratio = usage.calls.limit ? usage.calls.used / usage.calls.limit : 0;
+      var over = Math.max(0, usage.calls.used - usage.calls.limit);
+      return {
+        ratio: ratio,
+        used: usage.calls.used,
+        limit: usage.calls.limit,
+        over: over,
+        cost: over * this.planData().overage,
+        level: ratio >= 1 ? 'over' : ratio >= 0.8 ? 'warn' : 'ok'
+      };
+    },
+
     /* Journalise un ordre vocal ou une action d'Ally. */
     log: function (order, result, done) {
       this.data().voiceLog.unshift({
@@ -4540,6 +4772,15 @@ window.ALLY_PLAN_BY_ID = function (id) {
   if (window.ALLY_ACCOUNTS && window.ALLY_ACCOUNTS.currentId()) {
     window.ALLY_STORE.reload();
   }
+
+  /* Un email laissé « en cours d'envoi » au moment où l'onglet a été fermé est
+     bel et bien parti : les dix secondes se sont écoulées sans rétractation.
+     Le laisser en attente au rechargement donnerait un brouillon fantôme. */
+  (function () {
+    var pending = window.ALLY_STORE.sending();
+    if (!pending.length) return;
+    pending.forEach(function (mail) { window.ALLY_STORE.commitSend(mail.id); });
+  })();
 
   /* Repart du questionnaire. Le fichier de démonstration autonome remplace
      cette fonction par un simple rechargement, puisqu'il n'a pas de pages. */
@@ -5473,12 +5714,14 @@ window.ALLY_PLAN_BY_ID = function (id) {
             + (message || 'un mot au sujet de votre rendez-vous') + ' ».',
           detail: 'Rendez-vous de ' + target.time + ' — ' + target.type,
           apply: function () {
-            D.sent.unshift({
-              id: Date.now(),
+            /* Dix secondes pour se rétracter : c'est le garde-fou du choix
+               « aucune confirmation orale avant envoi ». L'email part, mais
+               une erreur de transcription reste rattrapable. */
+            store.sendDirect({
               subject: 'Message de ' + store.displayName(),
-              to: target.client, time: 'À l\'instant', body: body
+              to: target.client, body: body, category: 'Dicté à la voix'
             });
-            store.log('Email vocal à ' + target.client, 'Envoyé sans relecture');
+            store.log('Email vocal à ' + target.client, 'Envoi dans 10 s, annulable');
           },
           follow: ['Résume-moi ma journée', 'Déplace ce rendez-vous']
         };
@@ -6394,6 +6637,9 @@ window.ALLY_PLAN_BY_ID = function (id) {
             return;
           }
 
+          /* Une prise de message faute d'information est le signal qui fait
+             proposer de remplir la fiche du cabinet. */
+          if (result.kind === 'note') store.record('call-note');
           say(result.reply, tags[result.kind] || tags.note);
           if (call.step >= lines.length) {
             window.setTimeout(function () {
@@ -8032,6 +8278,53 @@ window.ALLY_PLAN_BY_ID = function (id) {
     window.setTimeout(function () { node.remove(); }, 2600);
   }
 
+  /* Message éphémère assorti d'un bouton : c'est le seul endroit où
+     l'annulation d'un envoi est réellement à portée de clic. */
+  function flashUndo(text, onUndo) {
+    var node = document.createElement('div');
+    node.className = 'flash flash-undo';
+    var label = document.createElement('span');
+    label.textContent = text;
+    var button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'btn btn-ghost btn-sm';
+    button.textContent = 'Annuler';
+    node.appendChild(label);
+    node.appendChild(button);
+    document.body.appendChild(node);
+
+    var closed = false;
+    function close() {
+      if (closed) return;
+      closed = true;
+      node.classList.add('is-out');
+      window.setTimeout(function () { node.remove(); }, 400);
+    }
+    button.addEventListener('click', function () { close(); onUndo(); });
+    window.setTimeout(close, store.UNDO_MS);
+  }
+
+  /* Décompte affiché sur les brouillons en cours d'envoi. */
+  var undoTicker = null;
+
+  function startUndoTicker() {
+    if (undoTicker) return;
+    undoTicker = window.setInterval(function () {
+      var pending = store.sending();
+      if (!pending.length) { stopUndoTicker(); return; }
+      pending.forEach(function (mail) {
+        var node = document.querySelector('[data-countdown="' + mail.id + '"]');
+        if (node) node.textContent = store.secondsLeft(mail);
+      });
+    }, 500);
+  }
+
+  function stopUndoTicker() {
+    if (!undoTicker) return;
+    window.clearInterval(undoTicker);
+    undoTicker = null;
+  }
+
   function renderActions() {
     var box = document.getElementById('topbar-actions');
     var list = ACTIONS[ui.tab] || [];
@@ -8393,19 +8686,15 @@ window.ALLY_PLAN_BY_ID = function (id) {
       }
     }
 
-    var usage = store.usage();
-    [['calls', 'appels'], ['emails', 'emails']].forEach(function (pair) {
-      var u = usage[pair[0]];
-      var ratio = u.used / u.limit;
-      if (ratio >= 1) {
-        points.push({ level: 'danger', text: 'Forfait ' + pair[1] + ' dépassé : ' + u.used +
-          ' sur ' + u.limit + '. Les dépassements sont facturés à l\'unité.' });
-      } else if (ratio > 0.8) {
-        points.push({ level: 'danger', text: 'Forfait ' + pair[1] + ' bientôt atteint : ' +
-          u.used + ' sur ' + u.limit + ' (' + Math.round(ratio * 100) + ' %). ' +
-          'La formule supérieure vous laisserait de la marge.' });
-      }
-    });
+    /* Le forfait d'appels a désormais son propre bandeau, avec le surcoût réel
+       et la montée en gamme : le répéter ici serait redondant. Seuls les
+       emails restent signalés à cet endroit. */
+    var mails = store.usage().emails;
+    if (mails.used / mails.limit > 0.8) {
+      points.push({ level: 'danger', text: 'Forfait emails à ' +
+        Math.round((mails.used / mails.limit) * 100) + ' % : ' + mails.used +
+        ' sur ' + mails.limit + '.' });
+    }
 
     if (!S.links.gcal) {
       points.push({ level: 'info', text: 'Google Calendar n\'est pas connecté : Ally ne voit pas vos vraies disponibilités.' });
@@ -8509,11 +8798,69 @@ window.ALLY_PLAN_BY_ID = function (id) {
     '</section>';
   }
 
+  /* ---- Forfait ----
+     On ne coupe jamais la ligne : les appels continuent d'être pris et sont
+     facturés au détail. Le professionnel est prévenu à 80 %, puis informé du
+     surcoût réel, avec la formule supérieure à portée de clic. */
+  function viewQuota() {
+    var q = store.quotaState();
+    if (q.level === 'ok') return '';
+
+    var plans = window.ALLY_PLANS;
+    var current = store.planData();
+    var better = plans[plans.indexOf(current) + 1];
+
+    if (q.level === 'warn') {
+      return '<div class="alert"><span class="dot"></span><div>' +
+        '<strong>Forfait bientôt atteint</strong>' +
+        '<p class="row-meta">' + q.used + ' appels sur ' + q.limit + '. Au-delà, ' +
+          'Ally continue de décrocher : les appels supplémentaires sont facturés ' +
+          current.overage.toFixed(2).replace('.', ',') + ' € pièce.' +
+          (better ? ' La formule ' + better.name + ' en inclut ' + better.quota.calls + '.' : '') +
+        '</p></div>' +
+        (better ? '<button type="button" class="btn btn-ghost btn-sm" data-upgrade="' +
+          better.id + '">Passer à ' + better.name + '</button>' : '') +
+      '</div>';
+    }
+
+    return '<div class="alert alert-over"><span class="dot"></span><div>' +
+      '<strong>Forfait dépassé de ' + q.over + ' appel' + (q.over > 1 ? 's' : '') + '</strong>' +
+      '<p class="row-meta">Votre ligne n\'a pas été coupée — un appel refusé vous coûterait ' +
+        'plus cher qu\'un appel facturé. Supplément en cours : ' +
+        q.cost.toFixed(2).replace('.', ',') + ' €' +
+        (better ? '. La formule ' + better.name + ' (' + better.price + ' €) inclut ' +
+          better.quota.calls + ' appels.' : '.') +
+      '</p></div>' +
+      (better ? '<button type="button" class="btn btn-primary btn-sm" data-upgrade="' +
+        better.id + '">Passer à ' + better.name + '</button>' : '') +
+    '</div>';
+  }
+
+  /* ---- Ce qu'Ally a remarqué ----
+     Une seule suggestion à la fois, appuyée sur des gestes réellement comptés,
+     et refusable définitivement. Une IA qui propose au hasard use la patience
+     plus vite qu'elle ne rend service. */
+  function viewInsight() {
+    var insight = store.insight();
+    if (!insight) return '';
+
+    return '<section class="insight-card">' +
+      '<p class="insight-kicker">Ally a remarqué</p>' +
+      '<p class="insight-text">' + esc(insight.text()) + '</p>' +
+      '<div class="insight-actions">' +
+        '<button type="button" class="btn btn-primary btn-md" data-insight-yes="' +
+          insight.id + '">' + esc(insight.action) + '</button>' +
+        '<button type="button" class="btn btn-ghost btn-md" data-insight-no="' +
+          insight.id + '">Non, ne me le repropose plus</button>' +
+      '</div>' +
+    '</section>';
+  }
+
   /* Un compte neuf n'a pas d'historique : on décrit ce qui va se passer plutôt
      que d'afficher les chiffres d'un autre cabinet. */
   function viewEmptyToday() {
     var status = lineStatus();
-    return viewFirstSteps() +
+    return viewFirstSteps() + viewQuota() + viewInsight() +
       '<section class="card blank-card">' +
         '<p class="blank-kicker">Votre ligne n\'a pas encore sonné</p>' +
         '<h2 class="blank-title">Tout est prêt, ' + esc(name()) + '.</h2>' +
@@ -8556,7 +8903,7 @@ window.ALLY_PLAN_BY_ID = function (id) {
     var p = P();
     var items = todoItems();
 
-    return viewFirstSteps() +
+    return viewFirstSteps() + viewQuota() + viewInsight() +
       '<section class="todo-card">' +
         '<div class="todo-head">' +
           '<p class="card-title" style="margin:0">Actions requises</p>' +
@@ -8649,7 +8996,7 @@ window.ALLY_PLAN_BY_ID = function (id) {
 
   function draftItem(mail) {
     var open = ui.expanded === 'draft-' + mail.id;
-    return '<div class="conv is-draft">' +
+    return '<div class="conv is-draft' + (mail.sending ? ' is-sending' : '') + '">' +
       '<button type="button" class="conv-head" data-expand="draft-' + mail.id + '"' +
         ' aria-expanded="' + open + '" aria-controls="body-draft-' + mail.id + '">' +
         '<span class="conv-chan chan-mail" aria-hidden="true"></span>' +
@@ -8666,10 +9013,17 @@ window.ALLY_PLAN_BY_ID = function (id) {
           '<p class="transcript-label">Brouillon préparé par Ally</p>' +
           '<p class="transcript-text">' + esc(mail.preview) + '</p>' +
           '<p class="mail-sign">' + esc(signature()) + '</p>' +
-          '<div class="transcript-actions">' +
-            '<button type="button" class="btn btn-primary btn-sm" data-send="' + mail.id + '">Envoyer</button>' +
-            '<button type="button" class="btn btn-ghost btn-sm" data-edit="' + mail.id + '">Modifier</button>' +
-          '</div>' +
+          (mail.sending
+            ? '<div class="sending-bar">' +
+                '<span class="sending-dot" aria-hidden="true"></span>' +
+                '<span>Envoi à ' + esc(mail.to) + ' dans ' +
+                  '<strong data-countdown="' + mail.id + '">' + store.secondsLeft(mail) + '</strong> s</span>' +
+                '<button type="button" class="btn btn-ghost btn-sm" data-undo="' + mail.id + '">Annuler</button>' +
+              '</div>'
+            : '<div class="transcript-actions">' +
+                '<button type="button" class="btn btn-primary btn-sm" data-send="' + mail.id + '">Envoyer</button>' +
+                '<button type="button" class="btn btn-ghost btn-sm" data-edit="' + mail.id + '">Modifier</button>' +
+              '</div>') +
         '</div>' +
       '</div></div>';
   }
@@ -9094,6 +9448,10 @@ window.ALLY_PLAN_BY_ID = function (id) {
     el.panel.innerHTML = VIEWS[ui.tab]();
     var panel = el.panel;
 
+    /* Un envoi peut être en cours au moment où l'on change d'onglet : le
+       décompte doit repartir, sinon il se fige sur l'écran suivant. */
+    if (store.sending().length) startUndoTicker(); else stopUndoTicker();
+
     if (ui.tab === 'telephony') window.ALLY_TELEPHONY.bind(panel, renderPanel);
     if (ui.tab === 'agenda') window.ALLY_AGENDA.bind(panel, renderPanel);
 
@@ -9103,13 +9461,22 @@ window.ALLY_PLAN_BY_ID = function (id) {
     panel.querySelectorAll('[data-send]').forEach(function (button) {
       button.addEventListener('click', function () {
         var id = Number(button.getAttribute('data-send'));
-        var mail = drafts().filter(function (m) { return m.id === id; })[0];
+        var mail = store.sendMail(id, function () {
+          /* Passé les dix secondes, l'email est parti : on rafraîchit. */
+          if (ui.tab === 'conversations' || ui.tab === 'today') {
+            renderNav(); renderPanel(); renderChrome();
+          }
+        });
         if (!mail) return;
-        D().drafts = drafts().filter(function (m) { return m.id !== id; });
-        D().sent.unshift({ id: Date.now(), subject: mail.subject, to: mail.to, time: 'À l\'instant' });
-        store.log('Validation de « ' + mail.subject + ' »', 'Email envoyé à ' + mail.to);
-        store.save();
-        ui.expanded = null;
+
+        startUndoTicker();
+        flashUndo('Envoi à ' + mail.to + ' dans ' + (store.UNDO_MS / 1000) + ' s.', function () {
+          store.cancelSend(id);
+          stopUndoTicker();
+          renderNav(); renderPanel(); renderChrome();
+          flash('Envoi annulé. Le brouillon est toujours là.');
+        });
+
         renderNav(); renderPanel(); renderChrome();
         el.sub.textContent = SUBS[ui.tab]();
       });
@@ -9122,6 +9489,8 @@ window.ALLY_PLAN_BY_ID = function (id) {
         var id = Number(button.getAttribute('data-edit'));
         var mail = drafts().filter(function (m) { return m.id === id; })[0];
         if (!mail) return;
+        store.record('draft-edited');
+        mail.edited = true;
         var box = button.closest('.mail-preview');
         var text = box.querySelector('.transcript-text');
         var area = document.createElement('textarea');
@@ -9343,6 +9712,48 @@ window.ALLY_PLAN_BY_ID = function (id) {
         flash('Données d\'exemple retirées. Le compte repart à zéro.');
       });
     }
+
+    panel.querySelectorAll('[data-upgrade]').forEach(function (button) {
+      button.addEventListener('click', function () {
+        var id = button.getAttribute('data-upgrade');
+        S.planId = id;
+        S.plan = window.ALLY_PLAN_BY_ID(id).name;
+        store.save();
+        store.syncAccount();
+        renderNav(); renderPanel(); renderChrome();
+        flash('Formule ' + S.plan + ' active. Le forfait est réévalué immédiatement.');
+      });
+    });
+
+    panel.querySelectorAll('[data-insight-yes]').forEach(function (button) {
+      button.addEventListener('click', function () {
+        var insight = store.insight();
+        if (!insight || insight.id !== button.getAttribute('data-insight-yes')) return;
+        if (insight.apply) insight.apply();
+        store.dismissInsight(insight.id);
+        store.record('insight-accepted', insight.id);
+        if (insight.go) { setTab(insight.go); return; }
+        renderNav(); renderPanel(); renderChrome();
+        flash('C\'est appliqué.');
+      });
+    });
+
+    panel.querySelectorAll('[data-insight-no]').forEach(function (button) {
+      button.addEventListener('click', function () {
+        store.dismissInsight(button.getAttribute('data-insight-no'));
+        renderPanel();
+        flash('Entendu, je ne le reproposerai plus.');
+      });
+    });
+
+    panel.querySelectorAll('[data-undo]').forEach(function (button) {
+      button.addEventListener('click', function () {
+        store.cancelSend(Number(button.getAttribute('data-undo')));
+        stopUndoTicker();
+        renderNav(); renderPanel(); renderChrome();
+        flash('Envoi annulé. Le brouillon est toujours là.');
+      });
+    });
 
     /* ---- Registre, fiche du cabinet, écoute ---- */
     panel.querySelectorAll('[data-tone]').forEach(function (chip) {

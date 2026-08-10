@@ -269,12 +269,14 @@
             + (message || 'un mot au sujet de votre rendez-vous') + ' ».',
           detail: 'Rendez-vous de ' + target.time + ' — ' + target.type,
           apply: function () {
-            D.sent.unshift({
-              id: Date.now(),
+            /* Dix secondes pour se rétracter : c'est le garde-fou du choix
+               « aucune confirmation orale avant envoi ». L'email part, mais
+               une erreur de transcription reste rattrapable. */
+            store.sendDirect({
               subject: 'Message de ' + store.displayName(),
-              to: target.client, time: 'À l\'instant', body: body
+              to: target.client, body: body, category: 'Dicté à la voix'
             });
-            store.log('Email vocal à ' + target.client, 'Envoyé sans relecture');
+            store.log('Email vocal à ' + target.client, 'Envoi dans 10 s, annulable');
           },
           follow: ['Résume-moi ma journée', 'Déplace ce rendez-vous']
         };

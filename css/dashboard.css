@@ -990,3 +990,48 @@
   content: ''; position: absolute; left: 0; top: 8px;
   width: 5px; height: 5px; border-radius: 50%; background: var(--accent-bright);
 }
+
+
+/* ============ ENVOI DIFFÉRÉ ============
+   L'email part, mais reste rattrapable dix secondes. Le décompte est visible
+   là où l'on vient de cliquer, et repris dans un message flottant. */
+.sending-bar {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  background: oklch(0.3 0.10 90 / 0.14);
+  border: 1px solid oklch(0.8 0.10 90 / 0.35);
+  border-radius: var(--r-sm); padding: 12px 14px;
+  font-size: 13px; color: var(--yellow);
+}
+.sending-bar strong { font-family: var(--ff-h); font-size: 15px; color: var(--txt); }
+.sending-bar .btn { margin-left: auto; }
+.sending-dot {
+  width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+  background: var(--yellow); animation: pulse-dot 1s ease-in-out infinite;
+}
+.conv.is-sending { box-shadow: inset 2px 0 0 var(--yellow); }
+
+.flash-undo { display: flex; align-items: center; gap: 16px; }
+.flash-undo .btn { flex-shrink: 0; }
+
+/* ============ FORFAIT DÉPASSÉ ============ */
+.alert-over {
+  background: oklch(0.32 0.12 25 / 0.18);
+  border-color: oklch(0.7 0.16 25 / 0.35);
+}
+.alert-over .dot { background: var(--danger); }
+.alert .btn { flex-shrink: 0; align-self: center; }
+
+/* ============ SUGGESTION D'ALLY ============
+   Une seule à la fois, et refusable définitivement : la carte doit se
+   remarquer sans occuper la place d'une information. */
+.insight-card {
+  background: linear-gradient(135deg, oklch(0.21 0.03 200 / 0.6), oklch(0.2 0.03 296 / 0.45));
+  border: 1px solid oklch(0.75 0.15 200 / 0.28);
+  border-radius: var(--r); padding: 22px 24px; margin-bottom: 24px;
+}
+.insight-kicker {
+  font-size: 11px; text-transform: uppercase; letter-spacing: .08em;
+  color: oklch(0.8 0.12 200); margin-bottom: 10px;
+}
+.insight-text { font-size: 15px; line-height: 1.6; color: var(--txt-2); max-width: 68ch; }
+.insight-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 18px; }
