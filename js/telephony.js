@@ -257,6 +257,7 @@
               other.setAttribute('aria-pressed', String(other === chip));
             });
             // Retour immédiat : on entend la voix qu'on vient de choisir.
+            store.markStep('heard');
             voice.speak(sampleLine(), store.voiceOptions());
           });
         });
@@ -292,6 +293,9 @@
         button.addEventListener('click', function () {
           var code = button.getAttribute('data-copy');
           if (navigator.clipboard) navigator.clipboard.writeText(code);
+          /* Copier un code de renvoi est le seul signe qu'on dispose que la
+             ligne est en train d'être branchée : c'est ce qui coche l'étape. */
+          store.markStep('forward');
           button.textContent = 'Copi\u00e9';
           window.setTimeout(function () { button.textContent = 'Copier'; }, 1600);
         });

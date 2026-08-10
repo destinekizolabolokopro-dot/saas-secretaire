@@ -193,9 +193,45 @@
   function renderPreview() {
     var name = store.displayName();
     el.pvName.textContent = S.identity.lastName ? name : '—';
-    el.pvGreeting.textContent = S.identity.org
-      ? '« ' + profile().greeting({ org: S.identity.org, name: name }) + ' »'
-      : '—';
+    el.pvGreeting.textContent = S.identity.org ? '« ' + store.greeting() + ' »' : '—';
+  }
+
+  /* ---- Registre de parole (étape 2) ----
+     L'aperçu se met à jour à chaque changement, et le bouton Écouter le dit à
+     voix haute : c'est le moment où le professionnel entend sa secrétaire pour
+     la première fois, et c'est là que le produit devient crédible. */
+  function renderTone() {
+    var TONES = store.TONES;
+    chipGroup(document.getElementById('q-tone'),
+      Object.keys(TONES).map(function (id) { return { value: id, label: TONES[id].label }; }),
+      function () { return S.tone; },
+      function (value) {
+        store.setTone(value);
+        document.getElementById('tone-desc').textContent = TONES[value].desc;
+        renderPreview();
+      }, false);
+    document.getElementById('tone-desc').textContent = (TONES[S.tone] || TONES.sobre).desc;
+  }
+
+  function bindListen(buttonId, noteId, text) {
+    var button = document.getElementById(buttonId);
+    if (!button) return;
+    var note = noteId ? document.getElementById(noteId) : null;
+
+    button.addEventListener('click', function () {
+      var voice = window.ALLY_VOICE;
+      if (!voice || !voice.canSpeak()) {
+        if (note) {
+          note.textContent = 'Votre navigateur ne propose pas de synthèse vocale. '
+            + 'Le texte reste correct, seule l\'écoute est indisponible.';
+          note.hidden = false;
+        }
+        return;
+      }
+      if (note) note.hidden = true;
+      store.markStep('heard');
+      voice.speak(text(), store.voiceOptions());
+    });
   }
 
   /* Écoute une seule fois ; syncIdentity() recharge les valeurs depuis l'état. */
@@ -572,7 +608,7 @@
     el.prev.hidden = (step === 1);
     el.next.textContent = (step === STEP_COUNT) ? 'Ouvrir mon espace pro' : 'Continuer';
 
-    if (step === 2) renderIdentityLabels();
+    if (step === 2) { renderIdentityLabels(); renderTone(); }
     if (step === 3) renderActivity();
     if (step === 5) renderTopics();
     if (step === 6) renderUrgency();
@@ -609,6 +645,10 @@
 
   renderTrades();
   bindIdentity();
+  bindListen('pv-listen', 'pv-listen-note', function () { return store.greeting(); });
+  bindListen('recap-listen', null, function () {
+    return el.greeting.value || store.greeting();
+  });
   syncIdentity();
   renderHours();
   renderRules();

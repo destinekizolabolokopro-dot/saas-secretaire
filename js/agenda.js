@@ -8,8 +8,16 @@
 
   var store = window.ALLY_STORE;
 
-  /* La démonstration est figée au mardi 28 juillet 2026, comme le reste. */
-  var TODAY = '2026-07-28';
+  /* Le jour réel. Les données d'exemple, elles, sont datées du 28 juillet 2026 :
+     elles sont décalées sur la semaine en cours au moment où on les charge
+     (voir ALLY_STORE.SAMPLE_REF). Un tableau de bord qui affiche la date d'un
+     autre mois est la première chose qu'on remarque. */
+  function todayISO() {
+    var now = new Date();
+    var m = now.getMonth() + 1, d = now.getDate();
+    return now.getFullYear() + '-' + (m < 10 ? '0' : '') + m + '-' + (d < 10 ? '0' : '') + d;
+  }
+  var TODAY = todayISO();
 
   var MONTHS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet',
     'août', 'septembre', 'octobre', 'novembre', 'décembre'];
@@ -82,7 +90,7 @@
     return store.data().blocked.filter(function (b) { return b.date === iso; });
   }
 
-  var view = { month: '2026-07', selected: TODAY };
+  var view = { month: TODAY.slice(0, 7), selected: TODAY };
 
   function monthMatrix(ym) {
     var parts = ym.split('-');

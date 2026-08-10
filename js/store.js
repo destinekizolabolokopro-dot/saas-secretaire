@@ -65,6 +65,20 @@
       subscription: null,
       links: { gmail: false, outlook: false, gcal: false, phone: false, sms: true },
       waitlist: [],
+      /* Registre d'Ally. Il ne change pas ce qu'elle sait, il change comment
+         elle le dit — au téléphone, dans les emails, et dans l'espace pro. */
+      tone: 'sobre',
+      /* Fiche du cabinet : ce qu'un appelant demande sans jamais avoir besoin
+         du professionnel. Chaque champ rempli devient une réponse qu'Ally
+         donne seule. */
+      sheet: { address: '', access: '', parking: '', payment: '', price: '', delay: '' },
+      /* Premiers pas. Cochés automatiquement quand l'action est faite : sans
+         renvoi d'appel posé, la ligne ne sonne jamais et le pro conclut que le
+         produit ne marche pas. */
+      steps: { heard: false, forward: false, calendar: false, sheet: false, dismissed: false },
+      /* « sample » : jeu de démonstration du métier. « empty » : compte neuf,
+         aucune activité — c'est le cas d'un vrai professionnel qui s'inscrit. */
+      dataMode: 'sample',
       data: null,
       /* Script d'appel : null tant que le pro ne l'a pas personnalisé, on
          retombe alors sur celui généré pour son métier. */
@@ -72,31 +86,70 @@
     };
   }
 
-  /* Script d'appel par défaut, dérivé du métier et de l'identité. */
-  function defaultScript(profile, identity, greeting) {
+  /* ---- Registres de parole ----
+     Le même contenu, dit trois façons. C'est ce qui différencie l'accueil d'un
+     cabinet d'avocats de celui d'un plombier, bien plus que le vocabulaire
+     métier : personne ne veut d'une secrétaire qui parle comme celle du
+     concurrent. */
+  var TONES = {
+    sobre: {
+      label: 'Sobre',
+      desc: 'Neutre et professionnel. Le registre attendu dans un cabinet.',
+      open: 'Comment puis-je vous aider ?',
+      qualify: 'Très bien. Pouvez-vous me préciser votre demande, afin que je vous oriente correctement ?',
+      booking: 'Je regarde les disponibilités. Je peux vous proposer un créneau, cela vous convient-il ?',
+      unknown: 'Je préfère ne pas répondre à votre place sur ce point. Je note votre demande et {who} vous rappellera. Puis-je avoir votre nom et votre numéro ?',
+      closing: 'C\'est noté, je transmets. Merci de votre appel et belle journée.',
+      hello: 'Bonjour', mailOpen: 'Madame, Monsieur,'
+    },
+    chaleureux: {
+      label: 'Chaleureux',
+      desc: 'Plus humain, plus rassurant. Pour une clientèle de particuliers.',
+      open: 'Que puis-je faire pour vous aujourd\'hui ?',
+      qualify: 'Je vous écoute. Dites-moi ce qui vous amène, je vais faire le nécessaire.',
+      booking: 'Je regarde tout de suite ce qui est libre. Je devrais pouvoir vous trouver quelque chose.',
+      unknown: 'Je préfère ne pas m\'avancer sur ce point, vous méritez une vraie réponse. Je note tout et {who} vous rappelle. Votre nom et votre numéro ?',
+      closing: 'C\'est noté, je m\'en occupe. Merci de votre appel, très bonne journée à vous.',
+      hello: 'Bonjour', mailOpen: 'Bonjour,'
+    },
+    direct: {
+      label: 'Direct',
+      desc: 'Court, sans formule. Pour aller vite et ne pas faire attendre.',
+      open: 'Je vous écoute.',
+      qualify: 'Quel est l\'objet de votre appel ?',
+      booking: 'Je consulte l\'agenda. Quel jour vous arrange ?',
+      unknown: 'Je ne réponds pas à ça sans {who}. Je prends votre nom et votre numéro, il vous rappelle.',
+      closing: 'C\'est noté. Bonne journée.',
+      hello: 'Bonjour', mailOpen: 'Bonjour,'
+    }
+  };
+
+  function toneOf(id) { return TONES[id] || TONES.sobre; }
+
+  /* Script d'appel par défaut, dérivé du métier, de l'identité et du registre. */
+  function defaultScript(profile, identity, greeting, toneId) {
     var who = window.ALLY_DISPLAY_NAME(identity, profile);
-    var client = profile.clientWord;
+    var t = toneOf(toneId);
     return [
       { id: 'greeting', label: 'Accueil',
         hint: 'La toute première phrase, dès le décroché.',
         text: greeting },
       { id: 'qualify', label: 'Qualification',
         hint: 'Comment Ally identifie le motif de l\'appel.',
-        text: 'Très bien. Pouvez-vous me préciser votre demande, afin que je vous oriente correctement ?' },
+        text: t.qualify },
       { id: 'urgent', label: 'Urgence détectée',
         hint: 'Déclenché dès qu\'une urgence est reconnue. Transfert immédiat.',
         text: 'Je comprends qu\'il s\'agit d\'une urgence. Je vous mets en relation immédiatement avec '
           + who + ', ne quittez pas.' },
       { id: 'booking', label: 'Prise de rendez-vous',
         hint: 'Proposition de créneau, dans vos disponibilités déclarées.',
-        text: 'Je regarde les disponibilités. Je peux vous proposer un créneau, cela vous convient-il ?' },
+        text: t.booking },
       { id: 'unknown', label: 'Demande hors périmètre',
         hint: 'Quand Ally ne sait pas répondre : elle prend un message, elle n\'invente pas.',
-        text: 'Je préfère ne pas répondre à votre place sur ce point. Je note votre demande et '
-          + who + ' vous rappellera. Puis-je avoir votre nom et votre numéro ?' },
+        text: t.unknown.replace('{who}', who) },
       { id: 'closing', label: 'Clôture',
         hint: 'La phrase de fin, toujours prononcée.',
-        text: 'C\'est noté, je transmets. Merci de votre appel et belle journée.' }
+        text: t.closing }
     ];
   }
 
@@ -121,18 +174,64 @@
   /* Jeu de données vivant du compte, initialisé depuis le profil métier.
      C'est lui que l'interface modifie : envoyer un brouillon, annuler un
      rendez-vous ou ajouter une fiche agit vraiment, et survit au rechargement. */
+  /* Les rendez-vous d'exemple sont datés du 28 juillet 2026. Affichés tels
+     quels un autre mois, ils tombent hors du calendrier : on les décale du
+     même nombre de jours pour retrouver leur position relative — aujourd'hui,
+     après-demain, la semaine prochaine. */
+  var SAMPLE_REF = '2026-07-28';
+
+  function todayISO() {
+    var now = new Date();
+    var m = now.getMonth() + 1, d = now.getDate();
+    return now.getFullYear() + '-' + (m < 10 ? '0' : '') + m + '-' + (d < 10 ? '0' : '') + d;
+  }
+
+  function shiftDate(iso, days) {
+    var parts = String(iso).split('-');
+    var date = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+    date.setDate(date.getDate() + days);
+    var m = date.getMonth() + 1, d = date.getDate();
+    return date.getFullYear() + '-' + (m < 10 ? '0' : '') + m + '-' + (d < 10 ? '0' : '') + d;
+  }
+
+  function dayGap(fromIso, toIso) {
+    var a = fromIso.split('-'), b = toIso.split('-');
+    var d1 = Date.UTC(a[0], a[1] - 1, a[2]);
+    var d2 = Date.UTC(b[0], b[1] - 1, b[2]);
+    return Math.round((d2 - d1) / 86400000);
+  }
+
   function seed(trade) {
     var p = window.ALLY_PROFILES[trade];
+    var gap = dayGap(SAMPLE_REF, todayISO());
+    var rdv = clone(p.rdv);
+    rdv.forEach(function (item) { item.date = shiftDate(item.date, gap); });
+
     return {
       trade: trade,
       calls: clone(p.calls),
       drafts: clone(p.drafts),
       sent: clone(p.sent),
-      rdv: clone(p.rdv),
+      rdv: rdv,
       faq: clone(p.faq),
       contacts: clone(p.contacts),
       voiceLog: clone(p.voiceLog),
       blocked: []
+    };
+  }
+
+  /* Compte neuf : aucune activité. La base de connaissances et le contact de
+     transfert, eux, viennent du questionnaire — ce sont des réglages, pas de
+     l'historique. Afficher les appels d'un inconnu à quelqu'un qui vient de
+     s'inscrire est le moyen le plus rapide de lui faire comprendre que rien
+     de tout cela n'est à lui. */
+  function emptySeed(trade) {
+    var p = window.ALLY_PROFILES[trade];
+    return {
+      trade: trade,
+      calls: [], drafts: [], sent: [], rdv: [], voiceLog: [], blocked: [],
+      faq: clone(p.faq),
+      contacts: [{ id: 1, name: 'Votre portable', reason: 'Transfert des urgences' }]
     };
   }
 
@@ -150,13 +249,74 @@
       return window.ALLY_PROFILES[state.trade] || window.ALLY_PROFILES.avocat;
     },
 
+    SAMPLE_REF: SAMPLE_REF,
+
     /* Données du compte, réensemencées si le métier a changé. */
     data: function () {
       if (!state.data || state.data.trade !== state.trade) {
-        state.data = seed(state.trade);
+        state.data = (state.dataMode === 'empty') ? emptySeed(state.trade) : seed(state.trade);
         this.save();
       }
       return state.data;
+    },
+
+    /* Un compte neuf n'a encore rien vécu : plusieurs écrans le disent au lieu
+       d'afficher des chiffres qui ne sont pas les siens. */
+    isNew: function () { return state.dataMode === 'empty'; },
+
+    /* Charge le jeu de démonstration du métier, pour voir l'espace pro rempli. */
+    loadSample: function () {
+      state.dataMode = 'sample';
+      state.data = seed(state.trade);
+      this.save();
+    },
+
+    /* Repart d'un compte vierge, en conservant la configuration. */
+    clearActivity: function () {
+      state.dataMode = 'empty';
+      state.data = emptySeed(state.trade);
+      this.save();
+    },
+
+    /* Étapes de mise en service, cochées quand l'action est réellement faite. */
+    markStep: function (id) {
+      if (state.steps[id]) return false;
+      state.steps[id] = true;
+      this.save();
+      return true;
+    },
+
+    stepsLeft: function () {
+      var done = ['heard', 'forward', 'calendar', 'sheet']
+        .filter(function (id) { return state.steps[id]; }).length;
+      return 4 - done;
+    },
+
+    /* Fiche du cabinet convertie en fiches de connaissance : c'est ce qui fait
+       qu'Ally répond « le parking est au 12 rue Victor-Hugo » au lieu de
+       prendre un message. */
+    sheetEntries: function () {
+      var LABELS = {
+        address: 'Adresse du cabinet',
+        access: 'Comment venir',
+        parking: 'Stationnement',
+        payment: 'Moyens de paiement',
+        price: 'Tarif annoncé',
+        delay: 'Délai de réponse'
+      };
+      return Object.keys(LABELS)
+        .filter(function (key) { return String(state.sheet[key] || '').trim(); })
+        .map(function (key, index) {
+          return { id: 'sheet-' + key, order: index, q: LABELS[key], a: state.sheet[key].trim() };
+        });
+    },
+
+    sheetFilled: function () { return this.sheetEntries().length; },
+
+    /* Tout ce qu'Ally peut répondre seule : les fiches saisies dans l'espace
+       pro, plus la fiche du cabinet. */
+    knowledge: function () {
+      return this.data().faq.concat(this.sheetEntries());
     },
 
     /* Formule d'abonnement et capacités qu'elle débloque. */
@@ -175,9 +335,20 @@
        du métier. Le métier ne fournit que la consommation déjà réalisée, à
        laquelle s'ajoute l'activité de la session. */
     usage: function () {
-      var base = this.profile().quota;
       var limits = this.planData().quota;
       var D = this.data();
+
+      /* Compte neuf : la consommation part de zéro. Reprendre celle du profil
+         métier afficherait « 142 appels ce mois-ci » à quelqu'un dont la ligne
+         n'a jamais sonné. */
+      if (state.dataMode === 'empty') {
+        return {
+          calls:  { used: D.calls.length, limit: limits.calls },
+          emails: { used: D.sent.length,  limit: limits.emails }
+        };
+      }
+
+      var base = this.profile().quota;
       var extraCalls = Math.max(0, D.calls.length - window.ALLY_PROFILES[D.trade].calls.length);
       var extraMails = Math.max(0, D.sent.length - window.ALLY_PROFILES[D.trade].sent.length);
       return {
@@ -204,20 +375,40 @@
       return (state.identity.firstName + ' ' + state.identity.lastName).trim();
     },
 
-    /* Script d'accueil : celui saisi par le pro, sinon celui du métier. */
+    TONES: TONES,
+
+    /* Registre de parole courant. */
+    tone: function () { return toneOf(state.tone); },
+
+    setTone: function (id) {
+      if (!TONES[id]) return;
+      state.tone = id;
+      /* Le script suit le registre tant que le pro ne l'a pas réécrit lui-même :
+         changer de ton sans que rien ne change à l'écran serait un réglage
+         décoratif de plus. */
+      if (!state.script) state.greeting = '';
+      this.save();
+    },
+
+    /* Script d'accueil : celui saisi par le pro, sinon celui du métier, dit
+       dans le registre choisi. */
     greeting: function () {
       if (state.greeting) return state.greeting;
-      return this.profile().greeting({ org: state.identity.org, name: this.displayName() });
+      var base = this.profile().greeting({ org: state.identity.org, name: this.displayName() });
+      var t = this.tone();
+      /* Les profils terminent par « Comment puis-je vous aider aujourd'hui ? ».
+         On remplace cette dernière question par celle du registre. */
+      return base.replace(/[^.!?]*\?\s*$/, '').trim() + ' ' + t.open;
     },
 
     /* Script d'appel courant : celui du pro, sinon celui de son métier. */
     script: function () {
       if (state.script && state.script.length) return state.script;
-      return defaultScript(this.profile(), state.identity, this.greeting());
+      return defaultScript(this.profile(), state.identity, this.greeting(), state.tone);
     },
 
     resetScript: function () {
-      state.script = defaultScript(this.profile(), state.identity, this.greeting());
+      state.script = defaultScript(this.profile(), state.identity, this.greeting(), state.tone);
       this.save();
       return state.script;
     },
@@ -246,6 +437,10 @@
          l'administrateur modifie. */
       var user = window.ALLY_ACCOUNTS && window.ALLY_ACCOUNTS.current();
       if (user) {
+        /* Compte réel connecté et jamais configuré ici : il démarre vide. Le
+           compte de démonstration anonyme, lui, garde son jeu d'exemple pour
+           rester consultable sans inscription. */
+        if (!stored) fresh.dataMode = 'empty';
         fresh.identity.civility = user.civility || fresh.identity.civility;
         fresh.identity.firstName = user.firstName || fresh.identity.firstName;
         fresh.identity.lastName = user.lastName || fresh.identity.lastName;

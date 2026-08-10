@@ -98,6 +98,51 @@ les réglages : un appelant qui le dit explicitement doit être entendu. Et si l
 règle « transférer les urgences » est désactivée, Ally reconnaît toujours
 l'urgence — elle la signale en priorité au lieu de faire sonner.
 
+## Un compte neuf est vide
+
+Un professionnel qui vient de s'inscrire n'a pas d'historique. Son tableau de
+bord ne montre donc **aucun appel, aucun email, aucun rendez-vous** — il décrit
+ce qui se passera au premier appel, et propose de brancher la ligne. Afficher
+les appels d'un cabinet fictif à quelqu'un qui vient de s'inscrire est le moyen
+le plus rapide de lui faire comprendre que rien de tout cela n'est à lui.
+
+Un bouton **« Voir avec des données d'exemple »** charge le jeu de
+démonstration du métier, et **« Retirer les données d'exemple »** le reprend,
+sans toucher à la configuration. Le compte de démonstration anonyme, lui, reste
+rempli : on doit pouvoir regarder l'espace pro sans créer de compte.
+
+Les rendez-vous d'exemple sont datés du 28 juillet 2026 dans les profils ; ils
+sont **décalés sur la semaine en cours** au chargement, en conservant leur
+position relative. Un calendrier ouvert sur un autre mois se remarque
+immédiatement.
+
+## Ce qui rend l'expérience personnelle
+
+**L'heure et l'état de la ligne.** L'accueil dit « Bonsoir » après 18 h et
+croise l'heure réelle avec les horaires déclarés : « Vous avez fermé à 18 h 30
+— Ally prend le relais jusqu'à demain à 9 h. »
+
+**Le registre de parole.** Trois registres — sobre, chaleureux, direct — qui
+réécrivent l'accueil téléphonique, les réponses du script d'appel et l'en-tête
+des emails. Le choix se fait au questionnaire, avec l'aperçu écrit et un bouton
+**Écouter** : c'est le moment où le professionnel entend sa secrétaire pour la
+première fois.
+
+**La mise en service.** Quatre gestes en tête du tableau de bord, cochés
+automatiquement quand l'action est réellement faite — écouter l'accueil, copier
+un code de renvoi, connecter l'agenda, remplir la fiche du cabinet. La carte
+disparaît d'elle-même. Sans renvoi d'appel posé, la ligne ne sonne jamais et le
+professionnel conclut que le produit ne marche pas.
+
+**La fiche du cabinet.** Adresse, accès, stationnement, moyens de paiement,
+tarif, délai de réponse. Chaque champ rempli devient une fiche que le moteur
+peut servir : « où puis-je me garer ? » reçoit une vraie réponse au lieu d'une
+prise de message.
+
+**L'aperçu du résumé quotidien.** L'email exact qui partirait ce soir, avec les
+données et le nom du compte. Un réglage qu'on n'a jamais vu à l'œuvre ne
+s'active pas.
+
 ## Structure
 
 ```

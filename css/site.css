@@ -485,3 +485,11 @@
   .summary { position: static; }
   .plan-tagline { min-height: 0; }
 }
+
+
+/* Bouton d'écoute du script d'accueil, dans le questionnaire. */
+.recap-listen {
+  display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-top: 14px;
+}
+.recap-listen .note { flex: 1; min-width: 200px; margin: 0; }
+.ob-preview .btn { margin-top: 16px; }

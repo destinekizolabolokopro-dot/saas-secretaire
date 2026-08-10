@@ -80,11 +80,25 @@
           </div>
         </div>
 
+        <div class="card">
+          <p class="card-title">Comment doit-elle parler ?</p>
+          <p class="note" style="margin-bottom:14px">
+            Même contenu, trois façons de le dire. C'est ce qui distingue votre
+            accueil de celui du confrère d'à côté.
+          </p>
+          <div class="chip-group" id="q-tone"></div>
+          <p class="note" id="tone-desc" style="margin-top:12px">—</p>
+        </div>
+
         <div class="card ob-preview" id="ob-preview">
           <p class="card-title">Ce que ça change</p>
           <p class="ob-preview-row">Vous apparaîtrez comme <strong id="pv-name">—</strong></p>
           <p class="ob-preview-row">Au téléphone, Ally dira :</p>
           <p class="ob-preview-quote" id="pv-greeting">—</p>
+          <button type="button" class="btn btn-ghost btn-md" id="pv-listen">
+            <span aria-hidden="true">▶</span> Écouter
+          </button>
+          <p class="note" id="pv-listen-note" hidden></p>
         </div>
       </section>
 
@@ -227,7 +241,12 @@
           <p class="card-title">Script d'accueil téléphonique</p>
           <label class="sr-only" for="greeting">Script d'accueil</label>
           <textarea class="field" id="greeting" rows="3"></textarea>
-          <p class="note" style="margin-top:12px">Modifiable à tout moment depuis l'espace pro.</p>
+          <div class="recap-listen">
+            <button type="button" class="btn btn-ghost btn-md" id="recap-listen">
+              <span aria-hidden="true">▶</span> Écouter ce qu'entendront vos appelants
+            </button>
+            <p class="note">Modifiable à tout moment depuis l'espace pro.</p>
+          </div>
         </div>
         <p class="note" id="recap-note"></p>
       </section>
@@ -245,6 +264,7 @@
 <script src="js/accounts.js"></script>
 <script src="js/store.js"></script>
 <script src="js/ui.js"></script>
+<script src="js/voice.js"></script>
 <script src="js/onboarding.js"></script>
 </body>
 </html>

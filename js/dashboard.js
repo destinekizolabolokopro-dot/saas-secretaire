@@ -64,7 +64,76 @@
   var AUTONOMY = ['Toujours valider', 'Semi-autonome', 'IA autonome'];
   function autonomyLabel(v) { return v < 34 ? AUTONOMY[0] : v < 67 ? AUTONOMY[1] : AUTONOMY[2]; }
 
-  var DATE_LABEL = 'Mardi 28 juillet 2026';
+  /* ---- Contexte réel : l'heure, le jour, et l'état de la ligne ----
+     L'écran affichait « Bonjour » à toute heure et une date en dur. Un
+     tableau de bord qui ne sait pas quel jour on est ne peut pas prétendre
+     tenir un agenda. */
+  var WEEKDAYS = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'];
+  var MONTHS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet',
+    'août', 'septembre', 'octobre', 'novembre', 'décembre'];
+
+  function dateLabel() {
+    var d = new Date();
+    var label = WEEKDAYS[d.getDay()] + ' ' + d.getDate() + ' ' + MONTHS[d.getMonth()]
+      + ' ' + d.getFullYear();
+    return label.charAt(0).toUpperCase() + label.slice(1);
+  }
+
+  function salutation() {
+    var h = new Date().getHours();
+    return (h < 6 || h >= 18) ? 'Bonsoir' : 'Bonjour';
+  }
+
+  /* Créneau d'ouverture du jour, d'après les horaires déclarés. */
+  function todayHours() {
+    var index = (new Date().getDay() + 6) % 7;   // lundi en tête, comme S.hours
+    return S.hours[index];
+  }
+
+  function minutesNow() {
+    var d = new Date();
+    return d.getHours() * 60 + d.getMinutes();
+  }
+
+  function toMinutes(hhmm) {
+    var parts = String(hhmm || '00:00').split(':');
+    return Number(parts[0]) * 60 + Number(parts[1]);
+  }
+
+  function nextOpening() {
+    for (var i = 1; i <= 7; i++) {
+      var day = S.hours[(((new Date().getDay() + 6) % 7) + i) % 7];
+      if (day.on) {
+        return (i === 1 ? 'demain' : day.label.toLowerCase()) + ' à ' + day.from;
+      }
+    }
+    return null;
+  }
+
+  /* Une phrase qui dit ce qui se passe maintenant, pas un libellé figé. */
+  function lineStatus() {
+    var day = todayHours();
+    var now = minutesNow();
+
+    if (!day.on) {
+      var when = nextOpening();
+      return { open: false,
+        text: 'Vous êtes fermé aujourd\'hui — Ally prend tous les appels'
+          + (when ? ' jusqu\'à ' + when : '') + '.' };
+    }
+    if (now < toMinutes(day.from)) {
+      return { open: false,
+        text: 'Vous ouvrez à ' + day.from + ' — Ally répond d\'ici là.' };
+    }
+    if (now >= toMinutes(day.to)) {
+      var later = nextOpening();
+      return { open: false,
+        text: 'Vous avez fermé à ' + day.to + ' — Ally prend le relais'
+          + (later ? ' jusqu\'à ' + later : '') + '.' };
+    }
+    return { open: true,
+      text: 'Cabinet ouvert jusqu\'à ' + day.to + ' — Ally ne prend que ce que vous manquez.' };
+  }
 
   /* ---------- Dérivés du profil ---------- */
   function drafts()   { return D().drafts; }
@@ -87,7 +156,7 @@
   var ACTIONS = {
     today: [
       { label: '↓ Exporter le récapitulatif', act: function () { exportJSON('recapitulatif', {
-          date: DATE_LABEL, actions: todoItems(), usage: store.usage() }); } },
+          date: dateLabel(), actions: todoItems(), usage: store.usage() }); } },
       { label: '✉ Envoyer le résumé du jour', act: function () {
           store.log('Résumé du jour envoyé', S.identity.email || 'adresse professionnelle');
           flash('Résumé envoyé à ' + (S.identity.email || 'votre adresse')); } },
@@ -224,7 +293,8 @@
        la pastille de la barre latérale, elle, compte les conversations. */
     today: function () {
       var n = todoItems().length;
-      return DATE_LABEL + ' · ' + (n ? n + ' action' + (n > 1 ? 's' : '') + ' à traiter' : 'rien à traiter');
+      return dateLabel() + ' · ' + lineStatus().text
+        + (n ? ' · ' + n + ' action' + (n > 1 ? 's' : '') + ' à traiter' : '');
     },
     conversations: function () {
       return calls().length + ' appels aujourd\'hui · ' + drafts().length + ' brouillons à valider';
@@ -244,7 +314,7 @@
     ui.expanded = null;
     var tab = TABS.filter(function (t) { return t.id === id; })[0];
 
-    el.title.textContent = (id === 'today') ? 'Bonjour ' + name()
+    el.title.textContent = (id === 'today') ? salutation() + ' ' + name()
       : (id === 'account') ? 'Mon compte' : tab.label;
     el.sub.textContent = SUBS[id]();
 
@@ -573,11 +643,110 @@
     return items;
   }
 
+  /* ---- Premiers pas ----
+     Sans renvoi d'appel posé, la ligne ne sonne jamais et le professionnel
+     conclut que le produit ne marche pas. Ces trois gestes sont donc mis en
+     tête de page tant qu'ils ne sont pas faits, et la carte disparaît d'
+     elle-même ensuite. */
+  var FIRST_STEPS = [
+    { id: 'heard', label: 'Écouter ce qu\'entendront vos appelants',
+      hint: 'Trente secondes, et vous saurez si le ton vous convient.',
+      action: 'Écouter', tab: 'telephony' },
+    { id: 'forward', label: 'Poser le renvoi d\'appel sur votre ligne',
+      hint: 'Trois codes à composer. Sans eux, Ally ne recevra jamais d\'appel.',
+      action: 'Voir les codes', tab: 'telephony' },
+    { id: 'calendar', label: 'Connecter votre agenda',
+      hint: 'Ally ne proposera un créneau que s\'il est réellement libre.',
+      action: 'Connecter', tab: 'account' },
+    { id: 'sheet', label: 'Remplir la fiche du cabinet',
+      hint: 'Adresse, parking, tarif : autant d\'appels qui ne vous reviennent plus.',
+      action: 'Remplir', tab: 'ally' }
+  ];
+
+  function syncSteps() {
+    /* Certaines étapes se déduisent de l'état, sans clic sur « c'est fait ». */
+    if (S.links.gcal || S.links.outlook) S.steps.calendar = true;
+    if (store.sheetFilled() >= 3) S.steps.sheet = true;
+  }
+
+  function viewFirstSteps() {
+    syncSteps();
+    if (S.steps.dismissed) return '';
+    var left = FIRST_STEPS.filter(function (item) { return !S.steps[item.id]; });
+    if (!left.length) return '';
+
+    return '<section class="setup-card">' +
+      '<div class="setup-head">' +
+        '<div>' +
+          '<p class="card-title" style="margin:0">Mise en service</p>' +
+          '<p class="row-meta">' + (FIRST_STEPS.length - left.length) + ' sur ' +
+            FIRST_STEPS.length + ' — il reste ' + left.length + ' geste' +
+            (left.length > 1 ? 's' : '') + '</p>' +
+        '</div>' +
+        '<button type="button" class="btn-link" data-steps="dismiss">Masquer</button>' +
+      '</div>' +
+      '<ul class="setup-list">' + FIRST_STEPS.map(function (item) {
+        var done = !!S.steps[item.id];
+        return '<li class="setup-item' + (done ? ' is-done' : '') + '">' +
+          '<span class="check-mark" aria-hidden="true"></span>' +
+          '<div class="setup-text"><strong>' + esc(item.label) + '</strong>' +
+          '<span>' + esc(item.hint) + '</span></div>' +
+          (done ? '<span class="badge-status badge-ok">Fait</span>'
+                : '<button type="button" class="btn btn-ghost btn-sm" data-step-go="' +
+                  item.id + '" data-step-tab="' + item.tab + '">' + esc(item.action) + '</button>') +
+        '</li>';
+      }).join('') + '</ul>' +
+    '</section>';
+  }
+
+  /* Un compte neuf n'a pas d'historique : on décrit ce qui va se passer plutôt
+     que d'afficher les chiffres d'un autre cabinet. */
+  function viewEmptyToday() {
+    var status = lineStatus();
+    return viewFirstSteps() +
+      '<section class="card blank-card">' +
+        '<p class="blank-kicker">Votre ligne n\'a pas encore sonné</p>' +
+        '<h2 class="blank-title">Tout est prêt, ' + esc(name()) + '.</h2>' +
+        '<p class="blank-text">' + esc(status.text) + ' Au premier appel, vous trouverez ' +
+          'ici la transcription, le motif, et ce qu\'Ally a répondu. Rien n\'est ' +
+          'inventé d\'ici là : ce tableau de bord ne montrera que vos données.</p>' +
+        '<div class="blank-actions">' +
+          '<button type="button" class="btn btn-primary btn-md" data-jump="telephony" data-filter="all">' +
+            'Brancher ma ligne</button>' +
+          '<button type="button" class="btn btn-ghost btn-md" data-sample="load">' +
+            'Voir avec des données d\'exemple</button>' +
+        '</div>' +
+      '</section>' +
+
+      '<div class="stat-grid">' +
+        '<div class="stat"><p class="stat-label">Appels reçus</p><p class="stat-value">0</p></div>' +
+        '<div class="stat"><p class="stat-label">RDV du jour</p><p class="stat-value">0</p></div>' +
+        '<div class="stat"><p class="stat-label">Mails à valider</p><p class="stat-value accent">0</p></div>' +
+        '<div class="stat"><p class="stat-label">Forfait</p><p class="stat-value cyan">' +
+          store.usage().calls.limit + '</p></div>' +
+      '</div>' +
+
+      '<div class="cols cols-11">' +
+        '<div class="card"><p class="card-title">Ce qu\'Ally sait déjà répondre</p>' +
+          (store.knowledge().length
+            ? store.knowledge().slice(0, 5).map(function (item) {
+                return '<div class="row"><div><p class="row-name">' + esc(item.q) + '</p>' +
+                  '<p class="row-meta">' + esc(item.a) + '</p></div></div>';
+              }).join('')
+            : emptyState('Aucune fiche pour l\'instant.')) +
+        '</div>' +
+        '<div class="card"><p class="card-title">Points d\'attention</p>' +
+          watchPoints() +
+        '</div>' +
+      '</div>';
+  }
+
   function viewToday() {
+    if (store.isNew()) return viewEmptyToday();
     var p = P();
     var items = todoItems();
 
-    return '' +
+    return viewFirstSteps() +
       '<section class="todo-card">' +
         '<div class="todo-head">' +
           '<p class="card-title" style="margin:0">Actions requises</p>' +
@@ -741,6 +910,15 @@
   function viewAgenda() { return window.ALLY_AGENDA.view(); }
 
   /* ================================= ALLY ================================= */
+  var SHEET_FIELDS = [
+    { id: 'address', label: 'Adresse', hint: '12 rue Victor-Hugo, 69002 Lyon' },
+    { id: 'access',  label: 'Comment venir', hint: 'Métro Bellecour, sortie A — 3e étage, ascenseur' },
+    { id: 'parking', label: 'Stationnement', hint: 'Parking Bellecour à 100 m, places en zone bleue devant' },
+    { id: 'payment', label: 'Moyens de paiement', hint: 'Virement, carte, chèque — pas d\'espèces' },
+    { id: 'price',   label: 'Tarif annoncé', hint: '120 € TTC la première consultation, 45 minutes' },
+    { id: 'delay',   label: 'Délai de réponse', hint: 'Rappel sous 24 h ouvrées' }
+  ];
+
   function viewAlly() {
     var p = P();
     return '<div class="stack limit-760">' +
@@ -752,11 +930,41 @@
             + 'reste imposé sur les emails — aucun contenu métier ne part sans votre accord.</p>' : '') +
       '</div>' +
 
+      '<div class="card"><p class="card-title">Registre de parole</p>' +
+        '<p class="note" style="margin-bottom:14px">Le même contenu, dit trois façons. ' +
+          'Changer de registre réécrit l\'accueil et les réponses du script d\'appel, ' +
+          'sauf celles que vous avez modifiées vous-même.</p>' +
+        '<div class="chip-group">' + Object.keys(store.TONES).map(function (id) {
+          return '<button type="button" class="chip" data-tone="' + id + '"' +
+            ' aria-pressed="' + (S.tone === id) + '">' + esc(store.TONES[id].label) + '</button>';
+        }).join('') + '</div>' +
+        '<p class="note" style="margin-top:12px">' + esc(store.tone().desc) + '</p>' +
+      '</div>' +
+
       '<div class="card"><p class="card-title">Script d\'accueil téléphonique</p>' +
         '<label class="sr-only" for="greeting">Script d\'accueil téléphonique</label>' +
         '<textarea class="field" id="greeting">' + esc(store.greeting()) + '</textarea>' +
-        '<p class="note" style="margin-top:12px">C\'est la première phrase que vos ' +
-          esc(p.clientWord) + 's entendent.</p>' +
+        '<div class="recap-listen">' +
+          '<button type="button" class="btn btn-ghost btn-md" id="ally-listen">' +
+            '<span aria-hidden="true">▶</span> Écouter</button>' +
+          '<p class="note">C\'est la première phrase que vos ' + esc(p.clientWord) + 's entendent.</p>' +
+        '</div>' +
+      '</div>' +
+
+      /* Fiche du cabinet : chaque champ rempli devient une réponse qu'Ally
+         donne seule, au lieu de prendre un message. */
+      '<div class="card"><p class="card-title">Fiche du cabinet' +
+        '<span class="section-hint">' + store.sheetFilled() + ' sur 6 renseignés</span></p>' +
+        '<p class="note" style="margin-bottom:16px">Ce que vos ' + esc(p.clientWord) +
+          's demandent sans avoir besoin de vous. Chaque ligne remplie est un appel ' +
+          'de moins à traiter.</p>' +
+        SHEET_FIELDS.map(function (field) {
+          return '<div class="ob-field">' +
+            '<label class="ob-label" for="sheet-' + field.id + '">' + esc(field.label) + '</label>' +
+            '<input class="field" id="sheet-' + field.id + '" type="text" data-sheet="' + field.id +
+              '" value="' + esc(S.sheet[field.id]) + '" placeholder="' + esc(field.hint) + '">' +
+          '</div>';
+        }).join('') +
       '</div>' +
 
       (store.can('voiceCommand') ? '' : upsell('La commande vocale',
@@ -890,6 +1098,9 @@
         '<div class="tri-row"><span>Portable</span><span>' + esc(S.identity.phone || '—') + '</span><span></span></div>' +
         '<div class="danger-actions">' +
           '<button type="button" class="btn btn-ghost btn-md" id="edit-profile">Modifier mon profil</button>' +
+          (store.isNew()
+            ? '<button type="button" class="btn btn-ghost btn-md" data-sample="load">Charger des données d\'exemple</button>'
+            : '<button type="button" class="btn btn-ghost btn-md" id="sample-clear">Retirer les données d\'exemple</button>') +
           '<button type="button" class="btn btn-danger btn-md" id="reset-account">Réinitialiser la démonstration</button>' +
         '</div>' +
       '</div></div>';
@@ -907,7 +1118,48 @@
           '<button type="button" class="choice" data-freq="daily" aria-pressed="' + (S.summaryFreq === 'daily') + '">Quotidien</button>' +
           '<button type="button" class="choice" data-freq="weekly" aria-pressed="' + (S.summaryFreq === 'weekly') + '">Hebdomadaire</button>' +
         '</div>' +
+      '</div>' +
+
+      /* Un réglage qu'on n'a jamais vu à l'œuvre ne s'active pas : on montre
+         l'email exact qui partirait ce soir, avec les données du compte. */
+      '<div class="card"><p class="card-title">Ce que vous recevrez</p>' +
+        digestPreview() +
+        '<div class="transcript-actions" style="margin-top:16px">' +
+          '<button type="button" class="btn btn-ghost btn-sm" id="digest-send">' +
+            'Me l\'envoyer maintenant</button>' +
+          '<span class="row-meta">Envoyé à ' + esc(S.identity.email || 'votre adresse') +
+            (S.summaryFreq === 'daily' ? ' chaque soir à 19 h' : ' chaque vendredi à 18 h') + '</span>' +
+        '</div>' +
       '</div></div>';
+  }
+
+  /* Rendu de l'email de résumé, à partir des données réelles du compte. */
+  function digestPreview() {
+    var usage = store.usage();
+    var rdv = todayRdv();
+    var lines = [
+      calls().length + ' appel' + (calls().length > 1 ? 's' : '') + ' pris' +
+        (calls().length > 1 ? '' : '') + ' par Ally',
+      drafts().length + ' email' + (drafts().length > 1 ? 's' : '') + ' en attente de votre validation',
+      rdv.length ? rdv.length + ' rendez-vous aujourd\'hui' : 'Aucun rendez-vous aujourd\'hui',
+      'Forfait : ' + usage.calls.used + ' appels sur ' + usage.calls.limit
+    ];
+    var urgent = urgentCall();
+
+    return '<div class="mail-preview">' +
+      '<p class="transcript-label">De : Ally &lt;resume@ally.fr&gt; — Objet : Votre journée du ' +
+        esc(dateLabel().toLowerCase()) + '</p>' +
+      '<p class="transcript-text">' + esc(store.tone().mailOpen) + '<br><br>' +
+        'Voici votre récapitulatif, ' + esc(name()) + '.</p>' +
+      '<ul class="digest-list">' + lines.map(function (line) {
+        return '<li>' + esc(line) + '</li>';
+      }).join('') + '</ul>' +
+      (urgent
+        ? '<p class="lock-note">À traiter en priorité : ' + esc(urgent.caller) + ' — ' +
+          esc(urgent.subject) + ', à ' + esc(urgent.time) + '.</p>'
+        : '') +
+      '<p class="mail-sign">Ally, assistante de ' + esc(S.identity.org || name()) + '</p>' +
+    '</div>';
   }
 
   var TUTORIALS = [
@@ -1260,6 +1512,84 @@
         D().blocked = D().blocked.filter(function (b) { return b.id !== id; });
         store.save();
         renderPanel();
+      });
+    });
+
+    var digestSend = panel.querySelector('#digest-send');
+    if (digestSend) {
+      digestSend.addEventListener('click', function () {
+        store.log('Résumé envoyé à la demande', S.identity.email || 'adresse professionnelle');
+        flash('Résumé envoyé à ' + (S.identity.email || 'votre adresse') + '.');
+      });
+    }
+
+    var sampleClear = panel.querySelector('#sample-clear');
+    if (sampleClear) {
+      sampleClear.addEventListener('click', function () {
+        if (!window.confirm('Retirer les données d\'exemple ? Votre configuration est conservée.')) return;
+        store.clearActivity();
+        renderPanel();
+        renderChrome();
+        flash('Données d\'exemple retirées. Le compte repart à zéro.');
+      });
+    }
+
+    /* ---- Registre, fiche du cabinet, écoute ---- */
+    panel.querySelectorAll('[data-tone]').forEach(function (chip) {
+      chip.addEventListener('click', function () {
+        store.setTone(chip.getAttribute('data-tone'));
+        renderPanel();
+        flash('Registre « ' + store.tone().label.toLowerCase() + ' » appliqué.');
+      });
+    });
+
+    panel.querySelectorAll('[data-sheet]').forEach(function (input) {
+      input.addEventListener('change', function () {
+        S.sheet[input.getAttribute('data-sheet')] = input.value.trim();
+        store.save();
+        /* La fiche alimente la base de connaissances : le compteur et les
+           réponses d'Ally doivent suivre immédiatement. */
+        renderPanel();
+        flash(store.sheetFilled() + ' fiche(s) du cabinet renseignée(s) — Ally peut y répondre.');
+      });
+    });
+
+    var allyListen = panel.querySelector('#ally-listen');
+    if (allyListen) {
+      allyListen.addEventListener('click', function () {
+        var voice = window.ALLY_VOICE;
+        if (!voice || !voice.canSpeak()) { flash('Synthèse vocale indisponible sur ce navigateur.'); return; }
+        store.markStep('heard');
+        voice.speak(panel.querySelector('#greeting').value || store.greeting(), store.voiceOptions());
+      });
+    }
+
+    /* ---- Mise en service et données d'exemple ---- */
+    panel.querySelectorAll('[data-steps="dismiss"]').forEach(function (button) {
+      button.addEventListener('click', function () {
+        S.steps.dismissed = true;
+        store.save();
+        renderPanel();
+        flash('Mise en service masquée. Elle réapparaîtra si vous changez de formule.');
+      });
+    });
+
+    panel.querySelectorAll('[data-step-go]').forEach(function (button) {
+      button.addEventListener('click', function () {
+        var id = button.getAttribute('data-step-go');
+        /* « Écouter » se coche à l'écoute, pas au clic : le geste doit être
+           réellement accompli. Les autres mènent à l'endroit où le faire. */
+        if (id !== 'heard') store.markStep(id);
+        setTab(button.getAttribute('data-step-tab'));
+      });
+    });
+
+    panel.querySelectorAll('[data-sample="load"]').forEach(function (button) {
+      button.addEventListener('click', function () {
+        store.loadSample();
+        renderPanel();
+        renderChrome();
+        flash('Données d\'exemple chargées. Vous pouvez les retirer depuis Mon compte.');
       });
     });
 

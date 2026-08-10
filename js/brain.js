@@ -113,7 +113,24 @@
     garantie: ['garanties', 'decennale', 'assurance'],
     apporter: ['documents', 'document', 'piece'],
     papiers: ['documents', 'document', 'piece'],
-    rembourse: ['vitale', 'mutuelle', 'secteur']
+    rembourse: ['vitale', 'mutuelle', 'secteur'],
+    /* Vocabulaire de la fiche du cabinet : l'appelant demande « où me garer »,
+       la fiche s'appelle « Stationnement ». */
+    garer: ['parking', 'stationnement', 'place', 'voiture'],
+    garez: ['parking', 'stationnement', 'place'],
+    stationner: ['parking', 'stationnement', 'place'],
+    parking: ['stationnement', 'garer', 'place'],
+    adresse: ['rue', 'situe', 'trouve', 'venir'],
+    venir: ['acces', 'adresse', 'metro', 'rue'],
+    trouve: ['adresse', 'rue', 'situe'],
+    situe: ['adresse', 'rue'],
+    acces: ['venir', 'metro', 'etage', 'ascenseur'],
+    payer: ['paiement', 'carte', 'cheque', 'virement'],
+    paiement: ['payer', 'carte', 'cheque', 'virement'],
+    reglement: ['paiement', 'payer', 'carte'],
+    carte: ['paiement', 'payer'],
+    rappelez: ['delai', 'rappel', 'reponse'],
+    rappel: ['delai', 'reponse']
   };
 
   function expand(words) {
@@ -473,7 +490,7 @@
       }
 
       /* ---------- Base de connaissances du cabinet ---------- */
-      var found = faqMatch(input, D.faq);
+      var found = faqMatch(input, store.knowledge());
       if (found) {
         return {
           kind: 'answer',
@@ -523,7 +540,7 @@
         };
       }
 
-      var known = faqMatch(input, D.faq);
+      var known = faqMatch(input, store.knowledge());
 
       /* Une question de renseignement passe avant la prise de rendez-vous :
          « vos tarifs pour une première consultation ? » demande un prix, pas
