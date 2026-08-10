@@ -268,8 +268,21 @@ aujourd'hui — sinon le graphique des inscriptions serait toujours vide.
    pour un produit dont l'argument central est la conformité RGPD.
 5. **`prefers-reduced-motion` respecté**, absent du prototype.
 
-## Suite
+## Le serveur
 
-Le serveur reste à écrire : webhooks Retell, Google Calendar, Brevo, base de
-données, authentification réelle, Stripe. Le découpage, la sécurité prévue et
-les décisions produit arrêtées sont dans [`ARCHITECTURE.md`](ARCHITECTURE.md).
+La fondation de l'API est dans [`server/`](server/README.md) — sans aucune
+dépendance :
+
+```bash
+node server/index.js       # http://localhost:8787
+node server/test.js        # 35 contrôles
+```
+
+Elle ne contient pas encore les intégrations (Retell, Brevo, Google, Stripe),
+qui demandent des comptes et des clés. Elle contient ce qui coûte le plus cher
+à rajouter après : cloisonnement des cabinets, chiffrement des champs
+sensibles, signature des webhooks, hachage des mots de passe, limitation du
+débit, journal d'accès. Chacun a un test qui échoue si on le casse.
+
+Le découpage complet et les décisions produit arrêtées sont dans
+[`ARCHITECTURE.md`](ARCHITECTURE.md).

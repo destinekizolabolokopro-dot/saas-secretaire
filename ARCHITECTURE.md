@@ -149,10 +149,33 @@ reprenne au lieu de les inventer :
   suspensions et suppressions sont horodatés. En production ce journal vit côté
   serveur, en écriture seule, et l'administrateur ne peut pas l'effacer.
 
-Ce qui reste impossible sans serveur : le hachage argon2id, le chiffrement
-applicatif des transcriptions, la signature des webhooks. L'onglet **Système**
-de la console les affiche comme « à faire », plutôt que de laisser croire que le
-sujet est traité.
+### Ce que le serveur applique déjà
+
+La fondation de l'API est écrite (`server/`, aucune dépendance, `node
+server/index.js`). Les trois mesures qui étaient impossibles côté navigateur y
+sont, avec un test chacune :
+
+- **Hachage réel des mots de passe** — scrypt natif, sel par utilisateur,
+  comparaison à temps constant. Le format stocké porte ses paramètres, pour
+  passer à argon2id plus tard sans invalider les comptes.
+- **Chiffrement applicatif** — AES-256-GCM sur les résumés d'appel et les corps
+  d'email, clé lue dans l'environnement. Un test vérifie que le fichier de
+  données ne contient **aucun** de ces contenus en clair. Le serveur refuse de
+  démarrer en production sans clé : mieux vaut une panne visible qu'un
+  chiffrement en trompe-l'œil.
+- **Signature des webhooks** — HMAC-SHA256 sur le corps brut, avec fenêtre
+  temporelle. Quatre tests : signature absente, fausse, émise avec un autre
+  secret, et corps réécrit après signature.
+
+Le cloisonnement, lui, tient à une règle unique : on n'accède jamais à une
+collection, on demande un dépôt lié à un cabinet, et ce cabinet vient du jeton
+de session. Sept tests le vérifient, dont celui-ci — un identifiant appartenant
+à un autre cabinet répond **404, comme un identifiant inexistant**, pour que la
+réponse ne révèle pas l'existence de la ressource.
+
+S'y ajoutent la limitation du débit sur la connexion (par IP **et** par compte
+visé), la fermeture de toutes les sessions à la réinitialisation d'un mot de
+passe, et le journal d'accès.
 
 ### Le reste, à tenir
 

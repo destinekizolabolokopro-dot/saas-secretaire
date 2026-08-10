@@ -1,0 +1,5 @@
+# Données du serveur : jamais dans Git. Elles contiennent des comptes, des
+# empreintes de mots de passe et des contenus chiffrés — rien de tout cela
+# n'a sa place dans un dépôt.
+server/data/
+*.tmp
