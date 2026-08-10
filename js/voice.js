@@ -94,8 +94,19 @@
       synth.cancel();
       var utter = new SpeechSynthesisUtterance(text);
       var voice = this.resolveVoice(options.voiceURI);
-      if (voice) { utter.voice = voice; utter.lang = voice.lang; }
-      else utter.lang = 'fr-FR';
+
+      /* La liste des voix est mise en cache au chargement, mais le navigateur
+         peut la renouveler derrière notre dos — une entrée devient alors
+         invalide et l'affectation lève une exception. Sans ce filet, une seule
+         voix périmée rendait Ally complètement muette : mieux vaut parler avec
+         la voix par défaut que ne pas parler du tout. */
+      try {
+        if (voice) { utter.voice = voice; utter.lang = voice.lang || 'fr-FR'; }
+        else utter.lang = 'fr-FR';
+      } catch (e) {
+        utter.lang = 'fr-FR';
+        loadVoices();
+      }
 
       utter.rate = options.rate || 1;
       utter.pitch = options.pitch || 1;

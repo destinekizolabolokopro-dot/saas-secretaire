@@ -34,9 +34,18 @@
     var store = window.ALLY_STORE;
     var chosen = store.state.survey.urgency || { motifs: [], words: '' };
     var list = CORE_URGENCY.slice();
+    var trade = store.profile().urgencies || [];
 
-    (store.profile().urgencies || []).forEach(function (item) {
-      if (chosen.motifs.indexOf(item.label) < 0) return;
+    /* Aucun motif enregistré : le questionnaire n'a pas été fait, ou l'étape a
+       été passée. On prend alors tous les motifs du métier — c'est le
+       comportement le plus prudent, et celui que le questionnaire propose par
+       défaut. Retenir la liste vide reviendrait à désactiver silencieusement la
+       détection d'urgence pour qui n'a rien réglé. */
+    var selected = chosen.motifs.length
+      ? trade.filter(function (item) { return chosen.motifs.indexOf(item.label) >= 0; })
+      : trade;
+
+    selected.forEach(function (item) {
       item.words.forEach(function (word) {
         if (list.indexOf(word) < 0) list.push(word);
       });

@@ -463,7 +463,10 @@
           sub: window.ALLY_AGENDA.shortLabel(r.date) + ' · ' + r.time, kind: 'RDV' });
       }
     });
-    D().faq.forEach(function (f) {
+    /* La fiche du cabinet fait partie de ce qu'Ally sait : la recherche doit
+       la trouver aussi, sinon « parking » ne renvoie rien alors qu'Ally
+       répond à la question au téléphone. */
+    store.knowledge().forEach(function (f) {
       if (match(f.q) || match(f.a)) {
         hits.push({ tab: 'ally', filter: 'all', label: f.q, sub: f.a, kind: 'Connaissance' });
       }
@@ -2049,13 +2052,18 @@
     renderChrome();
   }
 
-  /* Trace l'ordre dans l'historique visible sous l'onglet Ally. */
+  /* Trace l'ordre dans l'historique visible sous l'onglet Ally.
+     Il s'écrit dans les données du compte, pas dans le profil métier : ce
+     dernier est un objet partagé par tous les comptes du même métier, il n'est
+     jamais enregistré, et l'onglet Ally lit ailleurs. Les ordres vocaux
+     n'apparaissaient donc nulle part, tout en polluant le profil. */
   function logVoice(order, status) {
-    P().voiceLog.unshift({
+    D().voiceLog.unshift({
       id: Date.now(), order: order, when: 'À l\'instant',
       result: status === 'À valider' ? 'En attente de votre confirmation' : 'Traité par Ally',
       state: status === 'À valider' ? 'wait' : 'done'
     });
+    store.save();
     if (ui.tab === 'ally') renderPanel();
   }
 

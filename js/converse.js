@@ -23,6 +23,24 @@
 
   var ACKS = ['', '', 'Alors, ', 'Voyons. ', 'Bien sûr. '];
 
+  /* Mots par lesquels une réponse peut commencer et qu'on peut passer en
+     minuscule après une accroche. La liste est explicite parce que l'inverse
+     — tout mettre en minuscule — produisait « Alors, mme Aubert à 14 h ». */
+  var LOWERABLE = ['vous', 'votre', 'vos', 'oui', 'non', 'aucun', 'aucune', 'rien',
+    'le', 'la', 'les', 'un', 'une', 'des', 'il', 'elle', 'je', 'c', 'ce', 'cette',
+    'demain', 'aujourd', 'deux', 'trois', 'quatre', 'cinq', 'plus', 'pas', 'lundi',
+    'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche'];
+
+  function withAck(reply) {
+    var ack = pick(ACKS);
+    if (!ack) return reply;
+    var first = norm(reply).split(' ')[0];
+    var body = LOWERABLE.indexOf(first) >= 0
+      ? reply.charAt(0).toLowerCase() + reply.slice(1)
+      : reply;
+    return ack + body;
+  }
+
   window.ALLY_CONVERSE = {
 
     reset: function () {
@@ -80,12 +98,45 @@
         return this.wrap({
           kind: 'answer',
           reply: this.brief(),
-          detail: 'Mardi 28 juillet 2026',
+          detail: this.todayLabel(),
           follow: this.briefFollow()
         });
       }
 
       /* ---------- Relances sur le sujet en cours ---------- */
+
+      /* « et demain ? », « et jeudi ? » — on rejoue l'intention précédente.
+         La condition portait aussi sur la longueur : toute demande de moins de
+         16 caractères était avalée par l'agenda, si bien que « mes horaires ? »
+         répondait par la liste des rendez-vous. Il faut une vraie marque de
+         relance, ou un jour employé seul. Et elle ne dépend pas d'une entité :
+         « et demain ? » a un sens même si aucun rendez-vous n'est en cours. */
+      var isFollowUp = /^(et|puis|ensuite)\b/.test(t)
+        || /^(demain|apres demain|aujourd hui|cette semaine|la semaine prochaine)\s*\??$/.test(t)
+        || /^(lundi|mardi|mercredi|jeudi|vendredi|samedi|dimanche)\s*\??$/.test(t);
+
+      if (isFollowUp && ctx.intent === 'agenda') {
+        var A = window.ALLY_AGENDA;
+        var target = A.resolveDate(t, A.TODAY) || A.TODAY;
+        var list = A.rdvOn(target);
+        /* longLabel() renvoie « jeudi 13 août », en minuscule : il ouvre une
+           phrase, donc il faut la majuscule. */
+        var long = A.longLabel(target);
+        var label = target === A.TODAY ? 'Aujourd\'hui'
+          : target === A.addDays(A.TODAY, 1) ? 'Demain'
+          : long.charAt(0).toUpperCase() + long.slice(1);
+
+        return this.wrap({
+          kind: 'answer',
+          reply: list.length
+            ? label + ' : ' + list.map(function (x) {
+                return x.client + ' à ' + x.time;
+              }).join(', ') + '.'
+            : 'Rien de prévu ' + (target === A.TODAY ? 'aujourd\'hui' : label.toLowerCase()) + '.',
+          follow: ['Bloque mon agenda vendredi après-midi', 'Résume-moi ma journée']
+        });
+      }
+
       if (ctx.entity) {
         // « annule-le », « annule ce rendez-vous »
         if (has(t, ['annule', 'supprime', 'enleve']) && t.length < 40) {
@@ -106,32 +157,13 @@
           }
         }
 
-        // « et demain ? », « et jeudi ? » — on rejoue l'intention précédente
-        if (/^(et|puis|ensuite)\b/.test(t) || t.length < 16) {
-          if (ctx.intent === 'agenda') {
-            var day = has(t, ['demain']) ? 'demain' : null;
-            var A = window.ALLY_AGENDA;
-            var list = day
-              ? A.rdvOn(A.addDays(A.TODAY, 1))
-              : A.rdvOn(A.TODAY);
-            return this.wrap({
-              kind: 'answer',
-              reply: list.length
-                ? (day ? 'Demain : ' : 'Aujourd\'hui : ') + list.map(function (x) {
-                    return x.client + ' à ' + x.time;
-                  }).join(', ') + '.'
-                : 'Rien de prévu sur cette période.',
-              follow: ['Bloque mon agenda vendredi après-midi', 'Résume-moi ma journée']
-            });
-          }
-        }
       }
 
       /* ---------- Sinon, le moteur d'intentions fait le travail ---------- */
       var result = brain.ask(input);
 
       // On mémorise le sujet pour les relances.
-      if (/rendez|rdv|deplace|decale/.test(t)) {
+      if (/rendez|rdv|deplace|decale|agenda|creneau|planning|journee|aujourd hui|demain|semaine/.test(t)) {
         ctx.intent = 'agenda';
         ctx.entityType = 'rdv';
         ctx.entity = D.rdv[0] || null;
@@ -143,12 +175,22 @@
 
       /* On enrichit la réponse brute : accroche variée et suite proposée. */
       if (result.kind === 'answer' && ctx.turns > 1 && Math.random() < 0.4) {
-        result.reply = pick(ACKS) + result.reply.charAt(0).toLowerCase() + result.reply.slice(1);
-        result.reply = result.reply.charAt(0).toUpperCase() + result.reply.slice(1);
+        result.reply = withAck(result.reply);
       }
 
       if (!result.follow) result.follow = this.followFor(result, ctx);
       return this.wrap(result);
+    },
+
+    /* Le jour réel, écrit en toutes lettres. */
+    todayLabel: function () {
+      var d = new Date();
+      var label = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'][d.getDay()]
+        + ' ' + d.getDate() + ' '
+        + ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août',
+           'septembre', 'octobre', 'novembre', 'décembre'][d.getMonth()]
+        + ' ' + d.getFullYear();
+      return label.charAt(0).toUpperCase() + label.slice(1);
     },
 
     /* Le point du jour, en une phrase utile. */
@@ -161,8 +203,8 @@
 
       bits.push(D.calls.length + (D.calls.length > 1 ? ' appels reçus' : ' appel reçu'));
       if (today.length) {
-        bits.push(today.length + (today.length > 1 ? ' rendez-vous' : ' rendez-vous')
-          + ', le prochain à ' + today[0].time + ' avec ' + today[0].client);
+        bits.push(today.length + ' rendez-vous, le prochain à ' + today[0].time
+          + ' avec ' + today[0].client);
       } else {
         bits.push('aucun rendez-vous');
       }
