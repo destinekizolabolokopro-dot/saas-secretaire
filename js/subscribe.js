@@ -1,12 +1,15 @@
 /* Ally — choix de formule et création de compte.
-   Démonstration : rien n'est envoyé à un serveur et aucune donnée bancaire
-   n'est demandée. Le compte créé vit dans le navigateur, puis l'onboarding
-   prend le relais pour le personnaliser. */
+
+   Aucune donnée bancaire n'est demandée : l'essai commence sans carte. Le
+   compte, lui, est créé là où il doit l'être — sur le serveur d'Ally quand il
+   répond, dans le navigateur sinon. C'est js/gate.js qui choisit ; cet écran
+   n'en sait rien. L'onboarding prend ensuite le relais pour la configuration. */
 (function () {
   'use strict';
 
   var store = window.ALLY_STORE;
   var accounts = window.ALLY_ACCOUNTS;
+  var gate = window.ALLY_GATE;
   var UI = window.ALLY_UI;
   var PLANS = window.ALLY_PLANS;
   var TRIAL = window.ALLY_TRIAL;
@@ -114,6 +117,29 @@
   UI.revealToggle(document.getElementById('sub-pass'));
   UI.passwordMeter(document.getElementById('sub-pass'), document.getElementById('sub-meter'));
 
+  /* L'avertissement doit rester vrai : quand le serveur répond, le compte est
+     bel et bien créé chez lui, et prétendre le contraire serait mensonger. Le
+     paiement, lui, n'est toujours pas branché — ça, ça ne change pas. */
+  gate.onReady(function (online) {
+    var warning = document.querySelector('.demo-warning');
+    if (!warning || !online) return;
+    warning.textContent = 'Votre compte est créé sur le serveur d\'Ally : mot de passe '
+      + 'chiffré, adresse vérifiée par code. Aucun paiement n\'est encaissé et aucune '
+      + 'donnée bancaire n\'est demandée pendant l\'essai.';
+  });
+
+  /* Un bouton qui attend le réseau doit le dire, et refuser le second clic. */
+  function busy(button, on, label) {
+    if (on) {
+      button.dataset.idle = button.dataset.idle || button.textContent;
+      button.textContent = label;
+      button.disabled = true;
+    } else {
+      button.textContent = button.dataset.idle || button.textContent;
+      button.disabled = false;
+    }
+  }
+
   document.getElementById('sub-submit').addEventListener('click', function () {
     var first = document.getElementById('sub-first');
     var last = document.getElementById('sub-last');
@@ -132,18 +158,22 @@
     if (!cgv.checked) { cgv.focus(); fail('Vous devez accepter les conditions générales.'); return; }
 
     var plan = chosen();
-    var result = accounts.signup({
+    var button = this;
+    busy(button, true, 'Création du compte…');
+
+    gate.signup({
       firstName: first.value, lastName: last.value, email: email.value,
       password: pass.value, planId: plan.id, cycle: state.cycle
+    }).then(function (result) {
+      busy(button, false);
+      if (!result.ok) { fail(result.error); email.focus(); return; }
+
+      created = result.user;
+      showCode(result.code);
+      state.step = 3;
+      render();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     });
-
-    if (!result.ok) { fail(result.error); email.focus(); return; }
-
-    created = result.user;
-    sendCode();
-    state.step = 3;
-    render();
-    window.scrollTo({ top: 0, behavior: 'smooth' });
   });
 
   /* ---------- Étape 3 : vérification de l'adresse ---------- */
@@ -157,20 +187,27 @@
     box.hidden = !message;
   }
 
-  function sendCode() {
-    var code = accounts.issueCode(created.id, 'verify');
+  /* La maquette affiche le code, faute de boîte mail. En production le serveur
+     ne le répète pas : le bloc reste alors caché, et l'écran se contente de
+     dire que le code est parti. */
+  function showCode(code) {
     document.getElementById('ver-target').textContent = created.email;
-    document.getElementById('ver-code').textContent = code;
+    document.getElementById('ver-sent').hidden = !code;
+    if (code) document.getElementById('ver-code').textContent = code;
     verifyFail('');
     codeBoxes.clear();
   }
 
   document.getElementById('ver-resend').addEventListener('click', function () {
-    if (created) sendCode();
+    if (!created) return;
+    gate.resend(created, 'verify').then(function (result) { showCode(result.code); });
   });
 
-  /* Faute de frappe dans l'adresse : on supprime le compte à peine créé et on
-     revient au formulaire, plutôt que de laisser un compte fantôme. */
+  /* Faute de frappe dans l'adresse : on efface le compte à peine créé et on
+     revient au formulaire, plutôt que de laisser un compte fantôme dans le
+     navigateur. Côté serveur, l'inscription non confirmée reste — c'est voulu :
+     une route qui supprime un compte sans preuve d'identité serait une porte
+     ouverte pour effacer celui d'un autre. */
   document.getElementById('ver-change').addEventListener('click', function () {
     if (created) { accounts.remove(created.id); created = null; }
     state.step = 2;
@@ -178,13 +215,22 @@
     document.getElementById('sub-email').focus();
   });
 
-  document.getElementById('ver-submit').addEventListener('click', function () {
+  var verifyButton = document.getElementById('ver-submit');
+  verifyButton.addEventListener('click', function () {
     if (!created) { state.step = 2; render(); return; }
+    busy(verifyButton, true, 'Vérification…');
 
-    var result = accounts.verifyEmail(created.id, codeBoxes.value());
-    if (!result.ok) { verifyFail(result.error); codeBoxes.shake(); return; }
+    gate.verify(created, codeBoxes.value()).then(function (result) {
+      busy(verifyButton, false);
+      if (!result.ok) { verifyFail(result.error); codeBoxes.shake(); return; }
+      finish();
+    });
+  });
 
-    accounts.open(created.id);
+  /* La vérification passée, le compte est ouvert : on installe la formule
+     choisie dans l'espace du professionnel, puis le questionnaire prend le
+     relais. */
+  function finish() {
     store.reload();
 
     var plan = chosen();
@@ -204,7 +250,7 @@
 
     // Le questionnaire prend le relais : métier, activité, horaires, règles.
     window.location.href = 'onboarding.html';
-  });
+  }
 
   /* ---------- Navigation ---------- */
   var TITLES = ['Choisissez votre formule', 'Créez votre compte', 'Vérifiez votre adresse'];

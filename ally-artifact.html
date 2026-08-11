@@ -2548,7 +2548,7 @@ input[type="range"] {
               Il est valable 10 minutes.
             </p>
 
-            <div class="code-sent">
+            <div class="code-sent" id="ver-sent">
               <span>Démonstration — code&nbsp;:</span> <code id="ver-code">——————</code>
               <em>Dans le produit réel, ce code arrive par email et n'apparaît jamais à l'écran.</em>
             </div>
@@ -3866,7 +3866,11 @@ window.ALLY_PLAN_BY_ID = function (id) {
       }
 
       var user = {
-        id: uid(), role: 'pro', email: email, pass: hash(input.password),
+        /* L'identifiant peut être imposé : quand le serveur tient les comptes,
+           la copie locale porte un identifiant dérivé du sien, pour que le même
+           compte retrouve sa configuration d'un appareil à l'autre. */
+        id: input.id && !this.byId(input.id) ? input.id : uid(),
+        role: 'pro', email: email, pass: hash(input.password),
         civility: input.civility || 'M.',
         firstName: (input.firstName || '').trim(),
         lastName: (input.lastName || '').trim(),
@@ -3988,6 +3992,17 @@ window.ALLY_PLAN_BY_ID = function (id) {
       record('password-reset', result.user.email, result.user.id);
       persist();
       return { ok: true, user: result.user };
+    },
+
+    /* Change le mot de passe local sans code : réservé au cas où le serveur
+       vient d'accepter la réinitialisation et l'a déjà validée, lui. */
+    resetLocalPassword: function (userId, password) {
+      var user = this.byId(userId);
+      if (!user || !password || password.length < 8) return false;
+      user.pass = hash(password);
+      user.code = null;
+      persist();
+      return true;
     },
 
     /* ---------- Mise à jour ---------- */
@@ -4241,6 +4256,7 @@ window.ALLY_PLAN_BY_ID = function (id) {
     /* ---------------------------------------------------------- Comptes */
     signup: function (payload) { return request('POST', '/auth/signup', payload); },
     verify: function (userId, code) { return request('POST', '/auth/verify', { userId: userId, code: code }); },
+    resend: function (userId) { return request('POST', '/auth/resend', { userId: userId }); },
     login: function (email, password) { return request('POST', '/auth/login', { email: email, password: password }); },
     logout: function () { return request('POST', '/auth/logout', {}); },
     forgot: function (email) { return request('POST', '/auth/forgot', { email: email }); },
@@ -4263,6 +4279,233 @@ window.ALLY_PLAN_BY_ID = function (id) {
 
     forget: function () { state.cabinetId = null; state.role = null; }
   };
+})();
+
+/* Ally — la porte d'entrée : inscription, vérification, connexion, oubli.
+
+   Il y a deux mondes, et les écrans ne doivent pas avoir à le savoir.
+
+   Sans serveur — fichier ouvert par double-clic, hébergeur statique — les
+   comptes vivent dans le navigateur (js/accounts.js), les codes s'affichent à
+   l'écran, et tout fonctionne pour montrer le produit.
+
+   Avec le serveur d'Ally, c'est lui qui tranche : mot de passe haché en scrypt,
+   session en cookie httpOnly, limitation des tentatives, cloisonnement des
+   cabinets. Le navigateur ne garde alors qu'une copie de travail du compte —
+   une « ombre » — parce que toute la configuration du cabinet (métier, ton,
+   horaires, fiche) est encore locale et qu'il faut bien la ranger quelque part.
+
+   Ce module expose donc une seule interface, à promesses, et choisit le monde
+   tout seul. Les deux chemins renvoient exactement la même forme de réponse :
+   c'est ce qui permet à login.js et subscribe.js de n'être écrits qu'une fois. */
+(function () {
+  'use strict';
+
+  var accounts = window.ALLY_ACCOUNTS;
+  var api = window.ALLY_API;
+
+  function local() { return !api || !api.online(); }
+
+  /* Un identifiant local stable, dérivé de celui du serveur : le même compte
+     retrouve son espace de configuration d'un appareil à l'autre. */
+  function shadowId(serverId) { return 'srv-' + serverId; }
+
+  /* Crée ou met à jour la copie locale d'un compte serveur. Renvoie l'objet
+     local, celui que les écrans manipulent déjà. */
+  function mirror(input) {
+    var user = accounts.byId(shadowId(input.serverId)) || accounts.byEmail(input.email);
+
+    if (!user) {
+      var made = accounts.signup({
+        id: shadowId(input.serverId),
+        email: input.email,
+        password: input.password || 'mot-de-passe-serveur',
+        firstName: input.firstName || '',
+        lastName: input.lastName || '',
+        org: input.org || '',
+        planId: input.planId,
+        cycle: input.cycle
+      });
+      if (!made.ok) return null;
+      user = made.user;
+    }
+
+    var patch = { serverId: input.serverId, cabinetId: input.cabinetId || user.cabinetId };
+    if (input.role) patch.role = input.role;
+    if (input.verified) { patch.verified = true; if (user.status === 'pending') patch.status = 'trial'; }
+    if (input.planId) patch.planId = input.planId;
+    if (input.cycle) patch.cycle = input.cycle;
+    return accounts.update(user.id, patch);
+  }
+
+  /* Les réponses du serveur portent un message ; les pannes réseau, non. */
+  function trouble(response, fallback) {
+    return (response && response.body && response.body.error) || fallback;
+  }
+
+  function offline() {
+    return { ok: false, error: 'Le serveur ne répond pas. Réessayez dans un instant.' };
+  }
+
+  /* Toute opération attend d'abord que la sonde ait tranché : cliquer sur
+     « Se connecter » une demi-seconde après l'ouverture de la page ne doit pas
+     basculer dans le mode local par accident. */
+  function when(fn) {
+    return (api ? api.ready() : Promise.resolve(false)).then(fn, function () { return fn(false); });
+  }
+
+  var GATE = {
+
+    /* Vrai quand c'est le serveur qui décide. Les écrans s'en servent pour
+       adapter ce qu'ils annoncent, jamais pour changer de logique. */
+    server: function () { return !local(); },
+    onReady: function (fn) { if (api) api.onReady(fn); else fn(false); },
+
+    /* ------------------------------------------------------------ Inscription
+       Renvoie { ok, error, user, code }. « code » vaut null quand le serveur
+       l'a envoyé par email sans le répéter — c'est le comportement de
+       production ; la maquette, elle, l'affiche. */
+    signup: function (input) {
+      return when(function () {
+        if (local()) {
+          var made = accounts.signup(input);
+          if (!made.ok) return made;
+          return { ok: true, user: made.user, code: accounts.issueCode(made.user.id, 'verify') };
+        }
+
+        return api.signup({
+          email: input.email,
+          password: input.password,
+          org: input.org || '',
+          trade: input.trade || 'avocat',
+          plan: input.planId || 'cabinet'
+        }).then(function (res) {
+          if (!res.ok) return { ok: false, error: trouble(res, 'Inscription refusée.') };
+
+          var user = mirror({
+            serverId: res.body.userId, cabinetId: res.body.cabinetId,
+            email: input.email, password: input.password,
+            firstName: input.firstName, lastName: input.lastName,
+            org: input.org, planId: input.planId, cycle: input.cycle
+          });
+          if (!user) return { ok: false, error: 'Compte créé, mais impossible de l\'ouvrir ici.' };
+          return { ok: true, user: user, code: res.body.devCode || null };
+        }, function () { return offline(); });
+      });
+    },
+
+    /* ------------------------------------------------------ Codes à usage unique */
+    resend: function (user, kind) {
+      return when(function () {
+        if (local()) return { ok: true, code: accounts.issueCode(user.id, kind || 'verify') };
+
+        /* Deux routes selon l'intention : « oublié » pour un code de
+           réinitialisation, « resend » pour une adresse jamais confirmée. Les
+           deux répondent la même chose quoi qu'il arrive, pour ne rien révéler
+           de l'existence du compte. */
+        var call = kind === 'reset' ? api.forgot(user.email) : api.resend(user.serverId);
+        return call.then(function (res) {
+          if (!res.ok) return { ok: false, error: trouble(res, 'Impossible de renvoyer le code.') };
+          return { ok: true, code: (res.body && res.body.devCode) || null };
+        }, function () { return offline(); });
+      });
+    },
+
+    verify: function (user, code) {
+      return when(function () {
+        if (local()) {
+          var done = accounts.verifyEmail(user.id, code);
+          if (done.ok) accounts.open(done.user.id);
+          return done;
+        }
+
+        return api.verify(user.serverId, code).then(function (res) {
+          if (!res.ok) return { ok: false, error: trouble(res, 'Code incorrect.') };
+          api.remember({ cabinetId: res.body.cabinetId });
+
+          var mine = mirror({
+            serverId: user.serverId, cabinetId: res.body.cabinetId,
+            email: user.email, verified: true
+          });
+          accounts.open((mine || user).id);
+          return { ok: true, user: mine || user };
+        }, function () { return offline(); });
+      });
+    },
+
+    /* --------------------------------------------------------------- Connexion
+       Renvoie { ok, error, user, code }. Le cas « adresse jamais confirmée »
+       n'est pas une erreur : on rend error = 'unverified' avec le compte, pour
+       que l'écran reprenne la vérification là où elle s'était arrêtée. */
+    login: function (email, password) {
+      return when(function () {
+        if (local()) return accounts.login(email, password);
+
+        return api.login(email, password).then(function (res) {
+          if (res.status === 403 && res.body.error === 'unverified') {
+            var waiting = mirror({
+              serverId: res.body.userId, email: email, password: password
+            });
+            return { ok: false, error: 'unverified', user: waiting, code: res.body.devCode || null };
+          }
+          if (!res.ok) return { ok: false, error: trouble(res, 'Identifiants incorrects.') };
+
+          api.remember({ cabinetId: res.body.cabinetId, role: res.body.role });
+          var mine = mirror({
+            serverId: res.body.userId || email, cabinetId: res.body.cabinetId,
+            role: res.body.role, email: email, password: password, verified: true
+          });
+          if (!mine) return { ok: false, error: 'Connexion acceptée, mais impossible d\'ouvrir la session ici.' };
+          accounts.open(mine.id);
+          return { ok: true, user: mine };
+        }, function () { return offline(); });
+      });
+    },
+
+    logout: function () {
+      return when(function () {
+        accounts.logout();
+        if (local()) return { ok: true };
+        return api.logout().then(function () { api.forget(); return { ok: true }; },
+          function () { api.forget(); return { ok: true }; });
+      });
+    },
+
+    /* -------------------------------------------------------- Mot de passe oublié
+       La réponse est volontairement la même que l'adresse existe ou non : la
+       page ne doit pas permettre de découvrir qui est client. */
+    forgot: function (email) {
+      return when(function () {
+        if (local()) return accounts.requestReset(email);
+
+        return api.forgot(email).then(function (res) {
+          var userId = res.body && res.body.userId;
+          return {
+            ok: true,
+            user: userId ? { id: shadowId(userId), serverId: userId, email: email } : null,
+            code: (res.body && res.body.devCode) || null
+          };
+        }, function () { return offline(); });
+      });
+    },
+
+    reset: function (user, code, password) {
+      return when(function () {
+        if (local()) return accounts.resetPassword(user.id, code, password);
+
+        return api.reset(user.serverId, code, password).then(function (res) {
+          if (!res.ok) return { ok: false, error: trouble(res, 'Code incorrect ou expiré.') };
+          /* Le mot de passe local suit, sinon l'ombre resterait sur l'ancien le
+             jour où le serveur est injoignable. */
+          var mine = accounts.byId(shadowId(user.serverId)) || accounts.byEmail(user.email);
+          if (mine) accounts.resetLocalPassword(mine.id, password);
+          return { ok: true, user: mine || { email: user.email } };
+        }, function () { return offline(); });
+      });
+    }
+  };
+
+  window.ALLY_GATE = GATE;
 })();
 
 /* Ally — état du compte, persisté en localStorage.
@@ -7418,8 +7661,10 @@ window.ALLY_PLAN_BY_ID = function (id) {
 })();
 
 /* Ally — connexion, vérification d'adresse et récupération de mot de passe.
-   Maquette : l'annuaire vit dans le navigateur (voir js/accounts.js) et les
-   codes, faute de serveur d'envoi, s'affichent à l'écran. */
+
+   L'écran ne sait pas s'il parle à un serveur ou à l'annuaire du navigateur :
+   c'est js/gate.js qui tranche. Ici, on ne s'occupe que de ce que voit la
+   personne — et notamment de ne jamais laisser un bouton sans réponse. */
 (function () {
   'use strict';
 
@@ -7428,6 +7673,7 @@ window.ALLY_PLAN_BY_ID = function (id) {
 
   var store = window.ALLY_STORE;
   var accounts = window.ALLY_ACCOUNTS;
+  var gate = window.ALLY_GATE;
   var UI = window.ALLY_UI;
 
   var pending = null;   /* compte en cours de vérification ou de récupération */
@@ -7453,6 +7699,20 @@ window.ALLY_PLAN_BY_ID = function (id) {
     box.hidden = !message;
   }
 
+  /* Un bouton qui attend le réseau doit le dire, et ne pas être cliquable deux
+     fois : sans ça, deux connexions partent pour un seul clic nerveux. */
+  function busy(button, on, label) {
+    if (!button) return;
+    if (on) {
+      button.dataset.idle = button.dataset.idle || button.textContent;
+      button.textContent = label || 'Un instant…';
+      button.disabled = true;
+    } else {
+      button.textContent = button.dataset.idle || button.textContent;
+      button.disabled = false;
+    }
+  }
+
   /* ---------- Aiguillage après connexion ---------- */
   function route(user) {
     store.reload();
@@ -7475,6 +7735,21 @@ window.ALLY_PLAN_BY_ID = function (id) {
     hint.hidden = false;
   }
 
+  /* Quand le serveur répond, les comptes de démonstration n'existent pas chez
+     lui : les afficher enverrait droit dans le mur. */
+  gate.onReady(function (online) {
+    var demo = document.querySelector('.demo-keys');
+    if (!demo) return;
+    if (!online) return;
+    demo.innerHTML =
+      '<p class="demo-keys-title">Ligne connectée</p>' +
+      '<p class="note">Ce navigateur parle au serveur d\'Ally : les comptes, les '
+      + 'mots de passe et les codes y sont vérifiés. Les accès de démonstration '
+      + 'du mode hors-ligne ne fonctionnent pas ici.</p>';
+  });
+
+  var submitButton = form.querySelector('button[type="submit"]');
+
   form.addEventListener('submit', function (event) {
     event.preventDefault();
     fail('login-error', '');
@@ -7484,21 +7759,25 @@ window.ALLY_PLAN_BY_ID = function (id) {
     if (!email.checkValidity() || !email.value) { email.focus(); return; }
     if (!password.value) { password.focus(); return; }
 
-    var result = accounts.login(email.value, password.value);
+    busy(submitButton, true, 'Connexion…');
 
-    if (result.ok) { route(result.user); return; }
+    gate.login(email.value, password.value).then(function (result) {
+      busy(submitButton, false);
 
-    /* Compte créé mais adresse jamais confirmée : on ne renvoie pas une erreur,
-       on reprend la vérification là où elle s'était arrêtée. */
-    if (result.error === 'unverified') {
-      pending = result.user;
-      startVerify();
-      return;
-    }
+      if (result.ok) { route(result.user); return; }
 
-    fail('login-error', result.error);
-    password.value = '';
-    password.focus();
+      /* Compte créé mais adresse jamais confirmée : on ne renvoie pas une
+         erreur, on reprend la vérification là où elle s'était arrêtée. */
+      if (result.error === 'unverified') {
+        pending = result.user;
+        startVerify(result.code);
+        return;
+      }
+
+      fail('login-error', result.error);
+      password.value = '';
+      password.focus();
+    });
   });
 
   document.getElementById('go-forgot').addEventListener('click', function () {
@@ -7512,30 +7791,48 @@ window.ALLY_PLAN_BY_ID = function (id) {
     document.getElementById('verify-submit').focus();
   });
 
-  function startVerify() {
-    var code = accounts.issueCode(pending.id, 'verify');
+  /* Affiche le code quand la maquette le donne ; en production le serveur ne le
+     répète pas, et l'écran se contente de dire qu'il est parti par email. */
+  function showCode(sentId, codeId, code) {
+    document.getElementById(sentId).hidden = !code;
+    if (code) document.getElementById(codeId).textContent = code;
+  }
+
+  function startVerify(code) {
     document.getElementById('verify-target').textContent = pending.email;
-    document.getElementById('verify-code').textContent = code;
-    document.getElementById('verify-sent').hidden = false;
     fail('verify-error', '');
     verifyBoxes.clear();
     show('verify');
+
+    if (code) { showCode('verify-sent', 'verify-code', code); return; }
+    gate.resend(pending, 'verify').then(function (result) {
+      showCode('verify-sent', 'verify-code', result.code);
+    });
   }
 
-  document.getElementById('verify-submit').addEventListener('click', function () {
+  var verifyButton = document.getElementById('verify-submit');
+  verifyButton.addEventListener('click', function () {
     if (!pending) { show('login'); return; }
-    var result = accounts.verifyEmail(pending.id, verifyBoxes.value());
-    if (!result.ok) {
-      fail('verify-error', result.error);
-      verifyBoxes.shake();
-      return;
-    }
-    accounts.open(pending.id);
-    route(result.user);
+    busy(verifyButton, true, 'Vérification…');
+
+    gate.verify(pending, verifyBoxes.value()).then(function (result) {
+      busy(verifyButton, false);
+      if (!result.ok) {
+        fail('verify-error', result.error);
+        verifyBoxes.shake();
+        return;
+      }
+      route(result.user);
+    });
   });
 
   document.getElementById('verify-resend').addEventListener('click', function () {
-    if (pending) startVerify();
+    if (!pending) return;
+    gate.resend(pending, 'verify').then(function (result) {
+      showCode('verify-sent', 'verify-code', result.code);
+      fail('verify-error', '');
+      verifyBoxes.clear();
+    });
   });
 
   /* ---------- Mot de passe oublié ---------- */
@@ -7544,20 +7841,24 @@ window.ALLY_PLAN_BY_ID = function (id) {
     var email = document.getElementById('forgot-email');
     if (!email.checkValidity() || !email.value) { email.focus(); return; }
 
-    var result = accounts.requestReset(email.value);
-    pending = result.user;
+    var button = event.target.querySelector('button[type="submit"]');
+    busy(button, true, 'Envoi…');
 
-    /* Même écran que l'adresse existe ou non : la page ne doit pas permettre
-       de découvrir qui est client. */
-    document.getElementById('reset-lede').textContent =
-      'Si un compte existe pour ' + email.value + ', un code à 6 chiffres vient d\'y être envoyé.';
-    document.getElementById('reset-sent').hidden = !result.code;
-    if (result.code) document.getElementById('reset-code').textContent = result.code;
+    gate.forgot(email.value).then(function (result) {
+      busy(button, false);
+      pending = result.user;
 
-    fail('reset-error', '');
-    resetBoxes.clear();
-    document.getElementById('reset-pass').value = '';
-    show('reset');
+      /* Même écran que l'adresse existe ou non : la page ne doit pas permettre
+         de découvrir qui est client. */
+      document.getElementById('reset-lede').textContent =
+        'Si un compte existe pour ' + email.value + ', un code à 6 chiffres vient d\'y être envoyé.';
+      showCode('reset-sent', 'reset-code', result.code);
+
+      fail('reset-error', '');
+      resetBoxes.clear();
+      document.getElementById('reset-pass').value = '';
+      show('reset');
+    });
   });
 
   /* ---------- Nouveau mot de passe ---------- */
@@ -7565,48 +7866,61 @@ window.ALLY_PLAN_BY_ID = function (id) {
   UI.revealToggle(document.getElementById('reset-pass'));
   UI.passwordMeter(document.getElementById('reset-pass'), document.getElementById('reset-meter'));
 
-  document.getElementById('reset-submit').addEventListener('click', function () {
+  var resetButton = document.getElementById('reset-submit');
+  resetButton.addEventListener('click', function () {
     var password = document.getElementById('reset-pass');
 
     if (!pending) {
       fail('reset-error', 'Code incorrect ou expiré. Recommencez la demande.');
       return;
     }
-    var result = accounts.resetPassword(pending.id, resetBoxes.value(), password.value);
-    if (!result.ok) {
-      fail('reset-error', result.error);
-      if (result.error.indexOf('caractères') < 0) resetBoxes.shake();
+    if (password.value.length < 8) {
+      fail('reset-error', 'Le mot de passe doit faire au moins 8 caractères.');
+      password.focus();
       return;
     }
 
-    document.getElementById('login-email').value = result.user.email;
-    document.getElementById('login-password').value = '';
-    hint.textContent = 'Mot de passe modifié. Connectez-vous avec le nouveau.';
-    hint.hidden = false;
-    fail('login-error', '');
-    pending = null;
-    show('login');
+    busy(resetButton, true, 'Enregistrement…');
+    gate.reset(pending, resetBoxes.value(), password.value).then(function (result) {
+      busy(resetButton, false);
+      if (!result.ok) {
+        fail('reset-error', result.error);
+        if (result.error.indexOf('caractères') < 0) resetBoxes.shake();
+        return;
+      }
+
+      document.getElementById('login-email').value = result.user.email;
+      document.getElementById('login-password').value = '';
+      hint.textContent = 'Mot de passe modifié. Connectez-vous avec le nouveau.';
+      hint.hidden = false;
+      fail('login-error', '');
+      pending = null;
+      show('login');
+    });
   });
 
   document.getElementById('reset-resend').addEventListener('click', function () {
     if (!pending) return;
-    var code = accounts.issueCode(pending.id, 'reset');
-    document.getElementById('reset-code').textContent = code;
-    document.getElementById('reset-sent').hidden = false;
-    fail('reset-error', '');
-    resetBoxes.clear();
+    gate.resend(pending, 'reset').then(function (result) {
+      showCode('reset-sent', 'reset-code', result.code);
+      fail('reset-error', '');
+      resetBoxes.clear();
+    });
   });
 })();
 
 /* Ally — choix de formule et création de compte.
-   Démonstration : rien n'est envoyé à un serveur et aucune donnée bancaire
-   n'est demandée. Le compte créé vit dans le navigateur, puis l'onboarding
-   prend le relais pour le personnaliser. */
+
+   Aucune donnée bancaire n'est demandée : l'essai commence sans carte. Le
+   compte, lui, est créé là où il doit l'être — sur le serveur d'Ally quand il
+   répond, dans le navigateur sinon. C'est js/gate.js qui choisit ; cet écran
+   n'en sait rien. L'onboarding prend ensuite le relais pour la configuration. */
 (function () {
   'use strict';
 
   var store = window.ALLY_STORE;
   var accounts = window.ALLY_ACCOUNTS;
+  var gate = window.ALLY_GATE;
   var UI = window.ALLY_UI;
   var PLANS = window.ALLY_PLANS;
   var TRIAL = window.ALLY_TRIAL;
@@ -7714,6 +8028,29 @@ window.ALLY_PLAN_BY_ID = function (id) {
   UI.revealToggle(document.getElementById('sub-pass'));
   UI.passwordMeter(document.getElementById('sub-pass'), document.getElementById('sub-meter'));
 
+  /* L'avertissement doit rester vrai : quand le serveur répond, le compte est
+     bel et bien créé chez lui, et prétendre le contraire serait mensonger. Le
+     paiement, lui, n'est toujours pas branché — ça, ça ne change pas. */
+  gate.onReady(function (online) {
+    var warning = document.querySelector('.demo-warning');
+    if (!warning || !online) return;
+    warning.textContent = 'Votre compte est créé sur le serveur d\'Ally : mot de passe '
+      + 'chiffré, adresse vérifiée par code. Aucun paiement n\'est encaissé et aucune '
+      + 'donnée bancaire n\'est demandée pendant l\'essai.';
+  });
+
+  /* Un bouton qui attend le réseau doit le dire, et refuser le second clic. */
+  function busy(button, on, label) {
+    if (on) {
+      button.dataset.idle = button.dataset.idle || button.textContent;
+      button.textContent = label;
+      button.disabled = true;
+    } else {
+      button.textContent = button.dataset.idle || button.textContent;
+      button.disabled = false;
+    }
+  }
+
   document.getElementById('sub-submit').addEventListener('click', function () {
     var first = document.getElementById('sub-first');
     var last = document.getElementById('sub-last');
@@ -7732,18 +8069,22 @@ window.ALLY_PLAN_BY_ID = function (id) {
     if (!cgv.checked) { cgv.focus(); fail('Vous devez accepter les conditions générales.'); return; }
 
     var plan = chosen();
-    var result = accounts.signup({
+    var button = this;
+    busy(button, true, 'Création du compte…');
+
+    gate.signup({
       firstName: first.value, lastName: last.value, email: email.value,
       password: pass.value, planId: plan.id, cycle: state.cycle
+    }).then(function (result) {
+      busy(button, false);
+      if (!result.ok) { fail(result.error); email.focus(); return; }
+
+      created = result.user;
+      showCode(result.code);
+      state.step = 3;
+      render();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     });
-
-    if (!result.ok) { fail(result.error); email.focus(); return; }
-
-    created = result.user;
-    sendCode();
-    state.step = 3;
-    render();
-    window.scrollTo({ top: 0, behavior: 'smooth' });
   });
 
   /* ---------- Étape 3 : vérification de l'adresse ---------- */
@@ -7757,20 +8098,27 @@ window.ALLY_PLAN_BY_ID = function (id) {
     box.hidden = !message;
   }
 
-  function sendCode() {
-    var code = accounts.issueCode(created.id, 'verify');
+  /* La maquette affiche le code, faute de boîte mail. En production le serveur
+     ne le répète pas : le bloc reste alors caché, et l'écran se contente de
+     dire que le code est parti. */
+  function showCode(code) {
     document.getElementById('ver-target').textContent = created.email;
-    document.getElementById('ver-code').textContent = code;
+    document.getElementById('ver-sent').hidden = !code;
+    if (code) document.getElementById('ver-code').textContent = code;
     verifyFail('');
     codeBoxes.clear();
   }
 
   document.getElementById('ver-resend').addEventListener('click', function () {
-    if (created) sendCode();
+    if (!created) return;
+    gate.resend(created, 'verify').then(function (result) { showCode(result.code); });
   });
 
-  /* Faute de frappe dans l'adresse : on supprime le compte à peine créé et on
-     revient au formulaire, plutôt que de laisser un compte fantôme. */
+  /* Faute de frappe dans l'adresse : on efface le compte à peine créé et on
+     revient au formulaire, plutôt que de laisser un compte fantôme dans le
+     navigateur. Côté serveur, l'inscription non confirmée reste — c'est voulu :
+     une route qui supprime un compte sans preuve d'identité serait une porte
+     ouverte pour effacer celui d'un autre. */
   document.getElementById('ver-change').addEventListener('click', function () {
     if (created) { accounts.remove(created.id); created = null; }
     state.step = 2;
@@ -7778,13 +8126,22 @@ window.ALLY_PLAN_BY_ID = function (id) {
     document.getElementById('sub-email').focus();
   });
 
-  document.getElementById('ver-submit').addEventListener('click', function () {
+  var verifyButton = document.getElementById('ver-submit');
+  verifyButton.addEventListener('click', function () {
     if (!created) { state.step = 2; render(); return; }
+    busy(verifyButton, true, 'Vérification…');
 
-    var result = accounts.verifyEmail(created.id, codeBoxes.value());
-    if (!result.ok) { verifyFail(result.error); codeBoxes.shake(); return; }
+    gate.verify(created, codeBoxes.value()).then(function (result) {
+      busy(verifyButton, false);
+      if (!result.ok) { verifyFail(result.error); codeBoxes.shake(); return; }
+      finish();
+    });
+  });
 
-    accounts.open(created.id);
+  /* La vérification passée, le compte est ouvert : on installe la formule
+     choisie dans l'espace du professionnel, puis le questionnaire prend le
+     relais. */
+  function finish() {
     store.reload();
 
     var plan = chosen();
@@ -7804,7 +8161,7 @@ window.ALLY_PLAN_BY_ID = function (id) {
 
     // Le questionnaire prend le relais : métier, activité, horaires, règles.
     window.ALLY_GOTO('onboarding.html');
-  });
+  }
 
   /* ---------- Navigation ---------- */
   var TITLES = ['Choisissez votre formule', 'Créez votre compte', 'Vérifiez votre adresse'];
@@ -8960,11 +9317,17 @@ window.ALLY_PLAN_BY_ID = function (id) {
     flash(S.notif.email ? 'Résumé quotidien activé' : 'Résumé quotidien désactivé');
   });
   document.getElementById('foot-logout').addEventListener('click', function () {
-    if (window.ALLY_ACCOUNTS) {
-      window.ALLY_ACCOUNTS.logout();
+    /* Se déconnecter doit fermer la session partout où elle est ouverte : dans
+       le navigateur, et sur le serveur quand il en tient une. Attendre sa
+       réponse évite de laisser un cookie valide derrière soi. */
+    var done = window.ALLY_GATE
+      ? window.ALLY_GATE.logout()
+      : Promise.resolve(window.ALLY_ACCOUNTS && window.ALLY_ACCOUNTS.logout());
+
+    done.then(function () {
       store.reload();
-    }
-    window.ALLY_GOTO('login.html');
+      window.ALLY_GOTO('login.html');
+    });
   });
 
   /* Présence : c'est ce battement qui alimente le « en ligne » de la console
@@ -11493,9 +11856,13 @@ window.ALLY_PLAN_BY_ID = function (id) {
   });
 
   document.getElementById('adm-foot-logout').addEventListener('click', function () {
-    accounts.logout();
-    store.reload();
-    window.ALLY_GOTO('login.html');
+    /* La session administrateur peut être tenue par le serveur : on la ferme
+       des deux côtés avant de quitter la page. */
+    var done = window.ALLY_GATE ? window.ALLY_GATE.logout() : Promise.resolve(accounts.logout());
+    done.then(function () {
+      store.reload();
+      window.ALLY_GOTO('login.html');
+    });
   });
 
   document.getElementById('adm-foot-reseed').addEventListener('click', doReseed);

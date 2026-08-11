@@ -415,11 +415,17 @@
     flash(S.notif.email ? 'Résumé quotidien activé' : 'Résumé quotidien désactivé');
   });
   document.getElementById('foot-logout').addEventListener('click', function () {
-    if (window.ALLY_ACCOUNTS) {
-      window.ALLY_ACCOUNTS.logout();
+    /* Se déconnecter doit fermer la session partout où elle est ouverte : dans
+       le navigateur, et sur le serveur quand il en tient une. Attendre sa
+       réponse évite de laisser un cookie valide derrière soi. */
+    var done = window.ALLY_GATE
+      ? window.ALLY_GATE.logout()
+      : Promise.resolve(window.ALLY_ACCOUNTS && window.ALLY_ACCOUNTS.logout());
+
+    done.then(function () {
       store.reload();
-    }
-    window.location.href = 'login.html';
+      window.location.href = 'login.html';
+    });
   });
 
   /* Présence : c'est ce battement qui alimente le « en ligne » de la console

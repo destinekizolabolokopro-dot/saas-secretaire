@@ -162,7 +162,11 @@
       }
 
       var user = {
-        id: uid(), role: 'pro', email: email, pass: hash(input.password),
+        /* L'identifiant peut être imposé : quand le serveur tient les comptes,
+           la copie locale porte un identifiant dérivé du sien, pour que le même
+           compte retrouve sa configuration d'un appareil à l'autre. */
+        id: input.id && !this.byId(input.id) ? input.id : uid(),
+        role: 'pro', email: email, pass: hash(input.password),
         civility: input.civility || 'M.',
         firstName: (input.firstName || '').trim(),
         lastName: (input.lastName || '').trim(),
@@ -284,6 +288,17 @@
       record('password-reset', result.user.email, result.user.id);
       persist();
       return { ok: true, user: result.user };
+    },
+
+    /* Change le mot de passe local sans code : réservé au cas où le serveur
+       vient d'accepter la réinitialisation et l'a déjà validée, lui. */
+    resetLocalPassword: function (userId, password) {
+      var user = this.byId(userId);
+      if (!user || !password || password.length < 8) return false;
+      user.pass = hash(password);
+      user.code = null;
+      persist();
+      return true;
     },
 
     /* ---------- Mise à jour ---------- */

@@ -48,6 +48,10 @@ toute mise en ligne.** L'annuaire livré contient seize comptes fictifs, avec de
 formules, des statuts et des dates d'inscription variés — sans quoi la console
 d'administration ne montrerait rien.
 
+Ils n'existent que **hors serveur**. Dès que l'API répond, la page de connexion
+les retire d'elle-même et le dit : les afficher enverrait droit dans le mur,
+puisque le serveur ne les connaît pas.
+
 ## Rôles
 
 **Professionnel.** Voit son cabinet et rien d'autre. Sa configuration est
@@ -70,9 +74,23 @@ outil permettant de découvrir qui est client.
 Faute de serveur d'envoi, **les codes s'affichent à l'écran**, dans un cartouche
 qui le dit explicitement.
 
-> Les mots de passe sont « hachés » par une fonction non cryptographique, pour
-> éviter de les écrire en clair dans le navigateur. **Ce n'est pas de la
-> sécurité.** En production le hachage se fait côté serveur, avec argon2id.
+### Deux mondes, un seul écran
+
+Les mêmes pages fonctionnent avec ou sans serveur, et `js/gate.js` choisit :
+
+| | Sans serveur | Avec `node server/index.js` |
+| --- | --- | --- |
+| Où vit le compte | ce navigateur | le serveur |
+| Mot de passe | empreinte de démonstration | scrypt, sel par compte |
+| Session | clé de `localStorage` | cookie httpOnly, 12 h |
+| Code de vérification | affiché à l'écran | émis par le serveur, affiché tant que `NODE_ENV` n'est pas `production` |
+| Tentatives | illimitées | plafonnées par adresse IP **et** par compte visé |
+| Comptes de démonstration | proposés sur l'écran de connexion | masqués : ils n'existent pas côté serveur |
+
+> Hors serveur, les mots de passe sont « hachés » par une fonction non
+> cryptographique, pour éviter de les écrire en clair dans le navigateur.
+> **Ce n'est pas de la sécurité** — c'est une maquette. Dès que le serveur
+> répond, c'est lui qui hache, vérifie et tient la session.
 
 ## Questionnaire
 
@@ -206,7 +224,10 @@ css/dashboard.css   espace pro
 css/admin.css       console d'administration
 js/profiles.js      profils métier et jeux de données par profession
 js/plans.js         formules Permanence / Cabinet / Expert et capacités
-js/accounts.js      annuaire des comptes, rôles, session, codes, statistiques
+js/accounts.js      annuaire des comptes du navigateur (rôles, session, codes)
+js/api.js           pont vers l'API, quand une API répond
+js/gate.js          porte d'entrée : inscription, code, connexion, oubli
+js/live.js          carte « la ligne réelle » — les appels livrés par le serveur
 js/store.js         configuration du compte connecté, persistance, quotas
 js/ui.js            composants partagés (saisie de code, jauge, message éphémère)
 js/brain.js         moteur d'intentions — déterministe, pas de LLM
@@ -276,8 +297,23 @@ l'ensemble** :
 
 ```bash
 node server/index.js       # http://localhost:8787 — API et maquette
-node server/test.js        # 36 contrôles
+node server/test.js        # 38 contrôles
 ```
+
+### Le compte devient réel
+
+Servies par l'API, les pages d'inscription et de connexion ne parlent plus à
+l'annuaire du navigateur : le compte est créé sur le serveur, le code de
+vérification y est émis, la session est un cookie httpOnly, et la déconnexion
+la ferme des deux côtés. Le navigateur ne garde qu'une copie de travail du
+compte — la configuration du cabinet (métier, ton, horaires, fiche) est encore
+locale, il faut bien la ranger quelque part.
+
+Un second test de bout en bout (14 contrôles) déroule tout le parcours à la
+souris : inscription, mauvais code refusé, renvoi d'un nouveau code,
+vérification, déconnexion qui ferme vraiment la session serveur, mot de passe
+oublié puis changé — et vérifie enfin auprès de l'API que c'est bien le nouveau
+mot de passe qu'elle exige.
 
 ### La ligne réelle
 

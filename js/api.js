@@ -98,6 +98,7 @@
     /* ---------------------------------------------------------- Comptes */
     signup: function (payload) { return request('POST', '/auth/signup', payload); },
     verify: function (userId, code) { return request('POST', '/auth/verify', { userId: userId, code: code }); },
+    resend: function (userId) { return request('POST', '/auth/resend', { userId: userId }); },
     login: function (email, password) { return request('POST', '/auth/login', { email: email, password: password }); },
     logout: function () { return request('POST', '/auth/logout', {}); },
     forgot: function (email) { return request('POST', '/auth/forgot', { email: email }); },

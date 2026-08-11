@@ -26,6 +26,7 @@ const PORT = Number(process.env.PORT || 8787);
 const PUBLIC = new Set([
   'POST /api/auth/signup',
   'POST /api/auth/verify',
+  'POST /api/auth/resend',
   'POST /api/auth/login',
   'POST /api/auth/forgot',
   'POST /api/auth/reset',
@@ -59,6 +60,22 @@ const routes = {
     H.json(ctx.res, 201, {
       userId: result.user.id,
       cabinetId: result.cabinet.id,
+      devCode: process.env.NODE_ENV === 'production' ? undefined : code
+    });
+  },
+
+  /* Un code de vérification se perd : il arrive dans les indésirables, ou la
+     personne ferme l'onglet. En redemander un ne doit pas obliger à recréer un
+     compte. La réponse est la même quel que soit l'identifiant fourni — sinon
+     la route dirait qui existe et qui n'a pas encore confirmé son adresse. */
+  'POST /api/auth/resend': async (ctx) => {
+    const limit = H.rateLimit('resend:' + ctx.ip, { max: 10, windowMs: 60 * 60 * 1000 });
+    if (!limit.ok) return H.fail(ctx.res, 429, 'Trop de demandes. Réessayez plus tard.');
+
+    const user = store.load().users.find((u) => u.id === ctx.body.userId);
+    const code = user && !user.verified ? auth.issueCode(user.id, 'verify') : null;
+    H.json(ctx.res, 200, {
+      ok: true,
       devCode: process.env.NODE_ENV === 'production' ? undefined : code
     });
   },

@@ -768,9 +768,13 @@
   });
 
   document.getElementById('adm-foot-logout').addEventListener('click', function () {
-    accounts.logout();
-    store.reload();
-    window.location.href = 'login.html';
+    /* La session administrateur peut être tenue par le serveur : on la ferme
+       des deux côtés avant de quitter la page. */
+    var done = window.ALLY_GATE ? window.ALLY_GATE.logout() : Promise.resolve(accounts.logout());
+    done.then(function () {
+      store.reload();
+      window.location.href = 'login.html';
+    });
   });
 
   document.getElementById('adm-foot-reseed').addEventListener('click', doReseed);

@@ -367,6 +367,39 @@ async function newCabinet(email, org) {
     assert.ok(res.body.stats.cabinets >= 2);
   });
 
+  console.log('\n== Renvoi du code de vérification ==');
+
+  await test('un compte non confirmé peut redemander un code, et le nouveau marche', async () => {
+    H.resetRateLimits();
+    const fresh = await call('POST', '/api/auth/signup', {
+      body: { email: 'renvoi@cabinet.fr', password: 'MotDePasse42!', org: 'Renvoi' }
+    });
+    assert.strictEqual(fresh.status, 201);
+
+    const again = await call('POST', '/api/auth/resend', { body: { userId: fresh.body.userId } });
+    assert.strictEqual(again.status, 200);
+    assert.ok(again.body.devCode, 'aucun code renvoyé');
+    assert.notStrictEqual(again.body.devCode, fresh.body.devCode, 'le même code est réémis');
+
+    const stale = await call('POST', '/api/auth/verify', {
+      body: { userId: fresh.body.userId, code: fresh.body.devCode }
+    });
+    assert.strictEqual(stale.status, 400, 'l\'ancien code est encore accepté');
+
+    const done = await call('POST', '/api/auth/verify', {
+      body: { userId: fresh.body.userId, code: again.body.devCode }
+    });
+    assert.strictEqual(done.status, 200);
+  });
+
+  await test('le renvoi ne dit pas qui existe ni qui a déjà confirmé', async () => {
+    const inconnu = await call('POST', '/api/auth/resend', { body: { userId: 'usr_inexistant' } });
+    const confirme = await call('POST', '/api/auth/resend', { body: { userId: A.userId } });
+    assert.strictEqual(inconnu.status, confirme.status);
+    assert.deepStrictEqual(inconnu.body, confirme.body);
+    assert.ok(!confirme.body.devCode, 'un compte déjà confirmé reçoit un code');
+  });
+
   console.log('\n== Mot de passe oublié ==');
 
   await test('la demande répond pareil pour une adresse inconnue', async () => {

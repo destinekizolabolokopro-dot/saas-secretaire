@@ -5,14 +5,19 @@ natifs, pour qu'il démarre partout et qu'il n'y ait rien de plus à auditer.
 
 ```bash
 node server/index.js       # http://localhost:8787 — API *et* maquette
-node server/test.js        # 36 contrôles
+node server/test.js        # 38 contrôles
 ```
 
 Le serveur sert aussi les fichiers du front : une seule commande fait tourner
-l'ensemble. Ouvrez http://localhost:8787, allez dans **Téléphonie**, et la carte
-**« La ligne réelle »** apparaît — c'est le seul endroit de la maquette alimenté
-par le serveur. Sans API, elle reste masquée et tout continue de fonctionner en
-local.
+l'ensemble. Ouvrez http://localhost:8787 et **le compte devient réel** :
+l'inscription, le code de vérification, la connexion, la déconnexion et le mot
+de passe oublié passent par l'API — mot de passe haché en scrypt, session en
+cookie httpOnly, tentatives plafonnées. Dans **Téléphonie**, la carte
+**« La ligne réelle »** montre les appels livrés par le webhook.
+
+Sans API — fichier autonome, hébergeur statique — les mêmes écrans retombent sur
+l'annuaire du navigateur et tout continue de fonctionner. C'est `js/gate.js` qui
+choisit, et les écrans n'en savent rien.
 
 Pour y voir un appel, il faut le signer comme le ferait Retell :
 
@@ -50,6 +55,7 @@ un test qui échoue si on le casse.
 | Journal d'accès | `lib/store.js` | présence des événements sensibles |
 | Séparation des rôles | `index.js` | un pro reçoit 403 sur l'administration |
 | Service de fichiers sans traversée | `lib/static.js` | `/server/...` et `/../etc/passwd` refusés |
+| Parcours de compte de bout en bout | `js/gate.js` + `index.js` | 14 contrôles au navigateur : inscription, code, session, oubli |
 | Envoi différé de 10 s | `index.js` | part après le délai, jamais si annulé |
 
 ## Le cloisonnement, en une règle
