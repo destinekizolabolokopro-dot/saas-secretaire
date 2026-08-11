@@ -5,7 +5,7 @@ natifs, pour qu'il démarre partout et qu'il n'y ait rien de plus à auditer.
 
 ```bash
 node server/index.js       # http://localhost:8787 — API *et* maquette
-node server/test.js        # 38 contrôles
+node server/test.js        # 41 contrôles
 ```
 
 Le serveur sert aussi les fichiers du front : une seule commande fait tourner
@@ -33,6 +33,28 @@ curl -X POST http://localhost:8787/api/webhooks/retell \
   -d "$BODY"
 ```
 
+## L'administrateur
+
+Il ne se crée pas par un formulaire : **aucune route n'accorde ce rôle**, sinon
+un champ oublié dans une inscription suffirait à devenir administrateur de la
+plateforme. Il vient de l'environnement du serveur, c'est-à-dire de quelqu'un
+qui a déjà accès à la machine :
+
+```bash
+ALLY_ADMIN_EMAIL=vous@ally.fr \
+ALLY_ADMIN_PASSWORD='un mot de passe long' \
+node server/index.js
+```
+
+Le compte est créé au démarrage s'il n'existe pas, promu s'il existe déjà, et
+son mot de passe **n'est jamais réécrit** par l'environnement — vous avez pu le
+changer depuis. Un mot de passe de moins de douze caractères est refusé : ce
+compte voit toute la plateforme.
+
+Connecté, il trouve dans la console la carte **« la plateforme réelle »** :
+cabinets inscrits, sessions ouvertes, volumes, journal du serveur. Jamais un
+résumé d'appel ni un corps d'email — l'API d'administration n'en renvoie pas.
+
 ## Pourquoi cette forme
 
 Ce n'est pas encore le produit : ni Retell, ni Brevo, ni Google, ni Stripe ne
@@ -56,6 +78,8 @@ un test qui échoue si on le casse.
 | Séparation des rôles | `index.js` | un pro reçoit 403 sur l'administration |
 | Service de fichiers sans traversée | `lib/static.js` | `/server/...` et `/../etc/passwd` refusés |
 | Parcours de compte de bout en bout | `js/gate.js` + `index.js` | 14 contrôles au navigateur : inscription, code, session, oubli |
+| Rôle administrateur hors d'atteinte | `lib/auth.js` | un formulaire qui réclame `role: admin` reste « pro » |
+| Console d'administration réelle | `js/platform.js` | 10 contrôles : volumes vrais, contenu jamais exposé, refus côté API |
 | Envoi différé de 10 s | `index.js` | part après le délai, jamais si annulé |
 
 ## Le cloisonnement, en une règle

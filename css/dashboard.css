@@ -130,6 +130,12 @@
 .cols-12 { grid-template-columns: 1.2fr 1fr; }
 .cols-11 { grid-template-columns: 1fr 1fr; }
 .stack { display: flex; flex-direction: column; gap: 20px; }
+/* Un enfant de grille ou de flex a min-width:auto : il refuse de devenir plus
+   étroit que son contenu. Un tableau en min-width:720px élargissait donc sa
+   colonne au lieu de défiler dans son cadre, et la page entière débordait —
+   jusqu'à 244 px sur la vue Revenus. Le cadre a déjà overflow-x:auto ; il ne
+   lui manquait que le droit de rétrécir. */
+.cols > *, .stack > * { min-width: 0; }
 .section-label { font-size: 15px; font-weight: 600; margin-bottom: 14px; }
 .limit-640 { max-width: 640px; }
 .limit-760 { max-width: 760px; }

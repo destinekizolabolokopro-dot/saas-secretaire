@@ -674,9 +674,14 @@
   }
 
   function renderPanel() {
-    el.panel.innerHTML = VIEWS[ui.tab]();
+    /* La plateforme réelle passe en tête de la vue d'ensemble : quand un vrai
+       serveur répond, ses chiffres priment sur ceux de la démonstration. Elle
+       ne rend rien du tout sans serveur ni sans session administrateur. */
+    var real = (ui.tab === 'overview' && window.ALLY_PLATFORM) ? window.ALLY_PLATFORM.view() : '';
+    el.panel.innerHTML = real + VIEWS[ui.tab]();
     renderChrome();
     bindPanel();
+    if (real) window.ALLY_PLATFORM.bind(el.panel, renderPanel);
   }
 
   function bindPanel() {
@@ -826,6 +831,14 @@
   }
 
   boot();
+
+  /* La sonde de l'API répond après le premier rendu : sans ce rappel, la carte
+     de la plateforme réelle n'apparaîtrait qu'au changement d'onglet. */
+  if (window.ALLY_API) {
+    window.ALLY_API.onReady(function (online) {
+      if (online && me && ui.tab === 'overview') renderPanel();
+    });
+  }
 
   /* Le fichier de démonstration change d'écran sans recharger la page :
      la console doit relire la session à chaque fois qu'on l'ouvre. */

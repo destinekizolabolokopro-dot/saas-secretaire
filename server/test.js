@@ -15,6 +15,7 @@ const assert = require('node:assert');
 const fs = require('node:fs');
 const { server, flushOutbox } = require('./index');
 const store = require('./lib/store');
+const auth = require('./lib/auth');
 const H = require('./lib/http');
 const { sign, encrypt, decrypt, hashPassword, verifyPassword } = require('./lib/crypto');
 
@@ -365,6 +366,56 @@ async function newCabinet(email, org) {
     assert.ok(!serialized.includes('Secret de A'), 'l\'admin voit un résumé d\'appel');
     assert.ok(!serialized.includes('Corps confidentiel'), 'l\'admin voit un corps d\'email');
     assert.ok(res.body.stats.cabinets >= 2);
+  });
+
+  await test('le rôle administrateur ne s\'obtient pas par un formulaire', async () => {
+    H.resetRateLimits();
+    const sournois = await call('POST', '/api/auth/signup', {
+      body: { email: 'malin@cabinet.fr', password: 'MotDePasse42!', org: 'Malin', role: 'admin' }
+    });
+    assert.strictEqual(sournois.status, 201);
+    const user = store.load().users.find((u) => u.id === sournois.body.userId);
+    assert.strictEqual(user.role, 'pro', 'le rôle demandé dans le formulaire a été accordé');
+  });
+
+  await test('l\'administrateur vient de l\'environnement, et pas d\'ailleurs', () => {
+    const sans = auth.ensureAdmin();
+    assert.strictEqual(sans.ok, false, 'un administrateur est apparu sans configuration');
+
+    process.env.ALLY_ADMIN_EMAIL = 'patron@ally.fr';
+    process.env.ALLY_ADMIN_PASSWORD = 'court';
+    assert.strictEqual(auth.ensureAdmin().ok, false, 'un mot de passe court est accepté');
+
+    process.env.ALLY_ADMIN_PASSWORD = 'MotDePasseTresLong2026';
+    const cree = auth.ensureAdmin();
+    assert.ok(cree.ok && cree.created, 'administrateur non créé');
+    assert.strictEqual(cree.user.role, 'admin');
+    assert.ok(cree.user.verified, 'administrateur non vérifié');
+
+    /* Deuxième démarrage : on retrouve le même compte, sans doublon. */
+    const encore = auth.ensureAdmin();
+    assert.ok(encore.ok && !encore.created, 'un second compte a été créé');
+    const combien = store.load().users.filter((u) => u.email === 'patron@ally.fr').length;
+    assert.strictEqual(combien, 1);
+
+    delete process.env.ALLY_ADMIN_EMAIL;
+    delete process.env.ALLY_ADMIN_PASSWORD;
+  });
+
+  await test('l\'administrateur créé peut se connecter et voir la plateforme', async () => {
+    H.resetRateLimits();
+    const connexion = await call('POST', '/api/auth/login', {
+      body: { email: 'patron@ally.fr', password: 'MotDePasseTresLong2026' }
+    });
+    assert.strictEqual(connexion.status, 200);
+    assert.strictEqual(connexion.body.role, 'admin');
+    assert.ok(connexion.body.userId, 'l\'identifiant n\'est pas renvoyé après connexion');
+
+    const vue = await call('GET', '/api/admin/stats', {
+      cookie: 'ally_session=' + connexion.token
+    });
+    assert.strictEqual(vue.status, 200);
+    assert.ok(vue.body.stats.cabinets >= 2);
   });
 
   console.log('\n== Renvoi du code de vérification ==');

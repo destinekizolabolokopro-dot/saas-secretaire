@@ -16,7 +16,13 @@
      sans émettre la moindre requête. Sonder à l'aveugle produirait un 404
      rouge dans la console de chaque visiteur, pour un état normal. */
   var BASE = window.ALLY_API_BASE || null;
-  var PROBE_MS = 1200;
+
+  /* Délai d'attente de la première requête. Il était à 1,2 s, ce qui semblait
+     prudent et ne l'était pas : sur une machine chargée, la réponse arrivait
+     après, et l'application basculait en silence en mode local — le compte
+     réel de la personne disparaissait de l'écran sans un mot. Cinq secondes
+     laissent passer un serveur qui démarre ou un téléphone au ralenti. */
+  var PROBE_MS = 5000;
 
   var state = { checked: false, online: false, cabinetId: null, role: null };
   var waiting = [];
@@ -40,38 +46,39 @@
     });
   }
 
-  /* Sonde de disponibilité, une seule fois, sans bloquer l'affichage. */
+  /* Une seule requête au démarrage, et c'est « qui suis-je ». Elle répond aux
+     deux questions à la fois : le serveur est-il là, et une session y est-elle
+     déjà ouverte ? Sonder /health d'abord ajoutait un aller-retour pour une
+     information que celle-ci contient déjà. */
   function probe() {
-    if (!BASE) return Promise.resolve(false);
-    if (!window.fetch || !window.AbortController) return Promise.resolve(false);
-    if (window.location.protocol === 'file:') return Promise.resolve(false);
+    if (!BASE) return Promise.resolve(null);
+    if (!window.fetch || !window.AbortController) return Promise.resolve(null);
+    if (window.location.protocol === 'file:') return Promise.resolve(null);
 
     var controller = new AbortController();
     var timer = window.setTimeout(function () { controller.abort(); }, PROBE_MS);
 
-    return window.fetch(BASE + '/health', { signal: controller.signal, credentials: 'same-origin' })
-      .then(function (response) { return response.ok; })
-      .catch(function () { return false; })
-      .then(function (ok) {
+    return window.fetch(BASE + '/me', { signal: controller.signal, credentials: 'same-origin' })
+      .then(function (response) {
+        return response.json().catch(function () { return {}; });
+      })
+      .catch(function () { return null; })
+      .then(function (payload) {
         window.clearTimeout(timer);
-        return ok;
+        return payload;
       });
   }
 
-  var ready = probe().then(function (online) {
+  var ready = probe().then(function (me) {
     state.checked = true;
-    state.online = online;
-    if (!online) { flush(); return false; }
+    state.online = !!me;
 
-    /* Session déjà ouverte dans un onglet précédent ? */
-    return request('GET', '/me').then(function (res) {
-      if (res.ok && res.body.authenticated) {
-        state.cabinetId = res.body.cabinet && res.body.cabinet.id;
-        state.role = res.body.role;
-      }
-      flush();
-      return true;
-    }).catch(function () { flush(); return true; });
+    if (me && me.authenticated) {
+      state.cabinetId = me.cabinet && me.cabinet.id;
+      state.role = me.role;
+    }
+    flush();
+    return state.online;
   });
 
   function flush() {
@@ -112,6 +119,10 @@
     messages: function () { return request('GET', '/messages'); },
     send: function (payload) { return request('POST', '/messages', payload); },
     cancel: function (id) { return request('POST', '/messages/' + id + '/cancel', {}); },
+
+    /* ------------------------------------------------------------ Plateforme */
+    adminStats: function () { return request('GET', '/admin/stats'); },
+    adminEvents: function () { return request('GET', '/admin/events'); },
 
     /* Mémorise la session ouverte, pour que l'interface s'y réfère. */
     remember: function (body) {

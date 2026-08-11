@@ -107,9 +107,22 @@
 
   /* -------------------------------------------------------------- Liaison */
 
+  /* Empreinte de ce qui est affiché. Sans elle, chaque réponse du serveur
+     provoquait un re-rendu, qui rebranchait la carte, qui relançait une
+     requête : le navigateur interrogeait le serveur en boucle serrée — 524
+     requêtes en 6 secondes au lieu de 2. On ne redessine que si quelque chose
+     a changé, ce qui évite au passage de perdre le défilement à chaque appel. */
+  function signature() {
+    return (state.error || '') + '|' + state.calls.map(function (call) {
+      return call.id + ':' + call.outcome;
+    }).join(',');
+  }
+
   function refresh(rerender) {
     if (!api.online() || !api.cabinetId() || state.busy) return;
     state.busy = true;
+    var before = signature();
+
     api.calls().then(function (res) {
       state.busy = false;
       if (res.status === 401) {
@@ -122,11 +135,12 @@
       }
       if (!res.ok) { state.error = res.body.error || 'Le serveur a refusé la demande.'; }
       else { state.error = null; state.calls = res.body.calls || []; }
-      if (rerender) rerender();
+      if (rerender && signature() !== before) rerender();
     }).catch(function () {
       state.busy = false;
+      var was = state.error;
       state.error = 'Serveur injoignable.';
-      if (rerender) rerender();
+      if (rerender && was !== state.error) rerender();
     });
   }
 

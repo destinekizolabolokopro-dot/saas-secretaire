@@ -64,6 +64,53 @@ function signup({ email, password, org, trade, plan }) {
   return { ok: true, user, cabinet };
 }
 
+/* Compte administrateur de la plateforme.
+
+   Il ne se crée pas par l'inscription : aucune route ne doit pouvoir accorder
+   ce rôle, sinon il suffirait d'un champ oublié dans un formulaire pour devenir
+   administrateur. Il vient de l'environnement du serveur, c'est-à-dire de
+   quelqu'un qui a déjà accès à la machine.
+
+   Renvoie une explication plutôt qu'une exception : un serveur qui refuse de
+   démarrer parce que l'administrateur est mal configuré empêcherait aussi les
+   clients de travailler. */
+function ensureAdmin() {
+  const email = normalize(process.env.ALLY_ADMIN_EMAIL);
+  const password = process.env.ALLY_ADMIN_PASSWORD;
+  if (!email && !password) return { ok: false, reason: 'absent' };
+  if (!email || !password) return { ok: false, reason: 'incomplet' };
+  /* Ce compte voit toute la plateforme : douze caractères sont un plancher,
+     pas une recommandation. */
+  if (password.length < 12) return { ok: false, reason: 'mot de passe trop court' };
+
+  const db = store.load();
+  const existing = findUser(email);
+  if (existing) {
+    /* Le mot de passe n'est pas réécrit : l'administrateur a pu le changer
+       depuis, et l'environnement ne doit pas le ramener en arrière. */
+    if (existing.role !== 'admin') {
+      existing.role = 'admin';
+      store.record('admin-promoted', { userId: existing.id });
+      store.save();
+    }
+    return { ok: true, created: false, user: existing };
+  }
+
+  const cabinet = {
+    id: id('cab'), org: 'Ally', trade: 'avocat', plan: 'expert', createdAt: Date.now()
+  };
+  db.cabinets.push(cabinet);
+
+  const user = {
+    id: id('usr'), cabinetId: cabinet.id, role: 'admin', email,
+    pass: hashPassword(password), verified: true, createdAt: Date.now(), code: null
+  };
+  db.users.push(user);
+  store.record('admin-created', { userId: user.id });
+  store.save();
+  return { ok: true, created: true, user };
+}
+
 /* ------------------------------------------------------- Codes à usage unique */
 
 function issueCode(userId, kind) {
@@ -195,7 +242,7 @@ function resetPassword(userId, value, password) {
 }
 
 module.exports = {
-  signup, issueCode, verifyEmail,
+  signup, issueCode, verifyEmail, ensureAdmin,
   login, logout, sessionFrom, openSession,
   requestReset, resetPassword,
   findUser, SESSION_MS

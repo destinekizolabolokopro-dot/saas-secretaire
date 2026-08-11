@@ -111,7 +111,15 @@ const routes = {
     if (!result.ok) return H.fail(ctx.res, 401, result.error);
 
     H.setSession(ctx.res, result.session.token, auth.SESSION_MS / 1000);
-    H.json(ctx.res, 200, { ok: true, cabinetId: result.user.cabinetId, role: result.user.role });
+    /* L'identifiant n'est renvoyé qu'à quelqu'un qui vient de prouver son
+       identité : il sert au navigateur à retrouver la configuration locale du
+       bon compte, sans jamais servir d'annuaire. */
+    H.json(ctx.res, 200, {
+      ok: true,
+      userId: result.user.id,
+      cabinetId: result.user.cabinetId,
+      role: result.user.role
+    });
   },
 
   'POST /api/auth/logout': async (ctx) => {
@@ -324,10 +332,18 @@ function flushOutbox() {
 }
 
 if (require.main === module) {
+  const admin = auth.ensureAdmin();
   setInterval(flushOutbox, OUTBOX_TICK).unref();
   server.listen(PORT, () => {
     console.log('[ally] API à l\'écoute sur http://localhost:' + PORT);
     console.log('[ally] données : ' + store.FILE);
+    if (admin.ok) {
+      console.log('[ally] administrateur : ' + admin.user.email
+        + (admin.created ? ' (créé)' : ' (déjà présent)'));
+    } else if (admin.reason !== 'absent') {
+      console.log('[ally] administrateur non configuré — ' + admin.reason
+        + ' (ALLY_ADMIN_EMAIL / ALLY_ADMIN_PASSWORD)');
+    }
   });
 }
 

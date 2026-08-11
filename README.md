@@ -228,6 +228,7 @@ js/accounts.js      annuaire des comptes du navigateur (rôles, session, codes)
 js/api.js           pont vers l'API, quand une API répond
 js/gate.js          porte d'entrée : inscription, code, connexion, oubli
 js/live.js          carte « la ligne réelle » — les appels livrés par le serveur
+js/platform.js      carte « la plateforme réelle » — ce que le serveur sait vraiment
 js/store.js         configuration du compte connecté, persistance, quotas
 js/ui.js            composants partagés (saisie de code, jauge, message éphémère)
 js/brain.js         moteur d'intentions — déterministe, pas de LLM
@@ -297,7 +298,7 @@ l'ensemble** :
 
 ```bash
 node server/index.js       # http://localhost:8787 — API et maquette
-node server/test.js        # 38 contrôles
+node server/test.js        # 41 contrôles
 ```
 
 ### Le compte devient réel
@@ -314,6 +315,21 @@ souris : inscription, mauvais code refusé, renvoi d'un nouveau code,
 vérification, déconnexion qui ferme vraiment la session serveur, mot de passe
 oublié puis changé — et vérifie enfin auprès de l'API que c'est bien le nouveau
 mot de passe qu'elle exige.
+
+### L'administrateur, côté serveur
+
+Le compte administrateur ne s'obtient pas par un formulaire : aucune route ne
+donne ce rôle. Il vient de l'environnement du serveur.
+
+```bash
+ALLY_ADMIN_EMAIL=vous@ally.fr ALLY_ADMIN_PASSWORD='un mot de passe long' \
+node server/index.js
+```
+
+Connecté par l'écran habituel, il voit en tête de la console la carte **« la
+plateforme réelle »** : les cabinets vraiment inscrits, les sessions ouvertes,
+les volumes, le journal du serveur. Le reste de la console continue d'afficher
+l'annuaire de démonstration, et la carte le dit.
 
 ### La ligne réelle
 
