@@ -451,6 +451,93 @@ async function newCabinet(email, org) {
     assert.ok(!confirme.body.devCode, 'un compte déjà confirmé reçoit un code');
   });
 
+  console.log('\n== Agenda ==');
+
+  await test('un rendez-vous est cloisonné et son client chiffré', async () => {
+    const pose = await call('POST', '/api/rdv', {
+      cookie: A.cookie,
+      body: { date: '2026-09-14', time: '14:00', client: 'Mme Aubert', type: 'Consultation' }
+    });
+    assert.strictEqual(pose.status, 201);
+
+    const brut = fs.readFileSync(store.FILE, 'utf8');
+    assert.ok(!brut.includes('Mme Aubert'), 'le nom du client est lisible en base');
+
+    const chezA = await call('GET', '/api/rdv', { cookie: A.cookie });
+    assert.strictEqual(chezA.body.rdv.length, 1);
+    assert.strictEqual(chezA.body.rdv[0].client, 'Mme Aubert');
+
+    const chezB = await call('GET', '/api/rdv', { cookie: B.cookie });
+    assert.strictEqual(chezB.body.rdv.length, 0, 'B voit l\'agenda de A');
+
+    A.rdvId = pose.body.rdv.id;
+  });
+
+  await test('deux rendez-vous ne tiennent pas dans le même créneau', async () => {
+    const doublon = await call('POST', '/api/rdv', {
+      cookie: A.cookie,
+      body: { date: '2026-09-14', time: '14:00', client: 'M. Doublon', type: 'Consultation' }
+    });
+    assert.strictEqual(doublon.status, 409);
+
+    /* Mais le même créneau reste libre pour un autre cabinet. */
+    const chezB = await call('POST', '/api/rdv', {
+      cookie: B.cookie,
+      body: { date: '2026-09-14', time: '14:00', client: 'Client de B', type: 'Consultation' }
+    });
+    assert.strictEqual(chezB.status, 201, 'le créneau de A bloque celui de B');
+  });
+
+  await test('une date ou une heure mal formée est refusée', async () => {
+    const bancal = await call('POST', '/api/rdv', {
+      cookie: A.cookie, body: { date: '14 septembre', time: '14h', client: 'X' }
+    });
+    assert.strictEqual(bancal.status, 400);
+  });
+
+  await test('on n\'annule pas le rendez-vous d\'un autre cabinet', async () => {
+    const croise = await call('POST', '/api/rdv/' + A.rdvId + '/cancel', {
+      cookie: B.cookie, body: {}
+    });
+    assert.strictEqual(croise.status, 404);
+
+    const encore = await call('GET', '/api/rdv', { cookie: A.cookie });
+    assert.strictEqual(encore.body.rdv.length, 1, 'le rendez-vous de A a disparu');
+  });
+
+  await test('Ally pose un rendez-vous pendant l\'appel', async () => {
+    const payload = {
+      cabinetId: A.cabinetId, from: '0611223344', summary: 'Veut un rendez-vous',
+      rdv: { date: '2026-09-15', time: '10:00', client: 'M. Chevalier', type: 'Suivi' }
+    };
+    const raw = JSON.stringify(payload);
+    const recu = await call('POST', '/api/webhooks/retell', {
+      body: raw,
+      headers: { 'x-retell-signature': sign(raw, process.env.RETELL_WEBHOOK_SECRET) }
+    });
+    assert.strictEqual(recu.status, 201);
+    assert.ok(recu.body.rdvId, 'aucun rendez-vous posé');
+
+    const liste = await call('GET', '/api/rdv', { cookie: A.cookie });
+    const pris = liste.body.rdv.find((r) => r.id === recu.body.rdvId);
+    assert.strictEqual(pris.source, 'call', 'l\'origine n\'est pas tracée');
+    assert.strictEqual(pris.client, 'M. Chevalier');
+  });
+
+  await test('un créneau occupé ne fait pas perdre l\'appel', async () => {
+    const payload = {
+      cabinetId: A.cabinetId, from: '0699999999', summary: 'Voulait le même créneau',
+      rdv: { date: '2026-09-15', time: '10:00', client: 'M. Tardif', type: 'Suivi' }
+    };
+    const raw = JSON.stringify(payload);
+    const recu = await call('POST', '/api/webhooks/retell', {
+      body: raw,
+      headers: { 'x-retell-signature': sign(raw, process.env.RETELL_WEBHOOK_SECRET) }
+    });
+    assert.strictEqual(recu.status, 201, 'l\'appel a été perdu');
+    assert.strictEqual(recu.body.rdvId, null, 'un doublon a été posé');
+  });
+
   console.log('\n== Collaborateurs ==');
 
   await test('une formule à une place refuse l\'invitation', async () => {

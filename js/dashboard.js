@@ -1035,7 +1035,11 @@
   }
 
   /* ================================ AGENDA ================================ */
-  function viewAgenda() { return window.ALLY_AGENDA.view(); }
+  /* L'agenda réel passe en tête : quand une ligne est connectée, les
+     rendez-vous du serveur priment sur ceux du navigateur. */
+  function viewAgenda() {
+    return (window.ALLY_DIARY ? window.ALLY_DIARY.view() : '') + window.ALLY_AGENDA.view();
+  }
 
   /* ================================= ALLY ================================= */
   var SHEET_FIELDS = [
@@ -1489,6 +1493,7 @@
 
     if (ui.tab === 'telephony') window.ALLY_TELEPHONY.bind(panel, renderPanel);
     if (ui.tab === 'agenda') window.ALLY_AGENDA.bind(panel, renderPanel);
+    if (ui.tab === 'agenda' && window.ALLY_DIARY) window.ALLY_DIARY.bind(panel, renderPanel);
     if (ui.tab === 'conversations' && window.ALLY_MAILBOX) {
       window.ALLY_MAILBOX.bind(panel, renderPanel);
     }
@@ -2255,7 +2260,8 @@
       done.then(function () {
         renderChrome();
         renderNav();
-        if (ui.tab === 'telephony' || ui.tab === 'conversations' || ui.tab === 'account') {
+        if (ui.tab === 'telephony' || ui.tab === 'conversations'
+            || ui.tab === 'account' || ui.tab === 'agenda') {
           renderPanel();
         }
       });

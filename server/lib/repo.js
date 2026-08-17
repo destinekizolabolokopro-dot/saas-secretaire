@@ -17,7 +17,12 @@ const { encrypt, decrypt, id } = require('./crypto');
 /* Champs chiffrés au niveau applicatif, par collection. */
 const SECRET_FIELDS = {
   calls: ['summary', 'transcript'],
-  messages: ['body']
+  messages: ['body'],
+  /* Le nom du client et la note du rendez-vous en disent autant qu'un résumé
+     d'appel : « Mme Aubert, 14 h, divorce » n'a rien à faire en clair. La date
+     et l'heure restent lisibles, sinon on ne peut plus trier ni détecter les
+     collisions sans tout déchiffrer. */
+  rdv: ['client', 'note']
 };
 
 function seal(collection, row) {
@@ -104,6 +109,7 @@ function forCabinet(cabinetId) {
     cabinetId,
     calls: collection('calls'),
     messages: collection('messages'),
+    rdv: collection('rdv'),
 
     cabinet() {
       return db.cabinets.find((c) => c.id === cabinetId) || null;
@@ -146,7 +152,8 @@ const admin = {
       ...cabinet,
       members: db.users.filter((u) => u.cabinetId === cabinet.id).length,
       calls: db.calls.filter((c) => c.cabinetId === cabinet.id).length,
-      messages: db.messages.filter((m) => m.cabinetId === cabinet.id).length
+      messages: db.messages.filter((m) => m.cabinetId === cabinet.id).length,
+      rdv: db.rdv.filter((r) => r.cabinetId === cabinet.id).length
     }));
   },
 
@@ -157,6 +164,7 @@ const admin = {
       users: db.users.length,
       calls: db.calls.length,
       messages: db.messages.length,
+      rdv: db.rdv.length,
       sessions: db.sessions.filter((s) => s.expiresAt > Date.now()).length
     };
   },

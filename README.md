@@ -230,6 +230,7 @@ js/gate.js          porte d'entrée : inscription, code, connexion, oubli
 js/live.js          carte « la ligne réelle » — les appels livrés par le serveur
 js/mailbox.js       carte « le courrier réel » — la file d'envoi du serveur
 js/team.js          carte « le cabinet » — collaborateurs, invitations, places
+js/diary.js         carte « l'agenda réel » — rendez-vous du serveur, posés par Ally
 js/platform.js      carte « la plateforme réelle » — ce que le serveur sait vraiment
 js/store.js         configuration du compte connecté, persistance, quotas
 js/ui.js            composants partagés (saisie de code, jauge, message éphémère)
@@ -300,7 +301,7 @@ l'ensemble** :
 
 ```bash
 node server/index.js       # http://localhost:8787 — API et maquette
-node server/test.js        # 57 contrôles
+node server/test.js        # 63 contrôles
 ```
 
 ### Le compte devient réel
@@ -332,6 +333,22 @@ Connecté par l'écran habituel, il voit en tête de la console la carte **« la
 plateforme réelle »** : les cabinets vraiment inscrits, les sessions ouvertes,
 les volumes, le journal du serveur. Le reste de la console continue d'afficher
 l'annuaire de démonstration, et la carte le dit.
+
+### L'agenda réel
+
+La troisième promesse du produit. Les rendez-vous vivent sur le serveur,
+partagés par tous les membres du cabinet et invisibles pour les autres. Le nom
+du client et la note sont chiffrés en base ; la date et l'heure ne le sont pas,
+sinon il faudrait tout déchiffrer pour trier ou repérer une collision.
+
+Deux rendez-vous ne tiennent pas dans le même créneau — contrôle fait au
+serveur, parce que c'est **Ally qui pose les rendez-vous pendant l'appel**, et
+qu'elle ne passe pas par l'écran. L'agent vocal les transmet dans le même
+message que l'appel ; si le créneau vient d'être pris, l'appel est enregistré
+quand même et le rendez-vous simplement signalé comme non posé. Perdre l'appel
+parce que l'agenda a bougé serait le pire des deux échecs.
+
+Les rendez-vous pris au téléphone sont marqués comme tels dans la liste.
 
 ### Le forfait devient vrai
 

@@ -252,6 +252,59 @@ const routes = {
     H.json(ctx.res, 200, { message: data.messages.update(ctx.params.id, { state: 'cancelled' }) });
   },
 
+  /* -------------------------------------------------------------- Agenda */
+
+  'GET /api/rdv': async (ctx) => {
+    const list = repo.forCabinet(ctx.session.cabinetId).rdv.list();
+    /* Trié par date puis heure : l'agenda se lit dans l'ordre du temps, et
+       trier au navigateur redonnerait un ordre différent par appareil. */
+    list.sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
+    H.json(ctx.res, 200, { rdv: list });
+  },
+
+  'POST /api/rdv': async (ctx) => {
+    const date = String(ctx.body.date || '').trim();
+    const time = String(ctx.body.time || '').trim();
+
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return H.fail(ctx.res, 400, 'Date invalide.');
+    if (!/^\d{2}:\d{2}$/.test(time)) return H.fail(ctx.res, 400, 'Heure invalide.');
+
+    const data = repo.forCabinet(ctx.session.cabinetId);
+
+    /* Deux rendez-vous à la même heure, c'est un client qui attend dans le
+       couloir. Le contrôle est ici et non à l'écran : c'est Ally qui posera
+       les rendez-vous pendant les appels, et elle ne passe pas par l'écran. */
+    const collision = data.rdv.list().find((r) => r.date === date && r.time === time);
+    if (collision) {
+      return H.fail(ctx.res, 409, 'Ce créneau est déjà pris.');
+    }
+
+    const rdv = data.rdv.create({
+      date,
+      time,
+      client: String(ctx.body.client || '').trim() || 'Sans nom',
+      type: String(ctx.body.type || '').trim() || 'Rendez-vous',
+      note: String(ctx.body.note || ''),
+      /* D'où vient le rendez-vous : pris à l'écran, ou par Ally au téléphone.
+         C'est ce qui permettra de dire « Ally a pris 12 rendez-vous ce mois-ci ». */
+      source: ctx.body.source === 'call' ? 'call' : 'app'
+    });
+
+    store.record('rdv-created', { cabinetId: ctx.session.cabinetId, rdvId: rdv.id });
+    store.save();
+    H.json(ctx.res, 201, { rdv });
+  },
+
+  'POST /api/rdv/:id/cancel': async (ctx) => {
+    const data = repo.forCabinet(ctx.session.cabinetId);
+    if (!data.rdv.get(ctx.params.id)) return H.fail(ctx.res, 404, 'Introuvable.');
+
+    data.rdv.remove(ctx.params.id);
+    store.record('rdv-cancelled', { cabinetId: ctx.session.cabinetId, rdvId: ctx.params.id });
+    store.save();
+    H.json(ctx.res, 200, { ok: true });
+  },
+
   /* --------------------------------------------------------------- Admin */
 
   'GET /api/admin/stats': async (ctx) => {
@@ -295,8 +348,32 @@ const routes = {
     });
 
     store.record('call-received', { cabinetId: cabinet.id, callId: call.id });
+
+    /* Ally prend aussi les rendez-vous pendant l'appel : c'est la moitié de
+       l'intérêt du produit. L'agent vocal les transmet dans le même message,
+       et un créneau déjà pris ne fait pas échouer l'appel — l'appel est
+       enregistré quoi qu'il arrive, le rendez-vous est simplement signalé
+       comme non posé. */
+    let booked = null;
+    const wanted = payload.rdv;
+    if (wanted && /^\d{4}-\d{2}-\d{2}$/.test(String(wanted.date || ''))
+        && /^\d{2}:\d{2}$/.test(String(wanted.time || ''))) {
+      const data = repo.forCabinet(cabinet.id);
+      const taken = data.rdv.list().some((r) => r.date === wanted.date && r.time === wanted.time);
+      if (!taken) {
+        booked = data.rdv.create({
+          date: wanted.date, time: wanted.time,
+          client: String(wanted.client || '').trim() || payload.from || 'Sans nom',
+          type: String(wanted.type || '').trim() || 'Rendez-vous',
+          note: String(wanted.note || ''),
+          source: 'call'
+        });
+        store.record('rdv-created', { cabinetId: cabinet.id, rdvId: booked.id });
+      }
+    }
+
     store.save();
-    H.json(ctx.res, 201, { id: call.id });
+    H.json(ctx.res, 201, { id: call.id, rdvId: booked ? booked.id : null });
   }
 };
 

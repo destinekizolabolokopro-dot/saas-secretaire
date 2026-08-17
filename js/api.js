@@ -120,6 +120,11 @@
     send: function (payload) { return request('POST', '/messages', payload); },
     cancel: function (id) { return request('POST', '/messages/' + id + '/cancel', {}); },
 
+    /* ---------------------------------------------------------------- Agenda */
+    rdv: function () { return request('GET', '/rdv'); },
+    addRdv: function (payload) { return request('POST', '/rdv', payload); },
+    cancelRdv: function (id) { return request('POST', '/rdv/' + id + '/cancel', {}); },
+
     /* --------------------------------------------------------- Collaborateurs */
     invite: function (email) { return request('POST', '/cabinet/invite', { email: email }); },
     removeMember: function (userId) {

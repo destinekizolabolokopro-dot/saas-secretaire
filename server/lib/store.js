@@ -20,6 +20,7 @@ const EMPTY = {
   sessions: [],     // { token, userId, cabinetId, createdAt, expiresAt }
   calls: [],        // { id, cabinetId, from, at, summary(chiffré), outcome }
   messages: [],     // { id, cabinetId, to, subject, body(chiffré), state, sendAfter }
+  rdv: [],          // { id, cabinetId, date, time, client(chiffré), type, note(chiffré) }
   events: []        // journal d'accès, en ajout seul
 };
 
