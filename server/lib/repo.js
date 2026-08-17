@@ -98,6 +98,23 @@ function forCabinet(cabinetId) {
       return db.cabinets.find((c) => c.id === cabinetId) || null;
     },
 
+    /* Consommation réelle du mois en cours. C'est ce qui rend le forfait vrai :
+       tant qu'elle venait du profil métier, le compteur affichait la
+       consommation d'un cabinet imaginaire. On compte ce qui a coûté quelque
+       chose — un appel reçu, un email parti — jamais les brouillons ni les
+       envois annulés. */
+    usage() {
+      const now = new Date();
+      const start = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+
+      const calls = db.calls.filter(
+        (c) => c.cabinetId === cabinetId && (c.at || c.createdAt) >= start).length;
+      const messages = db.messages.filter(
+        (m) => m.cabinetId === cabinetId && m.state === 'sent' && (m.sentAt || 0) >= start).length;
+
+      return { calls, messages, since: start };
+    },
+
     members() {
       return db.users
         .filter((u) => u.cabinetId === cabinetId)

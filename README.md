@@ -333,6 +333,18 @@ plateforme réelle »** : les cabinets vraiment inscrits, les sessions ouvertes,
 les volumes, le journal du serveur. Le reste de la console continue d'afficher
 l'annuaire de démonstration, et la carte le dit.
 
+### Le forfait devient vrai
+
+Ligne connectée, la consommation n'est plus une estimation tirée du profil
+métier : le serveur compte **les appels reçus par le webhook et les emails
+réellement partis** depuis le 1er du mois — jamais les brouillons, jamais les
+envois annulés. L'onglet Abonnement affiche l'estimation du mois : forfait, plus
+les unités au-delà au tarif de la formule (0,45 / 0,35 / 0,25 €).
+
+La ligne n'est jamais coupée. Un appel refusé coûte au cabinet bien plus que
+0,35 € — mais le professionnel doit voir venir le supplément, pas le découvrir
+sur sa facture.
+
 ### Le courrier réel
 
 Ligne connectée, valider un brouillon n'est plus une simulation : l'email entre

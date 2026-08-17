@@ -177,6 +177,7 @@ const routes = {
       userId: ctx.session.userId,
       owner: auth.isOwner(me),
       seats: auth.seatsOf(cabinet),
+      usage: data.usage(),
       cabinet,
       members: data.members()
     });

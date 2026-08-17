@@ -1191,6 +1191,7 @@
         '<div class="meter"><div class="meter-head"><span>Emails traités</span><span>' +
           usage.emails.used + ' / ' + usage.emails.limit + '</span></div>' +
           '<div class="meter-track"><div class="meter-fill cyan" style="width:' + pct(usage.emails) + '%"></div></div></div>' +
+        estimate(usage) +
         '<button type="button" class="btn btn-ghost btn-md" id="plan-open">Changer de formule</button>' +
         '<div class="plan-choices" id="plan-choices" hidden>' +
           ['Essai gratuit', p.plan, 'Cabinet illimité'].map(function (label) {
@@ -1202,6 +1203,37 @@
       '<div class="card"><p class="card-title">Historique de facturation</p>' +
         billing() +
       '</div></div>';
+  }
+
+  /* Ce que coûtera le mois en cours, tant que la ligne est branchée : le
+     forfait, plus les appels au-delà. On ne coupe jamais la ligne — un appel
+     refusé coûte au cabinet bien plus que 0,35 € — donc le professionnel doit
+     pouvoir voir venir le supplément, pas le découvrir sur sa facture. */
+  function estimate(usage) {
+    if (!usage.real) return '';
+
+    var plan = store.planData();
+    var extraCalls = Math.max(0, usage.calls.used - usage.calls.limit);
+    var extraMails = Math.max(0, usage.emails.used - usage.emails.limit);
+    var extra = (extraCalls + extraMails) * plan.overage;
+    var money = function (n) { return n.toFixed(2).replace('.', ',') + ' €'; };
+
+    return '<div class="recap-row" style="margin-top:18px"><span>Forfait ' +
+        esc(plan.name) + '</span><span>' + plan.price + ' €</span></div>' +
+      (extra
+        ? '<div class="recap-row"><span>Au-delà du forfait — ' +
+          (extraCalls ? extraCalls + ' appel' + (extraCalls > 1 ? 's' : '') : '') +
+          (extraCalls && extraMails ? ', ' : '') +
+          (extraMails ? extraMails + ' email' + (extraMails > 1 ? 's' : '') : '') +
+          ' × ' + money(plan.overage) + '</span><span>' + money(extra) + '</span></div>'
+        : '') +
+      '<div class="recap-row total"><span>Estimation du mois</span><span>' +
+        money(plan.price + extra) + '</span></div>' +
+      '<p class="note" style="margin-top:10px">Compté sur la ligne réelle : ' +
+        usage.calls.used + ' appel' + (usage.calls.used > 1 ? 's' : '') + ' reçu' +
+        (usage.calls.used > 1 ? 's' : '') + ' et ' + usage.emails.used + ' email' +
+        (usage.emails.used > 1 ? 's' : '') + ' parti' + (usage.emails.used > 1 ? 's' : '') +
+        ' depuis le 1er du mois.</p>';
   }
 
   /* Un compte neuf n'a pas d'historique de facturation. Trois factures payées

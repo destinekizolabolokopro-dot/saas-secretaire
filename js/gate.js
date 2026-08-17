@@ -84,6 +84,17 @@
     if (changed) store.save();
   }
 
+  /* La consommation réelle du mois, telle que le serveur la compte. Le front
+     s'en sert pour son forfait : le compteur cessait d'être une estimation le
+     jour où la ligne est branchée. */
+  var realUsage = null;
+
+  function adoptUsage(usage) {
+    if (!usage) return;
+    realUsage = usage;
+    if (window.ALLY_STORE) window.ALLY_STORE.serverUsage = usage;
+  }
+
   /* Les réponses du serveur portent un message ; les pannes réseau, non. */
   function trouble(response, fallback) {
     return (response && response.body && response.body.error) || fallback;
@@ -113,7 +124,10 @@
       return when(function () {
         if (local() || !api.cabinetId()) return false;
         return api.me().then(function (res) {
-          if (res.ok && res.body.authenticated) adoptCabinet(res.body.cabinet);
+          if (res.ok && res.body.authenticated) {
+            adoptCabinet(res.body.cabinet);
+            adoptUsage(res.body.usage);
+          }
           return true;
         }, function () { return false; });
       });
@@ -242,6 +256,8 @@
         }, function () { return offline(); });
       });
     },
+
+    usage: function () { return realUsage; },
 
     logout: function () {
       return when(function () {

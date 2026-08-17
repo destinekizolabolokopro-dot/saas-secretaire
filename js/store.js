@@ -387,6 +387,16 @@
       var limits = this.planData().quota;
       var D = this.data();
 
+      /* Ligne connectée : c'est le serveur qui compte, et lui seul dit vrai.
+         Les appels reçus par le webhook et les emails réellement partis. */
+      if (this.serverUsage) {
+        return {
+          calls:  { used: this.serverUsage.calls,    limit: limits.calls },
+          emails: { used: this.serverUsage.messages, limit: limits.emails },
+          real: true
+        };
+      }
+
       /* Compte neuf : la consommation part de zéro. Reprendre celle du profil
          métier afficherait « 142 appels ce mois-ci » à quelqu'un dont la ligne
          n'a jamais sonné. */
