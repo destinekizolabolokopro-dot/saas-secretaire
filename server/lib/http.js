@@ -46,7 +46,16 @@ function parseCookies(req) {
   const raw = req.headers.cookie || '';
   return raw.split(';').reduce((acc, part) => {
     const at = part.indexOf('=');
-    if (at > 0) acc[part.slice(0, at).trim()] = decodeURIComponent(part.slice(at + 1).trim());
+    if (at <= 0) return acc;
+    const value = part.slice(at + 1).trim();
+    /* decodeURIComponent lève sur un pourcentage isolé — « ally_session=% ».
+       Sans ce filet, un cookie mal formé faisait répondre 500 à toutes les
+       requêtes du navigateur concerné, y compris aux pages : le site devenait
+       inutilisable jusqu'à ce que la personne vide ses cookies elle-même. */
+    let decoded;
+    try { decoded = decodeURIComponent(value); }
+    catch (e) { decoded = value; }
+    acc[part.slice(0, at).trim()] = decoded;
     return acc;
   }, {});
 }
@@ -76,8 +85,42 @@ function clearSession(res) {
    nombre de machines. */
 const buckets = new Map();
 
+/* La table des compteurs est elle-même une cible : chaque adresse email
+   essayée y crée une entrée, et rien ne l'effaçait. Quelques centaines de
+   milliers de tentatives sur des adresses inventées suffisaient à faire enfler
+   la mémoire du processus indéfiniment. On balaie donc les compteurs périmés,
+   et on plafonne la table. */
+const MAX_BUCKETS = 50000;
+
+function sweep(now) {
+  for (const [key, bucket] of buckets) {
+    if (now > bucket.resetAt) buckets.delete(key);
+  }
+  /* Si le balayage ne suffit pas — beaucoup de fenêtres encore ouvertes — on
+     vide les plus anciennes entrées. Perdre un compteur en cours est moins
+     grave que de perdre le serveur. */
+  if (buckets.size > MAX_BUCKETS) {
+    const excess = buckets.size - MAX_BUCKETS;
+    let removed = 0;
+    for (const key of buckets.keys()) {
+      buckets.delete(key);
+      if (++removed >= excess) break;
+    }
+  }
+}
+
+let lastSweep = 0;
+const SWEEP_MS = 60000;
+
 function rateLimit(key, { max = 10, windowMs = 60000 } = {}) {
   const now = Date.now();
+  /* Balayage périodique, et immédiat si la table dépasse son plafond : la
+     minute d'attente ne doit pas laisser la mémoire filer pendant une rafale. */
+  if (now - lastSweep > SWEEP_MS || buckets.size > MAX_BUCKETS) {
+    lastSweep = now;
+    sweep(now);
+  }
+
   const bucket = buckets.get(key);
 
   if (!bucket || now > bucket.resetAt) {
@@ -91,7 +134,9 @@ function rateLimit(key, { max = 10, windowMs = 60000 } = {}) {
   return { ok: true, remaining: max - bucket.count };
 }
 
-function resetRateLimits() { buckets.clear(); }
+function resetRateLimits() { buckets.clear(); lastSweep = 0; }
+
+function rateLimitSize() { return buckets.size; }
 
 /* Adresse de l'appelant. On ne fait confiance à x-forwarded-for que si on a
    explicitement déclaré tourner derrière un proxy : sinon n'importe qui
@@ -107,6 +152,6 @@ function clientIp(req) {
 module.exports = {
   readBody, json, fail, parseCookies,
   setSession, clearSession,
-  rateLimit, resetRateLimits, clientIp,
+  rateLimit, resetRateLimits, rateLimitSize, clientIp,
   MAX_BODY
 };

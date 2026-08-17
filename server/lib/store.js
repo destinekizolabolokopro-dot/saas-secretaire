@@ -39,9 +39,14 @@ function load() {
 /* Écriture atomique : on écrit à côté puis on renomme. Une coupure au milieu
    d'un write() laisserait sinon un fichier tronqué, donc une base perdue. */
 function save() {
-  fs.mkdirSync(DIR, { recursive: true });
+  /* Droits restreints dès la création. Le fichier contient des adresses, des
+     empreintes de mots de passe et des données de cabinets : sur une machine
+     partagée, le mode par défaut (0644) le rend lisible par tout compte du
+     système. On le pose à l'écriture, et non après, pour qu'il n'existe pas
+     une fraction de seconde en lecture publique. */
+  fs.mkdirSync(DIR, { recursive: true, mode: 0o700 });
   const tmp = FILE + '.' + process.pid + '.tmp';
-  fs.writeFileSync(tmp, JSON.stringify(load(), null, 2));
+  fs.writeFileSync(tmp, JSON.stringify(load(), null, 2), { mode: 0o600 });
   fs.renameSync(tmp, FILE);
 }
 

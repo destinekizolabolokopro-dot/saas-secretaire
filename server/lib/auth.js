@@ -281,8 +281,19 @@ function verifyEmail(userId, value) {
 
 /* ------------------------------------------------------------------ Session */
 
+/* Les sessions expirées ne partaient qu'au moment où l'on présentait leur
+   jeton : celles qu'on ne représente jamais restaient dans le fichier pour
+   toujours. On balaie à chaque ouverture, ce qui suffit largement. */
+function pruneSessions(db) {
+  const now = Date.now();
+  const before = db.sessions.length;
+  db.sessions = db.sessions.filter((s) => s.expiresAt > now);
+  return before - db.sessions.length;
+}
+
 function openSession(user) {
   const db = store.load();
+  pruneSessions(db);
   const session = {
     token: token(),
     userId: user.id,
@@ -297,13 +308,25 @@ function openSession(user) {
   return session;
 }
 
+/* Empreinte de comparaison, calculée une fois au démarrage.
+
+   Le message était bien le même pour un compte inexistant et un mot de passe
+   faux — mais pas le temps de réponse : sans utilisateur, on ne dérivait aucune
+   empreinte et la réponse revenait en une milliseconde au lieu de cinquante.
+   Chronométrer suffisait donc à savoir qui a un compte chez Ally, c'est-à-dire
+   qui est client. On dérive maintenant dans les deux cas. */
+const DUMMY_HASH = hashPassword('empreinte de comparaison, jamais utilisée');
+
 function login(email, password) {
   const user = findUser(email);
   /* Même message dans les deux cas : sinon la page permet de découvrir qui a
      un compte, c'est-à-dire qui est client. */
   const refus = { ok: false, error: 'Identifiants incorrects.' };
 
-  if (!user) return refus;
+  if (!user) {
+    verifyPassword(String(password || ''), DUMMY_HASH);
+    return refus;
+  }
   if (!verifyPassword(password, user.pass)) {
     store.record('login-failed', { userId: user.id });
     store.save();
@@ -371,5 +394,5 @@ module.exports = {
   invite, acceptInvite, removeMember, isOwner, seatsOf, SEATS,
   login, logout, sessionFrom, openSession,
   requestReset, resetPassword,
-  findUser, findById, SESSION_MS
+  findUser, findById, pruneSessions, SESSION_MS
 };

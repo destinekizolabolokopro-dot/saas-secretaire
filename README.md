@@ -300,7 +300,7 @@ l'ensemble** :
 
 ```bash
 node server/index.js       # http://localhost:8787 — API et maquette
-node server/test.js        # 48 contrôles
+node server/test.js        # 57 contrôles
 ```
 
 ### Le compte devient réel

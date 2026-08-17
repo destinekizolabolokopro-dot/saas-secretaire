@@ -10,6 +10,7 @@
 
 const fs = require('node:fs');
 const path = require('node:path');
+const crypto = require('node:crypto');
 
 const ROOT = path.resolve(__dirname, '..', '..');
 
@@ -27,11 +28,51 @@ const TYPES = {
 /* Dossiers que le serveur n'expose jamais, même si un fichier y existe. */
 const HIDDEN = ['server', 'node_modules', '.git'];
 
+/* En-têtes posés sur chaque page.
+
+   La politique de contenu est la deuxième ligne de défense contre l'injection :
+   la première est l'échappement, systématique dans le front, mais un oubli
+   suffit — et cette maquette affiche des résumés d'appels et des corps d'emails
+   écrits par des tiers. Avec cette politique, un script injecté ne s'exécute
+   pas, et rien ne peut être exfiltré vers un autre domaine.
+
+   « unsafe-inline » reste nécessaire pour les styles : la maquette pose des
+   attributs style un peu partout. Pour les scripts, non — d'où le nonce. */
+function securityHeaders(nonce) {
+  return {
+    'content-security-policy': [
+      "default-src 'self'",
+      "script-src 'self' 'nonce-" + nonce + "'",
+      "style-src 'self' 'unsafe-inline'",
+      "img-src 'self' data:",
+      "font-src 'self'",
+      "connect-src 'self'",
+      "media-src 'self'",
+      "form-action 'self'",
+      "base-uri 'none'",
+      /* Personne n'affiche Ally dans une iframe : c'est ainsi qu'on habille un
+         faux écran de connexion par-dessus le vrai. */
+      "frame-ancestors 'none'",
+      "object-src 'none'"
+    ].join('; '),
+    'x-content-type-options': 'nosniff',
+    'x-frame-options': 'DENY',
+    'referrer-policy': 'same-origin',
+    /* Le micro sert à Ally, sur cette page et nulle part ailleurs. */
+    'permissions-policy': 'microphone=(self), camera=(), geolocation=(), payment=()'
+  };
+}
+
 function serve(req, res, pathname) {
   /* On refuse tout ce qui n'est pas une lecture. */
   if (req.method !== 'GET' && req.method !== 'HEAD') return false;
 
-  const clean = decodeURIComponent(pathname.split('?')[0]);
+  /* Un chemin mal encodé — « /% » — fait lever decodeURIComponent. Sans ce
+     filet, une adresse tapée de travers répondait 500 au lieu de 404. */
+  let clean;
+  try { clean = decodeURIComponent(pathname.split('?')[0]); }
+  catch (e) { return false; }
+
   const relative = clean === '/' ? 'index.html' : clean.replace(/^\/+/, '');
 
   /* Traversée de répertoire : on résout, puis on vérifie que le résultat est
@@ -62,13 +103,21 @@ function serve(req, res, pathname) {
      produirait un 404 rouge dans la console de chaque visiteur, pour un état
      parfaitement normal — il n'y a simplement pas d'API. */
   if (extension === '.html') {
+    /* Un nonce par réponse. Il autorise nos scripts en ligne — celui qu'on
+       injecte, et celui du fichier de démonstration autonome — sans ouvrir la
+       porte à un script injecté par ailleurs, qui ne pourra pas le deviner. */
+    const nonce = crypto.randomBytes(16).toString('base64');
+
     const html = fs.readFileSync(target, 'utf8')
-      .replace('</head>', '<script>window.ALLY_API_BASE = "/api";</script>\n</head>');
+      .replace(/<script(?![^>]*\bsrc=)/g, '<script nonce="' + nonce + '"')
+      .replace('</head>',
+        '<script nonce="' + nonce + '">window.ALLY_API_BASE = "/api";</script>\n</head>');
+
     const buffer = Buffer.from(html, 'utf8');
     res.writeHead(200, {
       'content-type': type,
       'content-length': buffer.length,
-      'x-content-type-options': 'nosniff',
+      ...securityHeaders(nonce),
       'cache-control': 'no-cache'
     });
     res.end(req.method === 'HEAD' ? undefined : buffer);

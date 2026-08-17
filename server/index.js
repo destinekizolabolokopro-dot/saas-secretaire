@@ -130,7 +130,12 @@ const routes = {
   },
 
   'POST /api/auth/forgot': async (ctx) => {
-    H.rateLimit('forgot:' + ctx.ip, { max: 5, windowMs: 60 * 60 * 1000 });
+    /* Le résultat de la limitation n'était pas lu : la route était donc
+       ouverte à volonté, ce qui en fait un moyen d'inonder une boîte mail le
+       jour où les emails partent vraiment. */
+    const limit = H.rateLimit('forgot:' + ctx.ip, { max: 5, windowMs: 60 * 60 * 1000 });
+    if (!limit.ok) return H.fail(ctx.res, 429, 'Trop de demandes. Réessayez plus tard.');
+
     const result = auth.requestReset(ctx.body.email);
     /* Réponse volontairement identique, que le compte existe ou non. */
     H.json(ctx.res, 200, {

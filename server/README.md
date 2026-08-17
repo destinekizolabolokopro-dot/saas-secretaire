@@ -5,7 +5,7 @@ natifs, pour qu'il démarre partout et qu'il n'y ait rien de plus à auditer.
 
 ```bash
 node server/index.js       # http://localhost:8787 — API *et* maquette
-node server/test.js        # 48 contrôles
+node server/test.js        # 57 contrôles
 ```
 
 Le serveur sert aussi les fichiers du front : une seule commande fait tourner
@@ -81,6 +81,9 @@ un test qui échoue si on le casse.
 | Rôle administrateur hors d'atteinte | `lib/auth.js` | un formulaire qui réclame `role: admin` reste « pro » |
 | Places du cabinet comptées au serveur | `lib/auth.js` | une formule à une place refuse, interface contournée ou non |
 | Responsable seul à inviter et retirer | `lib/auth.js` | un collaborateur reçoit 403, un autre cabinet reçoit 404 |
+| Politique de contenu avec nonce par réponse | `lib/static.js` | scripts restreints, page non encadrable, nonce jamais constant |
+| Connexion insensible au chronomètre | `lib/auth.js` | écart de temps inexistant entre compte connu et inconnu |
+| Fichier de données en 0600 | `lib/store.js` | droits vérifiés après écriture |
 | Console d'administration réelle | `js/platform.js` | 10 contrôles : volumes vrais, contenu jamais exposé, refus côté API |
 | Envoi différé de 10 s | `index.js` | part après le délai, jamais si annulé |
 
@@ -100,6 +103,23 @@ le `cabinetId` même si l'appelant en fournit un autre. Un identifiant
 appartenant à un autre cabinet répond **404, exactement comme un identifiant
 inexistant** : la réponse ne doit pas permettre de deviner qu'une ressource
 existe ailleurs.
+
+## L'audit, et ce qu'il a trouvé
+
+Le serveur a été relu ligne à ligne. Neuf défauts corrigés, chacun avec un test
+qui échoue si on le réintroduit :
+
+| Ce qui n'allait pas | Conséquence |
+| --- | --- |
+| La connexion ne dérivait aucune empreinte pour un compte inexistant | 44 ms contre 0,05 ms : chronométrer révélait qui est client |
+| Le plafond de « mot de passe oublié » n'était pas lu | route ouverte à volonté — de quoi inonder une boîte mail |
+| Les compteurs de débit n'étaient jamais effacés | mémoire qui enfle à chaque adresse inventée |
+| Les sessions expirées restaient en base | fichier qui ne fait que grossir |
+| Un cookie mal formé faisait lever `decodeURIComponent` | 500 sur **toutes** les requêtes de ce navigateur, pages comprises |
+| Un chemin mal encodé faisait de même | 500 au lieu de 404 |
+| Le fichier de données était créé en 0644 | lisible par tout compte de la machine |
+| Un champ chiffré illisible faisait lever le déchiffrement | une ligne abîmée rendait tout l'onglet inaccessible |
+| Aucune politique de contenu sur les pages | un script injecté s'exécutait, la page pouvait être encadrée |
 
 ## Ce qu'il reste à faire
 

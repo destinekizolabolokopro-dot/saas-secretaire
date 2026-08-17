@@ -580,6 +580,123 @@ async function newCabinet(email, org) {
 
   console.log('\n== Robustesse ==');
 
+  await test('un compte inexistant ne se distingue pas au chronomètre', async () => {
+    H.resetRateLimits();
+    const mesure = async (email) => {
+      const debut = process.hrtime.bigint();
+      await call('POST', '/api/auth/login', { body: { email, password: 'MauvaisMotDePasse42' } });
+      return Number(process.hrtime.bigint() - debut) / 1e6;
+    };
+
+    /* Trois mesures chacune, on garde la médiane : une seule mesure sur une
+       machine partagée ne veut rien dire. */
+    const median = async (email) => {
+      const runs = [];
+      for (let i = 0; i < 3; i++) { H.resetRateLimits(); runs.push(await mesure(email)); }
+      return runs.sort((a, b) => a - b)[1];
+    };
+
+    const connu = await median('pro-a@cabinet-a.fr');
+    const inconnu = await median('personne@nulle-part.fr');
+    const ecart = Math.abs(connu - inconnu) / Math.max(connu, inconnu);
+    assert.ok(ecart < 0.5,
+      'écart de ' + Math.round(ecart * 100) + ' % (' + connu.toFixed(1) + ' ms contre '
+      + inconnu.toFixed(1) + ' ms) : le temps de réponse trahit les comptes existants');
+    H.resetRateLimits();
+  });
+
+  await test('les demandes de mot de passe oublié sont plafonnées', async () => {
+    H.resetRateLimits();
+    let dernier = null;
+    for (let i = 0; i < 7; i++) {
+      dernier = await call('POST', '/api/auth/forgot', { body: { email: 'pro-a@cabinet-a.fr' } });
+    }
+    assert.strictEqual(dernier.status, 429, 'la route accepte un nombre illimité de demandes');
+    H.resetRateLimits();
+  });
+
+  await test('les sessions expirées quittent le fichier', () => {
+    const db = store.load();
+    db.sessions.push({
+      token: 'perime', userId: 'usr_x', cabinetId: 'cab_x', role: 'pro',
+      createdAt: Date.now() - 86400000, expiresAt: Date.now() - 3600000
+    });
+    store.save();
+
+    const avant = store.load().sessions.length;
+    auth.openSession({ id: 'usr_y', cabinetId: 'cab_y', role: 'pro' });
+    const apres = store.load().sessions;
+
+    assert.ok(!apres.some((s) => s.token === 'perime'), 'une session périmée reste en base');
+    assert.ok(apres.length <= avant, 'le fichier de sessions ne fait que grossir');
+  });
+
+  await test('le fichier de données n\'est lisible que par son propriétaire', () => {
+    store.save();
+    const mode = fs.statSync(store.FILE).mode & 0o777;
+    assert.strictEqual(mode, 0o600, 'droits : ' + mode.toString(8));
+    const dir = fs.statSync(store.DIR).mode & 0o777;
+    assert.strictEqual(dir, 0o700, 'droits du dossier : ' + dir.toString(8));
+  });
+
+  await test('une ligne chiffrée illisible n\'emporte pas toute la liste', async () => {
+    const db = store.load();
+    const ligne = db.calls.find((c) => c.cabinetId === A.cabinetId);
+    const sauvegarde = ligne.summary;
+    ligne.summary = 'enc:v1:' + Buffer.from('nimportequoi').toString('base64');
+    store.save();
+
+    const res = await call('GET', '/api/calls', { cookie: A.cookie });
+    assert.strictEqual(res.status, 200, 'la liste entière est tombée');
+    const abime = res.body.calls.find((c) => c.summary && c.summary.includes('illisible'));
+    assert.ok(abime, 'la ligne abîmée n\'est pas signalée');
+
+    ligne.summary = sauvegarde;
+    store.save();
+  });
+
+  await test('un cookie mal formé ne fait pas tomber la requête', async () => {
+    /* decodeURIComponent lève sur un pourcentage isolé. Sans filet, toutes les
+       requêtes du navigateur concerné répondaient 500 — y compris les pages. */
+    const bancal = await call('GET', '/api/me', { cookie: 'ally_session=%E0%A4%A' });
+    assert.strictEqual(bancal.status, 200);
+    assert.strictEqual(bancal.body.authenticated, false);
+  });
+
+  await test('un chemin mal encodé répond 404, pas 500', async () => {
+    const res = await fetch(base + '/%');
+    assert.ok(res.status === 404 || res.status === 400, 'statut ' + res.status);
+  });
+
+  await test('la table des compteurs ne grossit pas sans fin', () => {
+    H.resetRateLimits();
+    /* Chaque adresse essayée créait une entrée que rien n'effaçait. */
+    for (let i = 0; i < 60000; i++) {
+      H.rateLimit('essai:' + i, { max: 5, windowMs: 1 });
+    }
+    assert.ok(H.rateLimitSize() <= 50000,
+      'la table contient ' + H.rateLimitSize() + ' entrées');
+    H.resetRateLimits();
+  });
+
+  await test('les pages portent une politique de contenu et un nonce', async () => {
+    const res = await fetch(base + '/login.html');
+    const csp = res.headers.get('content-security-policy');
+    assert.ok(csp, 'aucune politique de contenu');
+    assert.ok(/script-src 'self' 'nonce-/.test(csp), 'scripts non restreints : ' + csp);
+    assert.ok(/frame-ancestors 'none'/.test(csp), 'la page peut être encadrée');
+    assert.strictEqual(res.headers.get('x-frame-options'), 'DENY');
+
+    const html = await res.text();
+    const nonce = /nonce-([^']+)'/.exec(csp)[1];
+    assert.ok(html.includes('nonce="' + nonce + '"'), 'le script injecté ne porte pas le nonce');
+
+    /* Deux chargements, deux nonces : un nonce fixe ne vaut rien. */
+    const encore = await fetch(base + '/login.html');
+    const autre = /nonce-([^']+)'/.exec(encore.headers.get('content-security-policy'))[1];
+    assert.notStrictEqual(nonce, autre, 'le nonce est constant');
+  });
+
   await test('un JSON invalide ne fait pas tomber le serveur', async () => {
     const res = await call('POST', '/api/auth/login', { body: '{ ceci n est pas du json' });
     assert.strictEqual(res.status, 400);

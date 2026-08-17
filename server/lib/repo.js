@@ -27,11 +27,22 @@ function seal(collection, row) {
   return out;
 }
 
+/* Un champ chiffré illisible — clé changée, ligne abîmée — faisait lever le
+   déchiffrement, et l'exception remontait jusqu'à la route : un seul appel
+   corrompu rendait toute la liste inaccessible, donc tout l'onglet. On isole
+   la ligne fautive et on le dit à sa place, sans jamais renvoyer les octets
+   bruts, qui n'apprendraient rien à personne. */
+const UNREADABLE = '[contenu illisible — chiffré avec une autre clé]';
+
 function open(collection, row) {
   if (!row) return null;
   const fields = SECRET_FIELDS[collection] || [];
   const out = { ...row };
-  for (const field of fields) if (field in out) out[field] = decrypt(out[field]);
+  for (const field of fields) {
+    if (!(field in out)) continue;
+    try { out[field] = decrypt(out[field]); }
+    catch (e) { out[field] = UNREADABLE; }
+  }
   return out;
 }
 
