@@ -237,6 +237,48 @@
     });
   });
 
+  /* ---------- Invitation à rejoindre un cabinet ----------
+     Le lien reçu porte l'identifiant : login.html?invite=usr_xxx. Il ne suffit
+     pas à entrer — il faut le code, qui est transmis séparément. */
+  var inviteBoxes = UI.codeInput(document.getElementById('invite-boxes'));
+  UI.revealToggle(document.getElementById('invite-pass'));
+  UI.passwordMeter(document.getElementById('invite-pass'), document.getElementById('invite-meter'));
+
+  var invited = (function () {
+    var match = /[?&]invite=([^&]+)/.exec(window.location.search || '');
+    return match ? decodeURIComponent(match[1]) : null;
+  })();
+
+  var inviteButton = document.getElementById('invite-submit');
+  inviteButton.addEventListener('click', function () {
+    var password = document.getElementById('invite-pass');
+    if (password.value.length < 8) {
+      fail('invite-error', 'Le mot de passe doit faire au moins 8 caractères.');
+      password.focus();
+      return;
+    }
+
+    busy(inviteButton, true, 'Un instant…');
+    gate.accept(invited, inviteBoxes.value(), password.value).then(function (result) {
+      busy(inviteButton, false);
+      if (!result.ok) {
+        fail('invite-error', result.error);
+        if (result.error.indexOf('caractères') < 0) inviteBoxes.shake();
+        return;
+      }
+      route(result.user);
+    });
+  });
+
+  if (invited) {
+    gate.onReady(function (online) {
+      if (!online) {
+        fail('invite-error', 'Cette invitation demande une ligne connectée au serveur d\'Ally.');
+      }
+      show('invite');
+    });
+  }
+
   document.getElementById('reset-resend').addEventListener('click', function () {
     if (!pending) return;
     gate.resend(pending, 'reset').then(function (result) {

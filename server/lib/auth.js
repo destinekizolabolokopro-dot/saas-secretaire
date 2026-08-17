@@ -19,6 +19,10 @@ function findUser(email) {
   return store.load().users.find((u) => u.email === normalize(email)) || null;
 }
 
+function findById(userId) {
+  return store.load().users.find((u) => u.id === userId) || null;
+}
+
 /* --------------------------------------------------------------- Inscription */
 
 function signup({ email, password, org, trade, plan }) {
@@ -51,6 +55,10 @@ function signup({ email, password, org, trade, plan }) {
     id: id('usr'),
     cabinetId: cabinet.id,
     role: 'pro',
+    /* Celui qui crée le cabinet en est responsable : lui seul invite et
+       retire. Sans ce drapeau, un collaborateur invité pourrait retirer celui
+       qui l'a invité. */
+    owner: true,
     email: clean,
     pass: hashPassword(password),
     verified: false,
@@ -109,6 +117,123 @@ function ensureAdmin() {
   store.record('admin-created', { userId: user.id });
   store.save();
   return { ok: true, created: true, user };
+}
+
+/* ------------------------------------------------------------ Collaborateurs
+
+   Un cabinet à plusieurs, c'est ce que vend la formule Expert. Le nombre de
+   places vient de la formule, et il est compté ici : un contrôle fait dans
+   l'interface se contourne avec deux lignes de JavaScript. */
+
+const SEATS = { permanence: 1, cabinet: 1, expert: 5 };
+
+function seatsOf(cabinet) {
+  return SEATS[cabinet && cabinet.plan] || 1;
+}
+
+/* Le responsable est celui qui a créé le cabinet. Les comptes créés avant que
+   ce drapeau n'existe n'en portent pas : le plus ancien fait office. */
+function isOwner(user) {
+  if (!user) return false;
+  if (user.owner) return true;
+  const family = store.load().users
+    .filter((u) => u.cabinetId === user.cabinetId)
+    .sort((a, b) => a.createdAt - b.createdAt);
+  return !family.some((u) => u.owner) && family[0] && family[0].id === user.id;
+}
+
+function invite(cabinetId, email, byUser) {
+  const db = store.load();
+  const clean = normalize(email);
+
+  if (!isOwner(byUser)) {
+    return { ok: false, error: 'Seul le responsable du cabinet peut inviter.' };
+  }
+  if (!clean || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(clean)) {
+    return { ok: false, error: 'Adresse email invalide.' };
+  }
+  if (findUser(clean)) {
+    return { ok: false, error: 'Cette adresse a déjà un compte Ally.' };
+  }
+
+  const cabinet = db.cabinets.find((c) => c.id === cabinetId);
+  const family = db.users.filter((u) => u.cabinetId === cabinetId);
+  const places = seatsOf(cabinet);
+  if (family.length >= places) {
+    return {
+      ok: false,
+      error: places === 1
+        ? 'Votre formule ne comprend qu\'un utilisateur. Passez à Expert pour inviter vos collaborateurs.'
+        : 'Votre formule comprend ' + places + ' utilisateurs, ils sont tous pris.'
+    };
+  }
+
+  const user = {
+    id: id('usr'),
+    cabinetId,
+    role: 'pro',
+    owner: false,
+    email: clean,
+    /* Aucun mot de passe tant que l'invitation n'est pas acceptée. Un compte
+       sans empreinte ne peut pas se connecter : verifyPassword le refuse. */
+    pass: null,
+    verified: false,
+    invitedBy: byUser.id,
+    createdAt: Date.now(),
+    code: null
+  };
+  db.users.push(user);
+
+  const value = code6();
+  user.code = { kind: 'invite', value, expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000, tries: 0 };
+  store.record('member-invited', { cabinetId, userId: user.id });
+  store.save();
+
+  return { ok: true, user, code: value };
+}
+
+/* L'invité choisit son mot de passe en même temps qu'il prouve qu'il a reçu le
+   code. C'est la seule route qui crée une session sans mot de passe existant —
+   elle exige donc un code valide, et refuse un compte déjà actif. */
+function acceptInvite(userId, value, password) {
+  const user = store.load().users.find((u) => u.id === userId);
+  if (!user || user.verified || !user.code || user.code.kind !== 'invite') {
+    return { ok: false, error: 'Cette invitation n\'est plus valable.' };
+  }
+  if (!password || password.length < 8) {
+    return { ok: false, error: 'Le mot de passe doit faire au moins 8 caractères.' };
+  }
+
+  const result = checkCode(user, 'invite', value);
+  if (!result.ok) return result;
+
+  user.pass = hashPassword(password);
+  user.verified = true;
+  user.code = null;
+  store.record('member-joined', { cabinetId: user.cabinetId, userId: user.id });
+  store.save();
+  return { ok: true, user };
+}
+
+function removeMember(cabinetId, targetId, byUser) {
+  const db = store.load();
+  if (!isOwner(byUser)) {
+    return { ok: false, error: 'Seul le responsable du cabinet peut retirer un collaborateur.' };
+  }
+  if (targetId === byUser.id) {
+    return { ok: false, error: 'Vous ne pouvez pas vous retirer vous-même.' };
+  }
+
+  const target = db.users.find((u) => u.id === targetId && u.cabinetId === cabinetId);
+  /* Même réponse qu'un identifiant inexistant : la route ne doit pas dire à
+     quel cabinet appartient un identifiant qu'on lui souffle. */
+  if (!target) return { ok: false, error: 'Introuvable.', status: 404 };
+
+  db.users = db.users.filter((u) => u.id !== targetId);
+  db.sessions = db.sessions.filter((s) => s.userId !== targetId);
+  store.record('member-removed', { cabinetId, userId: targetId });
+  store.save();
+  return { ok: true };
 }
 
 /* ------------------------------------------------------- Codes à usage unique */
@@ -243,7 +368,8 @@ function resetPassword(userId, value, password) {
 
 module.exports = {
   signup, issueCode, verifyEmail, ensureAdmin,
+  invite, acceptInvite, removeMember, isOwner, seatsOf, SEATS,
   login, logout, sessionFrom, openSession,
   requestReset, resetPassword,
-  findUser, SESSION_MS
+  findUser, findById, SESSION_MS
 };

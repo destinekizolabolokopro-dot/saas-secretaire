@@ -451,6 +451,102 @@ async function newCabinet(email, org) {
     assert.ok(!confirme.body.devCode, 'un compte déjà confirmé reçoit un code');
   });
 
+  console.log('\n== Collaborateurs ==');
+
+  await test('une formule à une place refuse l\'invitation', async () => {
+    const refus = await call('POST', '/api/cabinet/invite', {
+      cookie: A.cookie, body: { email: 'collegue@cabinet-a.fr' }
+    });
+    assert.strictEqual(refus.status, 403);
+    assert.ok(/Expert/.test(refus.body.error), 'message : ' + refus.body.error);
+    assert.ok(!auth.findUser('collegue@cabinet-a.fr'), 'le compte a été créé malgré le refus');
+  });
+
+  await test('un cabinet Expert invite, et l\'invité ne peut pas encore entrer', async () => {
+    /* La formule vit sur le cabinet : on la passe à Expert comme le ferait un
+       changement d'abonnement. */
+    const cabinet = store.load().cabinets.find((c) => c.id === A.cabinetId);
+    cabinet.plan = 'expert';
+    store.save();
+
+    const invited = await call('POST', '/api/cabinet/invite', {
+      cookie: A.cookie, body: { email: 'collegue@cabinet-a.fr' }
+    });
+    assert.strictEqual(invited.status, 201);
+    assert.ok(invited.body.devCode, 'aucun code d\'invitation');
+
+    const user = auth.findUser('collegue@cabinet-a.fr');
+    assert.strictEqual(user.cabinetId, A.cabinetId);
+    assert.strictEqual(user.pass, null, 'un mot de passe existe déjà');
+    assert.strictEqual(user.owner, false);
+
+    H.resetRateLimits();
+    const essai = await call('POST', '/api/auth/login', {
+      body: { email: 'collegue@cabinet-a.fr', password: 'MotDePasse42!' }
+    });
+    assert.strictEqual(essai.status, 401, 'un compte sans mot de passe s\'est connecté');
+
+    A.inviteId = user.id;
+    A.inviteCode = invited.body.devCode;
+  });
+
+  await test('l\'invitation acceptée ouvre une session sur le bon cabinet', async () => {
+    const mauvais = await call('POST', '/api/auth/accept', {
+      body: { userId: A.inviteId, code: '000000', password: 'MotDePasse42!' }
+    });
+    assert.strictEqual(mauvais.status, 400);
+
+    const rejoint = await call('POST', '/api/auth/accept', {
+      body: { userId: A.inviteId, code: A.inviteCode, password: 'MotDePasse42!' }
+    });
+    assert.strictEqual(rejoint.status, 200);
+    assert.strictEqual(rejoint.body.cabinetId, A.cabinetId);
+
+    /* Et il voit bien les appels du cabinet — c'est tout l'intérêt. */
+    const vue = await call('GET', '/api/calls', { cookie: 'ally_session=' + rejoint.token });
+    assert.strictEqual(vue.status, 200);
+    assert.ok(vue.body.calls.length >= 1);
+    A.memberCookie = 'ally_session=' + rejoint.token;
+  });
+
+  await test('la même invitation ne sert pas deux fois', async () => {
+    const encore = await call('POST', '/api/auth/accept', {
+      body: { userId: A.inviteId, code: A.inviteCode, password: 'AutreMotDePasse42!' }
+    });
+    assert.strictEqual(encore.status, 400);
+  });
+
+  await test('le collaborateur ne peut ni inviter ni retirer', async () => {
+    const invite = await call('POST', '/api/cabinet/invite', {
+      cookie: A.memberCookie, body: { email: 'pirate@cabinet-a.fr' }
+    });
+    assert.strictEqual(invite.status, 403);
+
+    const retire = await call('POST', '/api/cabinet/members/' + A.userId + '/remove', {
+      cookie: A.memberCookie, body: {}
+    });
+    assert.strictEqual(retire.status, 403, 'un invité a pu retirer le responsable');
+  });
+
+  await test('retirer quelqu\'un ferme aussi ses sessions', async () => {
+    const retire = await call('POST', '/api/cabinet/members/' + A.inviteId + '/remove', {
+      cookie: A.cookie, body: {}
+    });
+    assert.strictEqual(retire.status, 200);
+
+    const perime = await call('GET', '/api/calls', { cookie: A.memberCookie });
+    assert.strictEqual(perime.status, 401, 'la session du retiré vaut encore');
+    assert.ok(!auth.findUser('collegue@cabinet-a.fr'), 'le compte existe encore');
+  });
+
+  await test('on ne retire pas le membre d\'un autre cabinet', async () => {
+    const croise = await call('POST', '/api/cabinet/members/' + B.userId + '/remove', {
+      cookie: A.cookie, body: {}
+    });
+    assert.strictEqual(croise.status, 404, 'un cabinet a pu toucher au compte d\'un autre');
+    assert.ok(store.load().users.some((u) => u.id === B.userId), 'le compte a été supprimé');
+  });
+
   console.log('\n== Mot de passe oublié ==');
 
   await test('la demande répond pareil pour une adresse inconnue', async () => {

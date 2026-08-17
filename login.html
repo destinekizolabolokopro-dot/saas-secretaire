@@ -149,6 +149,39 @@
         </div>
       </section>
 
+      <!-- ============ Invitation à rejoindre un cabinet ============ -->
+      <section data-panel="invite" hidden>
+        <h1>Rejoindre le cabinet</h1>
+        <p id="invite-lede">Vous avez été invité à partager une ligne Ally.
+          Saisissez le code reçu et choisissez votre mot de passe.</p>
+
+        <p class="auth-error" id="invite-error" role="alert" hidden></p>
+
+        <div class="auth-field">
+          <span class="ob-label">Code d'invitation</span>
+          <div id="invite-boxes"></div>
+        </div>
+
+        <div class="auth-field">
+          <label for="invite-pass">Votre mot de passe</label>
+          <div class="field-wrap">
+            <input class="field" id="invite-pass" type="password" autocomplete="new-password"
+                   placeholder="8 caractères minimum">
+          </div>
+          <div class="pass-meter" id="invite-meter"></div>
+        </div>
+
+        <button class="btn btn-primary" id="invite-submit" type="button">Rejoindre le cabinet</button>
+        <div class="auth-row auth-row-center">
+          <button type="button" class="btn-link" data-goto-panel="login">← J'ai déjà un compte</button>
+        </div>
+
+        <p class="auth-note">
+          Vous verrez les appels et les emails de ce cabinet, avec votre propre
+          mot de passe et votre propre session.
+        </p>
+      </section>
+
     </main>
 
     <a class="auth-back" href="index.html">← Retour au site</a>

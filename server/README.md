@@ -5,7 +5,7 @@ natifs, pour qu'il démarre partout et qu'il n'y ait rien de plus à auditer.
 
 ```bash
 node server/index.js       # http://localhost:8787 — API *et* maquette
-node server/test.js        # 41 contrôles
+node server/test.js        # 48 contrôles
 ```
 
 Le serveur sert aussi les fichiers du front : une seule commande fait tourner
@@ -79,6 +79,8 @@ un test qui échoue si on le casse.
 | Service de fichiers sans traversée | `lib/static.js` | `/server/...` et `/../etc/passwd` refusés |
 | Parcours de compte de bout en bout | `js/gate.js` + `index.js` | 14 contrôles au navigateur : inscription, code, session, oubli |
 | Rôle administrateur hors d'atteinte | `lib/auth.js` | un formulaire qui réclame `role: admin` reste « pro » |
+| Places du cabinet comptées au serveur | `lib/auth.js` | une formule à une place refuse, interface contournée ou non |
+| Responsable seul à inviter et retirer | `lib/auth.js` | un collaborateur reçoit 403, un autre cabinet reçoit 404 |
 | Console d'administration réelle | `js/platform.js` | 10 contrôles : volumes vrais, contenu jamais exposé, refus côté API |
 | Envoi différé de 10 s | `index.js` | part après le délai, jamais si annulé |
 

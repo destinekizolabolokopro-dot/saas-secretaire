@@ -1172,7 +1172,10 @@
     var p = P();
     var usage = store.usage();
     var pct = function (u) { return Math.min(100, Math.round((u.used / u.limit) * 100)); };
-    return '<div class="cols cols-11">' +
+    /* Le cabinet à plusieurs n'a de sens qu'avec un serveur : sans lui, la
+       carte ne rend rien. */
+    return (window.ALLY_TEAM ? window.ALLY_TEAM.view() : '') +
+      '<div class="cols cols-11">' +
       '<div class="plan-card">' +
         '<p class="plan-kicker">Formule actuelle</p>' +
         '<p class="plan-name">' + esc(store.plan()) + '</p>' +
@@ -1197,11 +1200,39 @@
         '</div>' +
       '</div>' +
       '<div class="card"><p class="card-title">Historique de facturation</p>' +
-        [['01/07/2026', '149 €'], ['01/06/2026', '149 €'], ['01/05/2026', '149 €']].map(function (row) {
-          return '<div class="tri-row"><span>' + row[0] + '</span><span>' + row[1] + '</span>' +
-            '<span>Payée</span></div>';
-        }).join('') +
+        billing() +
       '</div></div>';
+  }
+
+  /* Un compte neuf n'a pas d'historique de facturation. Trois factures payées
+     affichées le jour de l'inscription, c'est le genre de détail qui apprend au
+     professionnel que rien de ce qu'il voit n'est à lui. */
+  function billing() {
+    var S2 = store.state;
+    if (S2.dataMode === 'empty' || !S2.configured) {
+      var plan = window.ALLY_PLAN_BY_ID(S2.planId);
+      var end = S2.subscription && S2.subscription.trialEndsOn;
+      return '<div class="empty">Aucune facture pour l\'instant. ' +
+        (end
+          ? 'Votre essai court jusqu\'au ' + esc(end) + ' — la première facture de '
+            + plan.price + ' € partira ce jour-là.'
+          : 'La première facture partira à la fin de votre essai.') +
+        '</div>';
+    }
+
+    var plan = window.ALLY_PLAN_BY_ID(S2.planId);
+    var rows = [], date = new Date();
+    for (var i = 1; i <= 3; i++) {
+      var d = new Date(date.getFullYear(), date.getMonth() - i + 1, 1);
+      rows.push([
+        '01/' + (d.getMonth() + 1 < 10 ? '0' : '') + (d.getMonth() + 1) + '/' + d.getFullYear(),
+        plan.price + ' €'
+      ]);
+    }
+    return rows.map(function (row) {
+      return '<div class="tri-row"><span>' + row[0] + '</span><span>' + row[1] + '</span>' +
+        '<span>Payée</span></div>';
+    }).join('');
   }
 
   function accountPrivacy() {
@@ -1428,6 +1459,9 @@
     if (ui.tab === 'agenda') window.ALLY_AGENDA.bind(panel, renderPanel);
     if (ui.tab === 'conversations' && window.ALLY_MAILBOX) {
       window.ALLY_MAILBOX.bind(panel, renderPanel);
+    }
+    if (ui.tab === 'account' && ui.account === 'plan' && window.ALLY_TEAM) {
+      window.ALLY_TEAM.bind(panel, renderPanel);
     }
 
     /* ---------- Actions réelles sur les données du compte ---------- */
@@ -2181,7 +2215,18 @@
   if (window.ALLY_API) {
     window.ALLY_API.onReady(function (online) {
       renderChrome();
-      if (online && (ui.tab === 'telephony' || ui.tab === 'conversations')) renderPanel();
+      if (!online) return;
+      /* Le serveur fait autorité sur la formule et la raison sociale : on les
+         reprend avant de redessiner, sinon l'écran annonce celles du
+         navigateur. */
+      var done = window.ALLY_GATE ? window.ALLY_GATE.adopt() : Promise.resolve();
+      done.then(function () {
+        renderChrome();
+        renderNav();
+        if (ui.tab === 'telephony' || ui.tab === 'conversations' || ui.tab === 'account') {
+          renderPanel();
+        }
+      });
     });
   }
 

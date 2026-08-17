@@ -76,8 +76,17 @@
         boxes.forEach(function (b) { b.value = ''; });
         boxes[0].focus();
       },
+      /* Code refusé : on secoue, puis on vide et on redonne la main sur la
+         première case. Les cases gardaient les chiffres refusés, et comme
+         chacune n'accepte qu'un caractère, il fallait six retours arrière
+         avant de pouvoir retaper. Personne ne fait ça : on abandonne. */
       shake: function () {
         container.classList.add('is-wrong');
+        boxes.forEach(function (b) { b.value = ''; });
+        boxes[0].focus();
+        /* On vide tout de suite, et l'animation se joue sur les cases vides :
+           différer le vidage effacerait ce que la personne aurait déjà retapé
+           entre-temps. */
         window.setTimeout(function () { container.classList.remove('is-wrong'); }, 500);
       }
     };

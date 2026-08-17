@@ -275,6 +275,15 @@ input[type="range"] {
    Différentes des .choice : elles se cochent et se décochent, souvent
    plusieurs à la fois, et portent une phrase entière. */
 .chip-group { display: flex; flex-wrap: wrap; gap: 10px; }
+/* Marqueur discret dans une liste : « vous », « responsable ». Il accompagne un
+   nom, il ne se clique pas — d'où l'absence de bordure et de curseur. */
+.chip-mini {
+  display: inline-block; margin-left: 6px; padding: 2px 8px;
+  border-radius: var(--pill); font-size: 11px; letter-spacing: .02em;
+  background: oklch(0.62 0.19 296 / 0.18); color: var(--accent-bright);
+  vertical-align: middle;
+}
+
 .chip {
   font-family: inherit; font-size: 13px; line-height: 1.35;
   padding: 10px 16px; border-radius: var(--pill);
@@ -2739,6 +2748,39 @@ input[type="range"] {
         </div>
       </section>
 
+      <!-- ============ Invitation à rejoindre un cabinet ============ -->
+      <section data-panel="invite" hidden>
+        <h1>Rejoindre le cabinet</h1>
+        <p id="invite-lede">Vous avez été invité à partager une ligne Ally.
+          Saisissez le code reçu et choisissez votre mot de passe.</p>
+
+        <p class="auth-error" id="invite-error" role="alert" hidden></p>
+
+        <div class="auth-field">
+          <span class="ob-label">Code d'invitation</span>
+          <div id="invite-boxes"></div>
+        </div>
+
+        <div class="auth-field">
+          <label for="invite-pass">Votre mot de passe</label>
+          <div class="field-wrap">
+            <input class="field" id="invite-pass" type="password" autocomplete="new-password"
+                   placeholder="8 caractères minimum">
+          </div>
+          <div class="pass-meter" id="invite-meter"></div>
+        </div>
+
+        <button class="btn btn-primary" id="invite-submit" type="button">Rejoindre le cabinet</button>
+        <div class="auth-row auth-row-center">
+          <button type="button" class="btn-link" data-goto-panel="login">← J'ai déjà un compte</button>
+        </div>
+
+        <p class="auth-note">
+          Vous verrez les appels et les emails de ce cabinet, avec votre propre
+          mot de passe et votre propre session.
+        </p>
+      </section>
+
     </main>
 
     <a class="auth-back" href="#" data-goto="landing">← Retour au site</a>
@@ -4294,6 +4336,15 @@ window.ALLY_PLAN_BY_ID = function (id) {
     send: function (payload) { return request('POST', '/messages', payload); },
     cancel: function (id) { return request('POST', '/messages/' + id + '/cancel', {}); },
 
+    /* --------------------------------------------------------- Collaborateurs */
+    invite: function (email) { return request('POST', '/cabinet/invite', { email: email }); },
+    removeMember: function (userId) {
+      return request('POST', '/cabinet/members/' + userId + '/remove', {});
+    },
+    accept: function (userId, code, password) {
+      return request('POST', '/auth/accept', { userId: userId, code: code, password: password });
+    },
+
     /* ------------------------------------------------------------ Plateforme */
     adminStats: function () { return request('GET', '/admin/stats'); },
     adminEvents: function () { return request('GET', '/admin/events'); },
@@ -4365,6 +4416,35 @@ window.ALLY_PLAN_BY_ID = function (id) {
     return accounts.update(user.id, patch);
   }
 
+  /* Le serveur fait autorité sur le cabinet : sa raison sociale et sa formule.
+     Sans cette reprise, l'écran affichait la formule enregistrée dans le
+     navigateur — un compte Expert côté serveur pouvait s'annoncer « Cabinet »
+     dans son propre espace, avec cinq places dans une carte et une seule dans
+     l'autre. */
+  function adoptCabinet(cabinet) {
+    var store = window.ALLY_STORE;
+    if (!store || !cabinet) return;
+
+    var S = store.state;
+    var changed = false;
+
+    if (cabinet.org && S.identity.org !== cabinet.org
+        && (!S.configured || !S.identity.org)) {
+      S.identity.org = cabinet.org;
+      changed = true;
+    }
+    if (cabinet.plan && S.planId !== cabinet.plan) {
+      S.planId = cabinet.plan;
+      S.plan = window.ALLY_PLAN_BY_ID(cabinet.plan).name;
+      changed = true;
+    }
+    if (cabinet.trade && !S.configured && S.trade !== cabinet.trade) {
+      S.trade = cabinet.trade;
+      changed = true;
+    }
+    if (changed) store.save();
+  }
+
   /* Les réponses du serveur portent un message ; les pannes réseau, non. */
   function trouble(response, fallback) {
     return (response && response.body && response.body.error) || fallback;
@@ -4387,6 +4467,18 @@ window.ALLY_PLAN_BY_ID = function (id) {
        adapter ce qu'ils annoncent, jamais pour changer de logique. */
     server: function () { return !local(); },
     onReady: function (fn) { if (api) api.onReady(fn); else fn(false); },
+
+    /* Reprend du serveur ce dont il est la source : le cabinet. Appelé au
+       chargement des pages qui affichent une formule ou une raison sociale. */
+    adopt: function () {
+      return when(function () {
+        if (local() || !api.cabinetId()) return false;
+        return api.me().then(function (res) {
+          if (res.ok && res.body.authenticated) adoptCabinet(res.body.cabinet);
+          return true;
+        }, function () { return false; });
+      });
+    },
 
     /* ------------------------------------------------------------ Inscription
        Renvoie { ok, error, user, code }. « code » vaut null quand le serveur
@@ -4484,6 +4576,29 @@ window.ALLY_PLAN_BY_ID = function (id) {
           });
           if (!mine) return { ok: false, error: 'Connexion acceptée, mais impossible d\'ouvrir la session ici.' };
           accounts.open(mine.id);
+          return { ok: true, user: mine };
+        }, function () { return offline(); });
+      });
+    },
+
+    /* ------------------------------------------------------------ Invitation
+       Le collaborateur invité n'a pas encore de mot de passe : il en choisit un
+       en prouvant qu'il a reçu le code. Sans serveur, cette route n'existe
+       pas — un cabinet à plusieurs suppose un endroit commun. */
+    accept: function (userId, code, password) {
+      return when(function () {
+        if (local()) {
+          return { ok: false, error: 'Rejoindre un cabinet demande une ligne connectée.' };
+        }
+        return api.accept(userId, code, password).then(function (res) {
+          if (!res.ok) return { ok: false, error: trouble(res, 'Invitation refusée.') };
+
+          api.remember({ cabinetId: res.body.cabinetId, role: res.body.role });
+          var mine = mirror({
+            serverId: res.body.userId, cabinetId: res.body.cabinetId,
+            email: res.body.email, password: password, verified: true, role: res.body.role
+          });
+          if (mine) accounts.open(mine.id);
           return { ok: true, user: mine };
         }, function () { return offline(); });
       });
@@ -5330,8 +5445,17 @@ window.ALLY_PLAN_BY_ID = function (id) {
         boxes.forEach(function (b) { b.value = ''; });
         boxes[0].focus();
       },
+      /* Code refusé : on secoue, puis on vide et on redonne la main sur la
+         première case. Les cases gardaient les chiffres refusés, et comme
+         chacune n'accepte qu'un caractère, il fallait six retours arrière
+         avant de pouvoir retaper. Personne ne fait ça : on abandonne. */
       shake: function () {
         container.classList.add('is-wrong');
+        boxes.forEach(function (b) { b.value = ''; });
+        boxes[0].focus();
+        /* On vide tout de suite, et l'animation se joue sur les cases vides :
+           différer le vidage effacerait ce que la personne aurait déjà retapé
+           entre-temps. */
         window.setTimeout(function () { container.classList.remove('is-wrong'); }, 500);
       }
     };
@@ -7271,6 +7395,196 @@ window.ALLY_PLAN_BY_ID = function (id) {
   window.ALLY_MAILBOX = { view: view, bind: bind, refresh: refresh };
 })();
 
+/* Ally — le cabinet à plusieurs.
+
+   La formule Expert promet cinq collaborateurs. Jusqu'ici c'était une ligne
+   dans une grille de tarifs : le compte était seul, et rien ne permettait d'en
+   ajouter un second. Cette carte le fait pour de bon — inviter, retirer, voir
+   qui a déjà rejoint.
+
+   Le nombre de places vient de la formule, et il est compté côté serveur : un
+   contrôle fait ici se contourne avec deux lignes dans la console du
+   navigateur. Ce qui est affiché n'est qu'une politesse. */
+(function () {
+  'use strict';
+
+  var api = window.ALLY_API;
+
+  var state = {
+    members: [], seats: 1, owner: false, meId: null, org: '',
+    invited: null, error: null, busy: false, loaded: false
+  };
+
+  function esc(v) {
+    return String(v === undefined || v === null ? '' : v)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  /* ------------------------------------------------------------------ Vue */
+
+  function view() {
+    if (!api || !api.online() || !api.cabinetId()) return '';
+
+    return '<div class="card live-card" data-team>' +
+      '<div class="script-head">' +
+        '<div>' +
+          '<p class="card-title" style="margin-bottom:4px">Le cabinet' +
+            '<span class="live-badge is-on">' + state.members.length + ' / ' + state.seats + '</span></p>' +
+          '<p class="note">Les personnes qui partagent cette ligne. Chacune a son ' +
+            'mot de passe et sa session ; toutes voient les mêmes appels et les ' +
+            'mêmes emails, puisque c\'est le même cabinet.</p>' +
+        '</div>' +
+      '</div>' +
+      (state.loaded ? body() : '<div class="empty">Lecture du serveur…</div>') +
+    '</div>';
+  }
+
+  function body() {
+    return list() + (state.owner ? inviteBox() : notOwner());
+  }
+
+  function list() {
+    if (!state.members.length) return '';
+    return '<div class="live-list">' + state.members.map(function (m) {
+      var waiting = !m.verified;
+      return '<div class="row">' +
+        '<div class="row-main">' +
+          '<p class="row-name">' + esc(m.email) +
+            (m.id === state.meId ? ' <span class="chip-mini">vous</span>' : '') + '</p>' +
+          '<p class="row-meta">' + (m.owner ? 'Responsable du cabinet'
+            : waiting ? 'Invitation en attente' : 'Collaborateur') + '</p>' +
+        '</div>' +
+        '<div class="row-side">' +
+          '<span class="badge-status ' + (waiting ? 'badge-pending' : 'badge-ok') + '">' +
+            (waiting ? 'En attente' : 'Actif') + '</span>' +
+          (state.owner && m.id !== state.meId
+            ? '<button type="button" class="btn btn-ghost btn-sm" data-team-remove="' +
+              esc(m.id) + '">Retirer</button>'
+            : '') +
+        '</div>' +
+      '</div>';
+    }).join('') + '</div>';
+  }
+
+  function notOwner() {
+    return '<p class="note note-sep" style="margin-top:16px">Seul le responsable ' +
+      'du cabinet peut inviter ou retirer quelqu\'un. C\'est celui qui a créé le ' +
+      'compte.</p>';
+  }
+
+  function inviteBox() {
+    var full = state.members.length >= state.seats;
+
+    return '<div class="live-connect" style="margin-top:18px">' +
+      (full
+        ? '<p class="note">Toutes les places de votre formule sont prises. La ' +
+          'formule Expert en ouvre cinq.</p>'
+        : '<div class="ob-field">' +
+            '<label class="ob-label" for="team-email">Inviter un collaborateur</label>' +
+            '<input class="field" id="team-email" type="email" autocomplete="off"' +
+              ' placeholder="collegue@cabinet.fr">' +
+          '</div>' +
+          '<p class="auth-error" data-team-error hidden></p>' +
+          '<div class="voice-try" style="margin-top:14px">' +
+            '<button type="button" class="btn btn-primary btn-md" data-team-invite>' +
+              'Envoyer l\'invitation</button>' +
+          '</div>') +
+      (state.invited ? invitation() : '') +
+    '</div>';
+  }
+
+  /* Faute de serveur d'envoi, le lien et le code s'affichent : c'est au
+     responsable de les transmettre. Le jour où l'envoi d'emails est branché,
+     ce bloc disparaît — l'invité recevra le lien directement. */
+  function invitation() {
+    var link = window.location.origin + '/login.html?invite=' + state.invited.userId;
+    return '<div class="code-sent" style="margin-top:16px">' +
+      '<span>Invitation pour <strong>' + esc(state.invited.email) + '</strong> — code&nbsp;:</span> ' +
+      '<code>' + esc(state.invited.code || '——————') + '</code>' +
+      '<em>Transmettez ce lien et ce code : <br>' + esc(link) + '</em>' +
+    '</div>';
+  }
+
+  /* -------------------------------------------------------------- Liaison */
+
+  function refresh(rerender) {
+    if (!api.online() || !api.cabinetId() || state.busy) return;
+    state.busy = true;
+
+    api.me().then(function (res) {
+      state.busy = false;
+      if (!res.ok || !res.body.authenticated) { api.forget(); if (rerender) rerender(); return; }
+
+      var before = state.members.map(function (m) { return m.id + ':' + m.verified; }).join(',');
+      state.members = res.body.members || [];
+      state.seats = res.body.seats || 1;
+      state.owner = !!res.body.owner;
+      state.meId = res.body.userId;
+      state.org = (res.body.cabinet && res.body.cabinet.org) || '';
+      var after = state.members.map(function (m) { return m.id + ':' + m.verified; }).join(',');
+
+      var first = !state.loaded;
+      state.loaded = true;
+      if (rerender && (first || before !== after)) rerender();
+    }).catch(function () { state.busy = false; });
+  }
+
+  function bind(panel, rerender) {
+    if (!api || !api.online()) return;
+    var host = panel.querySelector('[data-team]');
+    if (!host) return;
+
+    var invite = host.querySelector('[data-team-invite]');
+    if (invite) {
+      invite.addEventListener('click', function () {
+        var field = host.querySelector('#team-email');
+        var box = host.querySelector('[data-team-error]');
+        if (!field.value || field.value.indexOf('@') < 1) { field.focus(); return; }
+
+        invite.disabled = true;
+        invite.textContent = 'Envoi…';
+
+        api.invite(field.value).then(function (res) {
+          if (!res.ok) {
+            box.textContent = (res.body && res.body.error) || 'Invitation refusée.';
+            box.hidden = false;
+            invite.disabled = false;
+            invite.textContent = 'Envoyer l\'invitation';
+            return;
+          }
+          state.invited = {
+            userId: res.body.userId, email: res.body.email, code: res.body.devCode
+          };
+          state.loaded = false;   /* force un rendu après la relecture */
+          refresh(rerender);
+          if (rerender) rerender();
+        }).catch(function () {
+          box.textContent = 'Serveur injoignable.';
+          box.hidden = false;
+          invite.disabled = false;
+          invite.textContent = 'Envoyer l\'invitation';
+        });
+      });
+    }
+
+    host.querySelectorAll('[data-team-remove]').forEach(function (button) {
+      button.addEventListener('click', function () {
+        button.disabled = true;
+        api.removeMember(button.getAttribute('data-team-remove')).then(function () {
+          state.loaded = false;
+          refresh(rerender);
+          if (rerender) rerender();
+        }).catch(function () { button.disabled = false; });
+      });
+    });
+
+    refresh(rerender);
+  }
+
+  window.ALLY_TEAM = { view: view, bind: bind, refresh: refresh };
+})();
+
 /* Ally — la plateforme réelle.
 
    Pendant administrateur de js/live.js. La console d'administration montre par
@@ -8344,6 +8658,48 @@ window.ALLY_PLAN_BY_ID = function (id) {
       show('login');
     });
   });
+
+  /* ---------- Invitation à rejoindre un cabinet ----------
+     Le lien reçu porte l'identifiant : login.html?invite=usr_xxx. Il ne suffit
+     pas à entrer — il faut le code, qui est transmis séparément. */
+  var inviteBoxes = UI.codeInput(document.getElementById('invite-boxes'));
+  UI.revealToggle(document.getElementById('invite-pass'));
+  UI.passwordMeter(document.getElementById('invite-pass'), document.getElementById('invite-meter'));
+
+  var invited = (function () {
+    var match = /[?&]invite=([^&]+)/.exec(window.location.search || '');
+    return match ? decodeURIComponent(match[1]) : null;
+  })();
+
+  var inviteButton = document.getElementById('invite-submit');
+  inviteButton.addEventListener('click', function () {
+    var password = document.getElementById('invite-pass');
+    if (password.value.length < 8) {
+      fail('invite-error', 'Le mot de passe doit faire au moins 8 caractères.');
+      password.focus();
+      return;
+    }
+
+    busy(inviteButton, true, 'Un instant…');
+    gate.accept(invited, inviteBoxes.value(), password.value).then(function (result) {
+      busy(inviteButton, false);
+      if (!result.ok) {
+        fail('invite-error', result.error);
+        if (result.error.indexOf('caractères') < 0) inviteBoxes.shake();
+        return;
+      }
+      route(result.user);
+    });
+  });
+
+  if (invited) {
+    gate.onReady(function (online) {
+      if (!online) {
+        fail('invite-error', 'Cette invitation demande une ligne connectée au serveur d\'Ally.');
+      }
+      show('invite');
+    });
+  }
 
   document.getElementById('reset-resend').addEventListener('click', function () {
     if (!pending) return;
@@ -10520,7 +10876,10 @@ window.ALLY_PLAN_BY_ID = function (id) {
     var p = P();
     var usage = store.usage();
     var pct = function (u) { return Math.min(100, Math.round((u.used / u.limit) * 100)); };
-    return '<div class="cols cols-11">' +
+    /* Le cabinet à plusieurs n'a de sens qu'avec un serveur : sans lui, la
+       carte ne rend rien. */
+    return (window.ALLY_TEAM ? window.ALLY_TEAM.view() : '') +
+      '<div class="cols cols-11">' +
       '<div class="plan-card">' +
         '<p class="plan-kicker">Formule actuelle</p>' +
         '<p class="plan-name">' + esc(store.plan()) + '</p>' +
@@ -10545,11 +10904,39 @@ window.ALLY_PLAN_BY_ID = function (id) {
         '</div>' +
       '</div>' +
       '<div class="card"><p class="card-title">Historique de facturation</p>' +
-        [['01/07/2026', '149 €'], ['01/06/2026', '149 €'], ['01/05/2026', '149 €']].map(function (row) {
-          return '<div class="tri-row"><span>' + row[0] + '</span><span>' + row[1] + '</span>' +
-            '<span>Payée</span></div>';
-        }).join('') +
+        billing() +
       '</div></div>';
+  }
+
+  /* Un compte neuf n'a pas d'historique de facturation. Trois factures payées
+     affichées le jour de l'inscription, c'est le genre de détail qui apprend au
+     professionnel que rien de ce qu'il voit n'est à lui. */
+  function billing() {
+    var S2 = store.state;
+    if (S2.dataMode === 'empty' || !S2.configured) {
+      var plan = window.ALLY_PLAN_BY_ID(S2.planId);
+      var end = S2.subscription && S2.subscription.trialEndsOn;
+      return '<div class="empty">Aucune facture pour l\'instant. ' +
+        (end
+          ? 'Votre essai court jusqu\'au ' + esc(end) + ' — la première facture de '
+            + plan.price + ' € partira ce jour-là.'
+          : 'La première facture partira à la fin de votre essai.') +
+        '</div>';
+    }
+
+    var plan = window.ALLY_PLAN_BY_ID(S2.planId);
+    var rows = [], date = new Date();
+    for (var i = 1; i <= 3; i++) {
+      var d = new Date(date.getFullYear(), date.getMonth() - i + 1, 1);
+      rows.push([
+        '01/' + (d.getMonth() + 1 < 10 ? '0' : '') + (d.getMonth() + 1) + '/' + d.getFullYear(),
+        plan.price + ' €'
+      ]);
+    }
+    return rows.map(function (row) {
+      return '<div class="tri-row"><span>' + row[0] + '</span><span>' + row[1] + '</span>' +
+        '<span>Payée</span></div>';
+    }).join('');
   }
 
   function accountPrivacy() {
@@ -10776,6 +11163,9 @@ window.ALLY_PLAN_BY_ID = function (id) {
     if (ui.tab === 'agenda') window.ALLY_AGENDA.bind(panel, renderPanel);
     if (ui.tab === 'conversations' && window.ALLY_MAILBOX) {
       window.ALLY_MAILBOX.bind(panel, renderPanel);
+    }
+    if (ui.tab === 'account' && ui.account === 'plan' && window.ALLY_TEAM) {
+      window.ALLY_TEAM.bind(panel, renderPanel);
     }
 
     /* ---------- Actions réelles sur les données du compte ---------- */
@@ -11529,7 +11919,18 @@ window.ALLY_PLAN_BY_ID = function (id) {
   if (window.ALLY_API) {
     window.ALLY_API.onReady(function (online) {
       renderChrome();
-      if (online && (ui.tab === 'telephony' || ui.tab === 'conversations')) renderPanel();
+      if (!online) return;
+      /* Le serveur fait autorité sur la formule et la raison sociale : on les
+         reprend avant de redessiner, sinon l'écran annonce celles du
+         navigateur. */
+      var done = window.ALLY_GATE ? window.ALLY_GATE.adopt() : Promise.resolve();
+      done.then(function () {
+        renderChrome();
+        renderNav();
+        if (ui.tab === 'telephony' || ui.tab === 'conversations' || ui.tab === 'account') {
+          renderPanel();
+        }
+      });
     });
   }
 

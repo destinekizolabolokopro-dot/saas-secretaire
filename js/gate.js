@@ -55,6 +55,35 @@
     return accounts.update(user.id, patch);
   }
 
+  /* Le serveur fait autorité sur le cabinet : sa raison sociale et sa formule.
+     Sans cette reprise, l'écran affichait la formule enregistrée dans le
+     navigateur — un compte Expert côté serveur pouvait s'annoncer « Cabinet »
+     dans son propre espace, avec cinq places dans une carte et une seule dans
+     l'autre. */
+  function adoptCabinet(cabinet) {
+    var store = window.ALLY_STORE;
+    if (!store || !cabinet) return;
+
+    var S = store.state;
+    var changed = false;
+
+    if (cabinet.org && S.identity.org !== cabinet.org
+        && (!S.configured || !S.identity.org)) {
+      S.identity.org = cabinet.org;
+      changed = true;
+    }
+    if (cabinet.plan && S.planId !== cabinet.plan) {
+      S.planId = cabinet.plan;
+      S.plan = window.ALLY_PLAN_BY_ID(cabinet.plan).name;
+      changed = true;
+    }
+    if (cabinet.trade && !S.configured && S.trade !== cabinet.trade) {
+      S.trade = cabinet.trade;
+      changed = true;
+    }
+    if (changed) store.save();
+  }
+
   /* Les réponses du serveur portent un message ; les pannes réseau, non. */
   function trouble(response, fallback) {
     return (response && response.body && response.body.error) || fallback;
@@ -77,6 +106,18 @@
        adapter ce qu'ils annoncent, jamais pour changer de logique. */
     server: function () { return !local(); },
     onReady: function (fn) { if (api) api.onReady(fn); else fn(false); },
+
+    /* Reprend du serveur ce dont il est la source : le cabinet. Appelé au
+       chargement des pages qui affichent une formule ou une raison sociale. */
+    adopt: function () {
+      return when(function () {
+        if (local() || !api.cabinetId()) return false;
+        return api.me().then(function (res) {
+          if (res.ok && res.body.authenticated) adoptCabinet(res.body.cabinet);
+          return true;
+        }, function () { return false; });
+      });
+    },
 
     /* ------------------------------------------------------------ Inscription
        Renvoie { ok, error, user, code }. « code » vaut null quand le serveur
@@ -174,6 +215,29 @@
           });
           if (!mine) return { ok: false, error: 'Connexion acceptée, mais impossible d\'ouvrir la session ici.' };
           accounts.open(mine.id);
+          return { ok: true, user: mine };
+        }, function () { return offline(); });
+      });
+    },
+
+    /* ------------------------------------------------------------ Invitation
+       Le collaborateur invité n'a pas encore de mot de passe : il en choisit un
+       en prouvant qu'il a reçu le code. Sans serveur, cette route n'existe
+       pas — un cabinet à plusieurs suppose un endroit commun. */
+    accept: function (userId, code, password) {
+      return when(function () {
+        if (local()) {
+          return { ok: false, error: 'Rejoindre un cabinet demande une ligne connectée.' };
+        }
+        return api.accept(userId, code, password).then(function (res) {
+          if (!res.ok) return { ok: false, error: trouble(res, 'Invitation refusée.') };
+
+          api.remember({ cabinetId: res.body.cabinetId, role: res.body.role });
+          var mine = mirror({
+            serverId: res.body.userId, cabinetId: res.body.cabinetId,
+            email: res.body.email, password: password, verified: true, role: res.body.role
+          });
+          if (mine) accounts.open(mine.id);
           return { ok: true, user: mine };
         }, function () { return offline(); });
       });

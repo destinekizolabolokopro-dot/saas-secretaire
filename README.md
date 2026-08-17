@@ -229,6 +229,7 @@ js/api.js           pont vers l'API, quand une API répond
 js/gate.js          porte d'entrée : inscription, code, connexion, oubli
 js/live.js          carte « la ligne réelle » — les appels livrés par le serveur
 js/mailbox.js       carte « le courrier réel » — la file d'envoi du serveur
+js/team.js          carte « le cabinet » — collaborateurs, invitations, places
 js/platform.js      carte « la plateforme réelle » — ce que le serveur sait vraiment
 js/store.js         configuration du compte connecté, persistance, quotas
 js/ui.js            composants partagés (saisie de code, jauge, message éphémère)
@@ -299,7 +300,7 @@ l'ensemble** :
 
 ```bash
 node server/index.js       # http://localhost:8787 — API et maquette
-node server/test.js        # 41 contrôles
+node server/test.js        # 48 contrôles
 ```
 
 ### Le compte devient réel
@@ -343,6 +344,19 @@ même cabinet, pas seulement celui qui a lancé l'envoi.
 Le décompte s'écrit dans le bouton sans redessiner la carte : redessiner
 remplaçait le bouton sous le doigt de la personne, et rattraper un envoi est
 précisément le geste qui ne doit jamais rater.
+
+### Le cabinet à plusieurs
+
+La formule Expert promet cinq collaborateurs ; jusqu'ici c'était une ligne dans
+une grille de tarifs. Le responsable — celui qui a créé le compte — invite par
+email depuis **Mon compte → Abonnement**. L'invité reçoit un lien
+`login.html?invite=…` et un code, choisit son mot de passe, et partage dès lors
+la ligne : mêmes appels, mêmes emails, sa propre session.
+
+Les règles tiennent **côté serveur**, pas seulement à l'écran : un
+collaborateur ne peut ni inviter ni retirer, personne ne retire le membre d'un
+autre cabinet, retirer quelqu'un ferme ses sessions dans la seconde, et une
+formule à une place refuse l'invitation même si l'on contourne l'interface.
 
 ### La ligne réelle
 

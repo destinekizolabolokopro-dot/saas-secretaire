@@ -204,6 +204,15 @@ input[type="range"] {
    Différentes des .choice : elles se cochent et se décochent, souvent
    plusieurs à la fois, et portent une phrase entière. */
 .chip-group { display: flex; flex-wrap: wrap; gap: 10px; }
+/* Marqueur discret dans une liste : « vous », « responsable ». Il accompagne un
+   nom, il ne se clique pas — d'où l'absence de bordure et de curseur. */
+.chip-mini {
+  display: inline-block; margin-left: 6px; padding: 2px 8px;
+  border-radius: var(--pill); font-size: 11px; letter-spacing: .02em;
+  background: oklch(0.62 0.19 296 / 0.18); color: var(--accent-bright);
+  vertical-align: middle;
+}
+
 .chip {
   font-family: inherit; font-size: 13px; line-height: 1.35;
   padding: 10px 16px; border-radius: var(--pill);

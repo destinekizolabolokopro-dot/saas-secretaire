@@ -120,6 +120,15 @@
     send: function (payload) { return request('POST', '/messages', payload); },
     cancel: function (id) { return request('POST', '/messages/' + id + '/cancel', {}); },
 
+    /* --------------------------------------------------------- Collaborateurs */
+    invite: function (email) { return request('POST', '/cabinet/invite', { email: email }); },
+    removeMember: function (userId) {
+      return request('POST', '/cabinet/members/' + userId + '/remove', {});
+    },
+    accept: function (userId, code, password) {
+      return request('POST', '/auth/accept', { userId: userId, code: code, password: password });
+    },
+
     /* ------------------------------------------------------------ Plateforme */
     adminStats: function () { return request('GET', '/admin/stats'); },
     adminEvents: function () { return request('GET', '/admin/events'); },

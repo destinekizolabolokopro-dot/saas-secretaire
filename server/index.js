@@ -30,6 +30,7 @@ const PUBLIC = new Set([
   'POST /api/auth/login',
   'POST /api/auth/forgot',
   'POST /api/auth/reset',
+  'POST /api/auth/accept',
   'POST /api/webhooks/retell',
   'GET /api/health',
   /* « Qui suis-je » a une réponse valable sans session : « personne ». Répondre
@@ -145,17 +146,65 @@ const routes = {
     H.json(ctx.res, 200, { ok: true });
   },
 
+  /* Invitation acceptée : c'est la seule route qui ouvre une session sans
+     mot de passe préalable, puisque l'invité n'en a pas encore. Elle exige en
+     échange un code que seul le responsable a pu transmettre. */
+  'POST /api/auth/accept': async (ctx) => {
+    const limit = H.rateLimit('accept:' + ctx.ip, { max: 10, windowMs: 60 * 60 * 1000 });
+    if (!limit.ok) return H.fail(ctx.res, 429, 'Trop de tentatives. Réessayez plus tard.');
+
+    const result = auth.acceptInvite(ctx.body.userId, ctx.body.code, ctx.body.password);
+    if (!result.ok) return H.fail(ctx.res, 400, result.error);
+
+    const session = auth.openSession(result.user);
+    H.setSession(ctx.res, session.token, auth.SESSION_MS / 1000);
+    H.json(ctx.res, 200, {
+      ok: true, userId: result.user.id, email: result.user.email,
+      cabinetId: result.user.cabinetId, role: result.user.role
+    });
+  },
+
   /* ------------------------------------------------------------- Cabinet */
 
   'GET /api/me': async (ctx) => {
     if (!ctx.session) return H.json(ctx.res, 200, { authenticated: false });
     const data = repo.forCabinet(ctx.session.cabinetId);
+    const me = auth.findById(ctx.session.userId);
+    const cabinet = data.cabinet();
     H.json(ctx.res, 200, {
       authenticated: true,
       role: ctx.session.role,
-      cabinet: data.cabinet(),
+      userId: ctx.session.userId,
+      owner: auth.isOwner(me),
+      seats: auth.seatsOf(cabinet),
+      cabinet,
       members: data.members()
     });
+  },
+
+  /* --------------------------------------------------------- Collaborateurs */
+
+  'POST /api/cabinet/invite': async (ctx) => {
+    const me = auth.findById(ctx.session.userId);
+    const result = auth.invite(ctx.session.cabinetId, ctx.body.email, me);
+    if (!result.ok) return H.fail(ctx.res, 403, result.error);
+
+    /* Comme pour l'inscription, le code ne revient dans la réponse qu'hors
+       production. Le jour où Brevo est branché, il part par email et le
+       responsable n'a rien à transmettre. */
+    H.json(ctx.res, 201, {
+      ok: true,
+      userId: result.user.id,
+      email: result.user.email,
+      devCode: process.env.NODE_ENV === 'production' ? undefined : result.code
+    });
+  },
+
+  'POST /api/cabinet/members/:id/remove': async (ctx) => {
+    const me = auth.findById(ctx.session.userId);
+    const result = auth.removeMember(ctx.session.cabinetId, ctx.params.id, me);
+    if (!result.ok) return H.fail(ctx.res, result.status || 403, result.error);
+    H.json(ctx.res, 200, { ok: true });
   },
 
   'GET /api/calls': async (ctx) => {
