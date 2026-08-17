@@ -990,11 +990,15 @@
 
   function viewConversations() {
     var p = P();
+    /* Le courrier réel passe en tête : quand une ligne est connectée, ce qui
+       part vraiment prime sur la simulation. La carte ne rend rien sans
+       serveur ni sans cabinet connecté. */
     var showDrafts = ui.filter === 'all' || ui.filter === 'validate' || ui.filter === 'emails';
     var showCalls  = ui.filter === 'all' || ui.filter === 'calls';
     var showSent   = ui.filter === 'all' || ui.filter === 'emails';
 
-    var out = '<div class="choice-row filters" role="group" aria-label="Filtrer les conversations">' +
+    var out = (window.ALLY_MAILBOX ? window.ALLY_MAILBOX.view() : '') +
+      '<div class="choice-row filters" role="group" aria-label="Filtrer les conversations">' +
       FILTERS.map(function (f) {
         var count = f.id === 'validate' ? drafts().length
           : f.id === 'calls' ? calls().length
@@ -1422,6 +1426,9 @@
 
     if (ui.tab === 'telephony') window.ALLY_TELEPHONY.bind(panel, renderPanel);
     if (ui.tab === 'agenda') window.ALLY_AGENDA.bind(panel, renderPanel);
+    if (ui.tab === 'conversations' && window.ALLY_MAILBOX) {
+      window.ALLY_MAILBOX.bind(panel, renderPanel);
+    }
 
     /* ---------- Actions réelles sur les données du compte ---------- */
 
@@ -2174,7 +2181,7 @@
   if (window.ALLY_API) {
     window.ALLY_API.onReady(function (online) {
       renderChrome();
-      if (online && ui.tab === 'telephony') renderPanel();
+      if (online && (ui.tab === 'telephony' || ui.tab === 'conversations')) renderPanel();
     });
   }
 

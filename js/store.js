@@ -185,6 +185,33 @@
     if (timers[id]) { window.clearTimeout(timers[id]); delete timers[id]; }
   }
 
+  /* Quand une ligne réelle est connectée, valider un brouillon n'est plus une
+     simulation : l'email entre dans la file du serveur, qui applique le même
+     délai de dix secondes. L'échec est silencieux à dessein — le geste local a
+     déjà eu lieu, et rien ne justifie de faire échouer l'écran parce que le
+     réseau a hoqueté. La carte « courrier réel » montre l'état vrai. */
+  function queueOnServer(store, mail) {
+    var api = window.ALLY_API;
+    if (!api || !api.online() || !api.cabinetId()) return;
+
+    api.send({
+      to: mail.to,
+      subject: mail.subject,
+      body: mail.preview || mail.body || ''
+    }).then(function (res) {
+      if (res.ok && res.body.message) {
+        mail.serverId = res.body.message.id;
+        store.save();
+      }
+    }).catch(function () {});
+  }
+
+  function cancelOnServer(mail) {
+    var api = window.ALLY_API;
+    if (!api || !api.online() || !mail.serverId) return;
+    api.cancel(mail.serverId).catch(function () {});
+  }
+
   function scheduleCommit(store, id, onCommit) {
     clearTimer(id);
     timers[id] = window.setTimeout(function () {
@@ -392,6 +419,7 @@
       if (!mail || mail.sending) return null;
       mail.sending = Date.now();
       this.save();
+      queueOnServer(this, mail);
       scheduleCommit(this, id, onCommit);
       return mail;
     },
@@ -406,6 +434,7 @@
       };
       this.data().drafts.unshift(entry);
       this.save();
+      queueOnServer(this, entry);
       scheduleCommit(this, entry.id, onCommit);
       return entry;
     },
@@ -428,6 +457,7 @@
       var mail = this.data().drafts.filter(function (m) { return m.id === id; })[0];
       if (!mail) return false;
       delete mail.sending;
+      cancelOnServer(mail);
       this.record('send-cancelled');
       this.save();
       return true;

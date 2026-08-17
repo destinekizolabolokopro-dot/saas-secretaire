@@ -47,7 +47,7 @@ let screens = SCREENS.map(([id, file]) => {
 /* ---- JS : mêmes fichiers, navigation redirigée vers le routeur ---- */
 let js = ['js/profiles.js', 'js/plans.js', 'js/accounts.js', 'js/api.js', 'js/gate.js', 'js/store.js',
           'js/ui.js', 'js/voice.js', 'js/agenda.js', 'js/brain.js', 'js/converse.js',
-          'js/live.js', 'js/platform.js', 'js/telephony.js', 'js/palette.js', 'js/landing.js', 'js/login.js',
+          'js/live.js', 'js/mailbox.js', 'js/platform.js', 'js/telephony.js', 'js/palette.js', 'js/landing.js', 'js/login.js',
           'js/subscribe.js', 'js/onboarding.js', 'js/dashboard.js', 'js/admin.js'].map(read).join('\n');
 
 js = js

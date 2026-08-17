@@ -228,6 +228,7 @@ js/accounts.js      annuaire des comptes du navigateur (rôles, session, codes)
 js/api.js           pont vers l'API, quand une API répond
 js/gate.js          porte d'entrée : inscription, code, connexion, oubli
 js/live.js          carte « la ligne réelle » — les appels livrés par le serveur
+js/mailbox.js       carte « le courrier réel » — la file d'envoi du serveur
 js/platform.js      carte « la plateforme réelle » — ce que le serveur sait vraiment
 js/store.js         configuration du compte connecté, persistance, quotas
 js/ui.js            composants partagés (saisie de code, jauge, message éphémère)
@@ -330,6 +331,18 @@ Connecté par l'écran habituel, il voit en tête de la console la carte **« la
 plateforme réelle »** : les cabinets vraiment inscrits, les sessions ouvertes,
 les volumes, le journal du serveur. Le reste de la console continue d'afficher
 l'annuaire de démonstration, et la carte le dit.
+
+### Le courrier réel
+
+Ligne connectée, valider un brouillon n'est plus une simulation : l'email entre
+dans la **file du serveur**, où il attend les mêmes dix secondes. La carte en
+tête de l'onglet Conversations montre cette file — en attente, parti, annulé —
+et le bouton **Annuler** y fonctionne depuis n'importe quel appareil connecté au
+même cabinet, pas seulement celui qui a lancé l'envoi.
+
+Le décompte s'écrit dans le bouton sans redessiner la carte : redessiner
+remplaçait le bouton sous le doigt de la personne, et rattraper un envoi est
+précisément le geste qui ne doit jamais rater.
 
 ### La ligne réelle
 
