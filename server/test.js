@@ -693,6 +693,80 @@ async function newCabinet(email, org) {
     assert.strictEqual(fresh.status, 200);
   });
 
+  console.log('\n== RGPD ==');
+
+  await test('le responsable exporte tout, en clair, et lui seul', async () => {
+    const mien = await call('GET', '/api/account/export', { cookie: A.cookie });
+    assert.strictEqual(mien.status, 200);
+    assert.ok(mien.body.appels.length >= 1, 'aucun appel dans l\'export');
+    assert.ok(mien.body.appels.some((c) => /Secret de A/.test(c.summary || '')),
+      'le contenu n\'est pas déchiffré dans l\'export');
+    assert.ok(mien.body.rendezVous.length >= 1);
+    assert.ok(!JSON.stringify(mien.body.membres).includes('scrypt$'),
+      'les empreintes de mots de passe partent dans l\'export');
+
+    /* Et rien du voisin. */
+    assert.ok(!JSON.stringify(mien.body).includes('Secret de B'), 'export non cloisonné');
+  });
+
+  await test('la conservation efface ce qui a dépassé la durée choisie', () => {
+    const db = store.load();
+    const cabinet = db.cabinets.find((c) => c.id === B.cabinetId);
+    cabinet.retentionDays = 30;
+
+    db.calls.push({
+      id: 'cal_vieux', cabinetId: B.cabinetId, from: '0600000000',
+      at: Date.now() - 60 * 86400000, summary: 'enc:v1:peu importe', outcome: 'handled'
+    });
+    const recent = db.calls.filter((c) => c.cabinetId === B.cabinetId).length;
+    store.save();
+
+    const efface = auth.purgeExpired();
+    assert.ok(efface >= 1, 'rien n\'a été effacé');
+
+    const apres = store.load().calls.filter((c) => c.cabinetId === B.cabinetId);
+    assert.ok(!apres.some((c) => c.id === 'cal_vieux'), 'l\'appel périmé est resté');
+    assert.strictEqual(apres.length, recent - 1, 'des appels récents ont été emportés');
+  });
+
+  await test('supprimer le cabinet exige le mot de passe, puis tout part', async () => {
+    const victime = await newCabinet('adieu@cabinet.fr', 'Cabinet Adieu');
+
+    const raw = JSON.stringify({ cabinetId: victime.cabinetId, from: '0600000009', summary: 'À effacer' });
+    await call('POST', '/api/webhooks/retell', {
+      body: raw,
+      headers: { 'x-retell-signature': sign(raw, process.env.RETELL_WEBHOOK_SECRET) }
+    });
+
+    H.resetRateLimits();
+    const sansMot = await call('POST', '/api/account/delete', {
+      cookie: victime.cookie, body: { password: 'PasLeBon42!' }
+    });
+    assert.strictEqual(sansMot.status, 403);
+    assert.ok(store.load().cabinets.some((c) => c.id === victime.cabinetId),
+      'le cabinet a été supprimé sans le bon mot de passe');
+
+    H.resetRateLimits();
+    const fait = await call('POST', '/api/account/delete', {
+      cookie: victime.cookie, body: { password: 'MotDePasse42!' }
+    });
+    assert.strictEqual(fait.status, 200);
+
+    const db = store.load();
+    assert.ok(!db.cabinets.some((c) => c.id === victime.cabinetId), 'cabinet encore là');
+    assert.ok(!db.users.some((u) => u.cabinetId === victime.cabinetId), 'comptes encore là');
+    assert.ok(!db.calls.some((c) => c.cabinetId === victime.cabinetId), 'appels encore là');
+    assert.ok(!db.sessions.some((s) => s.cabinetId === victime.cabinetId), 'sessions encore là');
+
+    /* La session ne vaut plus rien, forcément. */
+    const perime = await call('GET', '/api/calls', { cookie: victime.cookie });
+    assert.strictEqual(perime.status, 401);
+
+    /* Et le voisin n'a pas bougé. */
+    const voisin = await call('GET', '/api/calls', { cookie: A.cookie });
+    assert.strictEqual(voisin.status, 200);
+  });
+
   console.log('\n== Robustesse ==');
 
   await test('un compte inexistant ne se distingue pas au chronomètre', async () => {

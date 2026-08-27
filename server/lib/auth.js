@@ -236,6 +236,61 @@ function removeMember(cabinetId, targetId, byUser) {
   return { ok: true };
 }
 
+/* Suppression d'un cabinet : tout part, d'un coup, sans corbeille. C'est ce
+   qu'exige le droit à l'effacement, et c'est aussi la seule façon de tenir la
+   promesse faite au client. Le journal en garde la trace — l'identifiant du
+   cabinet, rien d'autre — parce qu'il faut pouvoir prouver que la suppression
+   a bien eu lieu. */
+function deleteCabinet(cabinetId) {
+  const db = store.load();
+  const compte = {
+    utilisateurs: db.users.filter((u) => u.cabinetId === cabinetId).length,
+    appels: db.calls.filter((c) => c.cabinetId === cabinetId).length,
+    messages: db.messages.filter((m) => m.cabinetId === cabinetId).length,
+    rendezVous: db.rdv.filter((r) => r.cabinetId === cabinetId).length
+  };
+
+  db.users = db.users.filter((u) => u.cabinetId !== cabinetId);
+  db.sessions = db.sessions.filter((s) => s.cabinetId !== cabinetId);
+  db.calls = db.calls.filter((c) => c.cabinetId !== cabinetId);
+  db.messages = db.messages.filter((m) => m.cabinetId !== cabinetId);
+  db.rdv = db.rdv.filter((r) => r.cabinetId !== cabinetId);
+  db.cabinets = db.cabinets.filter((c) => c.id !== cabinetId);
+
+  store.record('cabinet-deleted', { cabinetId });
+  store.save();
+  return compte;
+}
+
+/* Ménage : les enregistrements plus vieux que la durée choisie par le cabinet
+   s'effacent d'eux-mêmes. Conserver « au cas où » est exactement ce que le
+   RGPD interdit, et c'est aussi ce qui transforme une fuite en catastrophe. */
+const DEFAULT_RETENTION_DAYS = 90;
+
+function purgeExpired() {
+  const db = store.load();
+  const now = Date.now();
+  let removed = 0;
+
+  for (const cabinet of db.cabinets) {
+    const days = cabinet.retentionDays || DEFAULT_RETENTION_DAYS;
+    const limit = now - days * 86400000;
+
+    const before = db.calls.length + db.messages.length;
+    db.calls = db.calls.filter(
+      (c) => c.cabinetId !== cabinet.id || (c.at || c.createdAt || now) >= limit);
+    db.messages = db.messages.filter(
+      (m) => m.cabinetId !== cabinet.id || (m.sentAt || m.createdAt || now) >= limit);
+    removed += before - (db.calls.length + db.messages.length);
+  }
+
+  if (removed) {
+    store.record('retention-purge', { removed });
+    store.save();
+  }
+  return removed;
+}
+
 /* ------------------------------------------------------- Codes à usage unique */
 
 function issueCode(userId, kind) {
@@ -394,5 +449,6 @@ module.exports = {
   invite, acceptInvite, removeMember, isOwner, seatsOf, SEATS,
   login, logout, sessionFrom, openSession,
   requestReset, resetPassword,
-  findUser, findById, pruneSessions, SESSION_MS
+  findUser, findById, pruneSessions, deleteCabinet, purgeExpired,
+  DEFAULT_RETENTION_DAYS, SESSION_MS
 };

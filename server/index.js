@@ -208,12 +208,62 @@ const routes = {
     if (typeof ctx.body.trade === 'string' && ctx.body.trade.trim()) {
       cabinet.trade = ctx.body.trade.trim().slice(0, 40);
     }
+    /* Durée de conservation, entre une semaine et un an. C'est le cabinet qui
+       la fixe : il est responsable du traitement, nous ne sommes que
+       sous-traitant. Le ménage s'appuie dessus. */
+    if (Number.isFinite(Number(ctx.body.retentionDays))) {
+      cabinet.retentionDays = Math.min(365, Math.max(7, Math.round(Number(ctx.body.retentionDays))));
+    }
     /* La formule est la seule chose qu'on ne prend pas sur parole : elle
        décide du nombre de places et du prix. Elle changera par Stripe, pas par
        un champ de formulaire. */
     store.record('cabinet-updated', { cabinetId: cabinet.id });
     store.save();
     H.json(ctx.res, 200, { ok: true, cabinet });
+  },
+
+  /* ------------------------------------------------------------- RGPD
+
+     Deux droits qui ne se négocient pas : récupérer ses données, et les faire
+     disparaître. Ils sont réservés au responsable du cabinet — un
+     collaborateur qui exporterait tout le cabinet, ou l'effacerait, serait
+     une porte ouverte. */
+
+  'GET /api/account/export': async (ctx) => {
+    const me = auth.findById(ctx.session.userId);
+    if (!auth.isOwner(me)) {
+      return H.fail(ctx.res, 403, 'Seul le responsable du cabinet peut exporter les données.');
+    }
+
+    const data = repo.forCabinet(ctx.session.cabinetId);
+    store.record('data-exported', { cabinetId: ctx.session.cabinetId });
+    store.save();
+
+    /* Contenu déchiffré : c'est l'export de ses propres données, demandé par
+       celui à qui elles appartiennent. */
+    H.json(ctx.res, 200, {
+      exporteLe: new Date().toISOString(),
+      cabinet: data.cabinet(),
+      membres: data.members(),
+      appels: data.calls.list(),
+      messages: data.messages.list(),
+      rendezVous: data.rdv.list()
+    });
+  },
+
+  'POST /api/account/delete': async (ctx) => {
+    const me = auth.findById(ctx.session.userId);
+    if (!auth.isOwner(me)) {
+      return H.fail(ctx.res, 403, 'Seul le responsable du cabinet peut le supprimer.');
+    }
+    /* Le mot de passe est redemandé : une action irréversible ne doit pas
+       tenir à un onglet resté ouvert sur un poste partagé. */
+    const check = auth.login(me.email, String(ctx.body.password || ''));
+    if (!check.ok) return H.fail(ctx.res, 403, 'Mot de passe incorrect.');
+
+    const removed = auth.deleteCabinet(ctx.session.cabinetId);
+    H.clearSession(ctx.res);
+    H.json(ctx.res, 200, { ok: true, supprime: removed });
   },
 
   /* --------------------------------------------------------- Collaborateurs */
@@ -514,12 +564,20 @@ function flushOutbox() {
   if (changed) store.save();
 }
 
+/* Ménage de conservation : au démarrage, puis une fois par jour. Garder « au
+   cas où » est exactement ce que le RGPD interdit, et ce qui transforme une
+   fuite en catastrophe. */
+const PURGE_TICK = 24 * 60 * 60 * 1000;
+
 if (require.main === module) {
   const admin = auth.ensureAdmin();
+  const purged = auth.purgeExpired();
   setInterval(flushOutbox, OUTBOX_TICK).unref();
+  setInterval(auth.purgeExpired, PURGE_TICK).unref();
   server.listen(PORT, () => {
     console.log('[ally] API à l\'écoute sur http://localhost:' + PORT);
     console.log('[ally] données : ' + store.FILE);
+    if (purged) console.log('[ally] conservation : ' + purged + ' enregistrement(s) effacé(s)');
     if (admin.ok) {
       console.log('[ally] administrateur : ' + admin.user.email
         + (admin.created ? ' (créé)' : ' (déjà présent)'));

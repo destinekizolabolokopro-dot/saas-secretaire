@@ -122,6 +122,10 @@
 
     /* --------------------------------------------------------------- Cabinet */
     saveCabinet: function (payload) { return request('POST', '/cabinet', payload); },
+    exportAccount: function () { return request('GET', '/account/export'); },
+    deleteAccount: function (password) {
+      return request('POST', '/account/delete', { password: password });
+    },
 
     /* ---------------------------------------------------------------- Agenda */
     rdv: function () { return request('GET', '/rdv'); },

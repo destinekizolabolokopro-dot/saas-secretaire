@@ -4333,6 +4333,10 @@ window.ALLY_PLAN_BY_ID = function (id) {
 
     /* --------------------------------------------------------------- Cabinet */
     saveCabinet: function (payload) { return request('POST', '/cabinet', payload); },
+    exportAccount: function () { return request('GET', '/account/export'); },
+    deleteAccount: function (password) {
+      return request('POST', '/account/delete', { password: password });
+    },
 
     /* ---------------------------------------------------------------- Agenda */
     rdv: function () { return request('GET', '/rdv'); },
@@ -11890,11 +11894,30 @@ window.ALLY_PLAN_BY_ID = function (id) {
     var exportBtn = panel.querySelector('#export-data');
     if (exportBtn) {
       exportBtn.addEventListener('click', function () {
+        exportBtn.disabled = true;
+
+        /* Ligne connectée : l'export contient aussi ce que le serveur détient —
+           appels, emails, rendez-vous. Exporter la seule copie du navigateur
+           serait un export incomplet, donc un droit d'accès mal rendu. */
+        var distant = (window.ALLY_API && window.ALLY_API.online() && window.ALLY_API.cabinetId())
+          ? window.ALLY_API.exportAccount().then(function (res) {
+              return res.ok ? res.body : null;
+            }).catch(function () { return null; })
+          : Promise.resolve(null);
+
+        distant.then(function (serveur) {
+          exportBtn.disabled = false;
+          download(serveur);
+        });
+      });
+
+      function download(serveur) {
         var payload = JSON.stringify({
           exporte_le: new Date().toISOString(),
           identite: S.identity, metier: S.trade, horaires: S.hours,
           regles: S.rules, autonomie: S.autonomy, script: store.script(),
-          donnees: D()
+          donnees: D(),
+          serveur: serveur
         }, null, 2);
         var blob = new Blob([payload], { type: 'application/json' });
         var link = document.createElement('a');
@@ -11904,9 +11927,9 @@ window.ALLY_PLAN_BY_ID = function (id) {
         link.click();
         document.body.removeChild(link);
         URL.revokeObjectURL(link.href);
-        exportBtn.textContent = 'Export téléchargé';
+        exportBtn.textContent = serveur ? 'Export complet téléchargé' : 'Export téléchargé';
         window.setTimeout(function () { exportBtn.textContent = 'Exporter mes données'; }, 2500);
-      });
+      }
     }
 
     // Suppression : effacement réel, avec confirmation.
@@ -11922,6 +11945,38 @@ window.ALLY_PLAN_BY_ID = function (id) {
           }, 5000);
           return;
         }
+        /* Ligne connectée : la suppression vaut aussi côté serveur, et elle
+           y est définitive. On redemande le mot de passe — un effacement
+           irréversible ne doit pas tenir à un onglet resté ouvert. */
+        if (window.ALLY_API && window.ALLY_API.online() && window.ALLY_API.cabinetId()) {
+          var mot = window.prompt('Cette suppression est définitive, y compris sur le '
+            + 'serveur d\'Ally : appels, emails, rendez-vous, collaborateurs.\n\n'
+            + 'Saisissez votre mot de passe pour confirmer.');
+          if (!mot) {
+            wipeBtn.removeAttribute('data-armed');
+            wipeBtn.textContent = 'Supprimer toutes mes données';
+            return;
+          }
+
+          wipeBtn.disabled = true;
+          window.ALLY_API.deleteAccount(mot).then(function (res) {
+            wipeBtn.disabled = false;
+            if (!res.ok) {
+              flash((res.body && res.body.error) || 'Suppression refusée.');
+              wipeBtn.removeAttribute('data-armed');
+              wipeBtn.textContent = 'Supprimer toutes mes données';
+              return;
+            }
+            if (window.ALLY_ACCOUNTS) window.ALLY_ACCOUNTS.logout();
+            store.reset();
+            window.ALLY_RESTART();
+          }).catch(function () {
+            wipeBtn.disabled = false;
+            flash('Serveur injoignable — rien n\'a été supprimé.');
+          });
+          return;
+        }
+
         store.reset();
         window.ALLY_RESTART();
       });
@@ -12160,10 +12215,21 @@ window.ALLY_PLAN_BY_ID = function (id) {
 
     var retention = panel.querySelector('#retention');
     if (retention) {
+      var publishRetention = null;
       retention.addEventListener('input', function () {
         S.retentionDays = Number(retention.value);
         document.getElementById('out-retention').textContent = S.retentionDays + ' jours';
         store.save();
+
+        /* Le serveur s'appuie dessus pour effacer les enregistrements
+           périmés : il doit connaître la durée choisie. On attend la fin du
+           glissement, sinon on lui envoie cinquante valeurs pour un geste. */
+        if (window.ALLY_GATE) {
+          window.clearTimeout(publishRetention);
+          publishRetention = window.setTimeout(function () {
+            window.ALLY_GATE.publish({ retentionDays: S.retentionDays });
+          }, 600);
+        }
       });
     }
 
@@ -12210,6 +12276,8 @@ window.ALLY_PLAN_BY_ID = function (id) {
     var reset = panel.querySelector('#reset-account');
     if (reset) {
       reset.addEventListener('click', function () {
+        /* Réinitialise la démonstration locale, et rien d'autre : le compte du
+           serveur, lui, se supprime depuis « Sécurité » — avec mot de passe. */
         store.reset();
         window.ALLY_RESTART();
       });

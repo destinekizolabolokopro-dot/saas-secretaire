@@ -5,7 +5,7 @@ natifs, pour qu'il démarre partout et qu'il n'y ait rien de plus à auditer.
 
 ```bash
 node server/index.js       # http://localhost:8787 — API *et* maquette
-node server/test.js        # 64 contrôles
+node server/test.js        # 67 contrôles
 ```
 
 Le serveur sert aussi les fichiers du front : une seule commande fait tourner
@@ -81,6 +81,8 @@ un test qui échoue si on le casse.
 | Rôle administrateur hors d'atteinte | `lib/auth.js` | un formulaire qui réclame `role: admin` reste « pro » |
 | Places du cabinet comptées au serveur | `lib/auth.js` | une formule à une place refuse, interface contournée ou non |
 | Agenda cloisonné, créneau unique | `index.js` | 409 sur un créneau pris, libre pour un autre cabinet |
+| Export et effacement RGPD | `lib/auth.js` | export cloisonné sans empreintes, suppression sous mot de passe |
+| Conservation appliquée | `lib/auth.js` | les enregistrements périmés partent, les récents restent |
 | Responsable seul à inviter et retirer | `lib/auth.js` | un collaborateur reçoit 403, un autre cabinet reçoit 404 |
 | Politique de contenu avec nonce par réponse | `lib/static.js` | scripts restreints, page non encadrable, nonce jamais constant |
 | Connexion insensible au chronomètre | `lib/auth.js` | écart de temps inexistant entre compte connu et inconnu |

@@ -302,7 +302,7 @@ l'ensemble** :
 
 ```bash
 node server/index.js       # http://localhost:8787 — API et maquette
-node server/test.js        # 64 contrôles
+node server/test.js        # 67 contrôles
 ```
 
 ### Le compte devient réel
@@ -334,6 +334,25 @@ Connecté par l'écran habituel, il voit en tête de la console la carte **« la
 plateforme réelle »** : les cabinets vraiment inscrits, les sessions ouvertes,
 les volumes, le journal du serveur. Le reste de la console continue d'afficher
 l'annuaire de démonstration, et la carte le dit.
+
+### Les deux droits qui ne se négocient pas
+
+**Récupérer ses données.** « Exporter mes données » télécharge un JSON qui
+contient désormais aussi ce que le serveur détient — appels, emails,
+rendez-vous, en clair. Exporter la seule copie du navigateur aurait été un
+droit d'accès mal rendu.
+
+**Les faire disparaître.** « Supprimer toutes mes données » efface le cabinet
+sur le serveur : comptes, sessions, appels, emails, rendez-vous. Le mot de
+passe est redemandé — un effacement irréversible ne doit pas tenir à un onglet
+resté ouvert sur un poste partagé. Le journal en garde une trace, l'identifiant
+du cabinet et rien d'autre, parce qu'il faut pouvoir prouver que la suppression
+a eu lieu.
+
+**Et ne pas garder au-delà.** La durée de conservation choisie dans l'onglet
+Sécurité est appliquée par le serveur : les appels et les emails plus vieux
+s'effacent au démarrage puis une fois par jour. Conserver « au cas où » est ce
+que le RGPD interdit, et ce qui transforme une fuite en catastrophe.
 
 ### Toute l'application parle de la même journée
 
