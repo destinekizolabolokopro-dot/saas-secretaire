@@ -274,6 +274,9 @@
 .sync-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .sync-row span:first-child { font-size: 14px; color: var(--txt-2); }
 .sync-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--cyan); flex-shrink: 0; }
+/* Éteinte : une pastille verte pour une connexion absente est un mensonge
+   qu'on ne remarque qu'au moment où l'on en a besoin. */
+.sync-dot.is-off { background: var(--txt-5); box-shadow: none; }
 .note-sep { padding-top: 10px; border-top: 1px solid var(--bd); }
 
 /* ============ CONFIG ============ */

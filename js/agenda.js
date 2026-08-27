@@ -194,9 +194,25 @@
             '<div class="card"><p class="card-title">Charge du mois</p>' +
               this.loadBars(ym) +
             '</div>' +
+            /* La pastille était verte quoi qu'il arrive : elle annonçait une
+               synchronisation Google qui n'existe pas encore. Elle dit
+               maintenant l'état réel, et où vivent vraiment les rendez-vous. */
             '<div class="card"><p class="card-title">Synchronisation</p>' +
-              '<div class="sync-row"><span>Google Calendar</span><span class="sync-dot" aria-hidden="true"></span></div>' +
-              '<p class="note" style="margin-top:14px">' + esc(store.profile().agendaRules) + '</p>' +
+              '<div class="sync-row"><span>Google Calendar</span>' +
+                '<span class="sync-dot' + (store.state.links.gcal ? '' : ' is-off') +
+                '" aria-hidden="true"></span></div>' +
+              '<p class="note" style="margin-top:10px">' +
+                (store.state.links.gcal
+                  ? 'Connecté. Ally ne propose que des créneaux réellement libres.'
+                  : 'Non connecté. Ally ne voit pas vos rendez-vous pris ailleurs — ' +
+                    'à brancher depuis Mon compte, onglet Connexions.') + '</p>' +
+              (window.ALLY_API && window.ALLY_API.online() && window.ALLY_API.cabinetId()
+                ? '<div class="sync-row" style="margin-top:12px"><span>Serveur Ally</span>' +
+                  '<span class="sync-dot" aria-hidden="true"></span></div>' +
+                  '<p class="note" style="margin-top:10px">Vos rendez-vous sont ' +
+                    'enregistrés sur le serveur et partagés avec votre cabinet.</p>'
+                : '') +
+              '<p class="note note-sep" style="margin-top:14px">' + esc(store.profile().agendaRules) + '</p>' +
             '</div>' +
             (D.blocked.length
               ? '<div class="card"><p class="card-title">Créneaux bloqués</p>' +

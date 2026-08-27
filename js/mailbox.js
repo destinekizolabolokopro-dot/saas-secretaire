@@ -41,25 +41,46 @@
     return '<div class="card live-card" data-mailbox>' +
       '<div class="script-head">' +
         '<div>' +
-          '<p class="card-title" style="margin-bottom:4px">Le courrier réel' +
+          '<p class="card-title" style="margin-bottom:4px">La file d\'envoi' +
             '<span class="live-badge is-on">connecté</span></p>' +
           '<p class="note">Les emails validés ici entrent dans la file du serveur. ' +
             'Ils y attendent dix secondes : tant qu\'ils sont en attente, on peut ' +
-            'les rattraper depuis n\'importe quel appareil.</p>' +
+            'les rattraper depuis n\'importe quel appareil. Une fois partis, ils ' +
+            'rejoignent la liste des envois, plus bas.</p>' +
         '</div>' +
       '</div>' +
       body() +
     '</div>';
   }
 
+  /* Ce qui est encore en vol, et rien d'autre. La carte listait aussi les
+     emails déjà partis, que la liste « Envoyés par Ally » affiche déjà juste
+     en dessous : le même message apparaissait deux fois sur le même écran.
+     On garde les envois récents quelques minutes, le temps de voir la
+     transition « en attente » → « parti ». */
+  var VU_PENDANT = 3 * 60 * 1000;
+
+  function enVol() {
+    return state.messages.filter(function (m) {
+      if (m.state === 'queued') return true;
+      var quand = m.sentAt || m.createdAt || 0;
+      return Date.now() - quand < VU_PENDANT;
+    });
+  }
+
   function body() {
     if (state.error) return '<p class="lock-note">' + esc(state.error) + '</p>';
-    if (!state.messages.length) {
-      return '<div class="empty">Aucun email encore passé par le serveur. ' +
-        'Validez un brouillon : il apparaîtra ici.</div>';
+
+    var liste = enVol();
+    if (!liste.length) {
+      return '<div class="empty">' + (state.messages.length
+        ? 'Rien en attente. Les ' + state.messages.length + ' email' +
+          (state.messages.length > 1 ? 's' : '') + ' déjà partis sont dans la liste des envois.'
+        : 'Aucun email encore passé par le serveur. Validez un brouillon : il apparaîtra ici.') +
+      '</div>';
     }
 
-    return '<div class="live-list">' + state.messages.slice().reverse().map(function (m) {
+    return '<div class="live-list">' + liste.slice().reverse().map(function (m) {
       var tone = STATES[m.state] || STATES.queued;
       var left = m.state === 'queued'
         ? Math.max(0, Math.ceil((m.sendAfter - Date.now()) / 1000)) : 0;

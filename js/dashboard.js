@@ -351,7 +351,13 @@
     conversations: function () {
       return calls().length + ' appels aujourd\'hui · ' + drafts().length + ' brouillons à valider';
     },
-    agenda: function () { return todayRdv().length + ' rendez-vous aujourd\'hui · synchronisé avec Google Calendar'; },
+    agenda: function () {
+      /* On n'annonce plus une synchronisation Google qui n'a pas lieu. */
+      var ou = (window.ALLY_API && window.ALLY_API.online() && window.ALLY_API.cabinetId())
+        ? 'partagé avec votre cabinet'
+        : (S.links.gcal ? 'synchronisé avec Google Calendar' : 'sur cet appareil');
+      return todayRdv().length + ' rendez-vous aujourd\'hui · ' + ou;
+    },
     telephony: function () {
       return window.ALLY_VOICE.canListen()
         ? 'Voix, script d\'appel et simulation — micro disponible'
