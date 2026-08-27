@@ -123,6 +123,7 @@
     /* --------------------------------------------------------------- Cabinet */
     saveCabinet: function (payload) { return request('POST', '/cabinet', payload); },
     exportAccount: function () { return request('GET', '/account/export'); },
+    journal: function () { return request('GET', '/account/journal'); },
     deleteAccount: function (password) {
       return request('POST', '/account/delete', { password: password });
     },

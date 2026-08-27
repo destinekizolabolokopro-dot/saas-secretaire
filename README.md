@@ -349,6 +349,12 @@ resté ouvert sur un poste partagé. Le journal en garde une trace, l'identifian
 du cabinet et rien d'autre, parce qu'il faut pouvoir prouver que la suppression
 a eu lieu.
 
+**Savoir qui a fait quoi.** Le journal d'accès de l'onglet Sécurité était écrit
+en dur dans l'interface — trois lignes inventées, présentées comme un relevé.
+Il vient du serveur, ne contient que les lignes du cabinet, et le dit
+clairement quand il n'y a pas de serveur : « Exemple. Le journal réel apparaît
+ici dès que la ligne est connectée. »
+
 **Et ne pas garder au-delà.** La durée de conservation choisie dans l'onglet
 Sécurité est appliquée par le serveur : les appels et les emails plus vieux
 s'effacent au démarrage puis une fois par jour. Conserver « au cas où » est ce

@@ -4334,6 +4334,7 @@ window.ALLY_PLAN_BY_ID = function (id) {
     /* --------------------------------------------------------------- Cabinet */
     saveCabinet: function (payload) { return request('POST', '/cabinet', payload); },
     exportAccount: function () { return request('GET', '/account/export'); },
+    journal: function () { return request('GET', '/account/journal'); },
     deleteAccount: function (password) {
       return request('POST', '/account/delete', { password: password });
     },
@@ -11479,6 +11480,37 @@ window.ALLY_PLAN_BY_ID = function (id) {
     }).join('');
   }
 
+  /* Journal du serveur, tenu à jour par un rafraîchissement discret. « null »
+     signifie « pas de serveur » : l'écran affiche alors l'exemple. */
+  var journal = null;
+
+  var JOURNAL_LABELS = {
+    login: 'Connexion à l\'espace pro', 'login-failed': 'Tentative de connexion refusée',
+    logout: 'Déconnexion', signup: 'Création du cabinet', verified: 'Adresse confirmée',
+    'code-issued': 'Code à usage unique envoyé', 'password-reset': 'Mot de passe réinitialisé',
+    'call-received': 'Appel reçu et enregistré', 'message-sent': 'Email envoyé',
+    'rdv-created': 'Rendez-vous posé', 'rdv-cancelled': 'Rendez-vous annulé',
+    'rdv-moved': 'Rendez-vous déplacé', 'member-invited': 'Collaborateur invité',
+    'member-joined': 'Collaborateur arrivé', 'member-removed': 'Collaborateur retiré',
+    'cabinet-updated': 'Fiche du cabinet modifiée', 'data-exported': 'Export des données',
+    'retention-purge': 'Effacement automatique (conservation)'
+  };
+
+  function journalEntries() {
+    if (!journal) return null;
+    return journal.map(function (e) {
+      var d = new Date(e.at);
+      var jour = d.toDateString() === new Date().toDateString()
+        ? "Aujourd'hui" : window.ALLY_DATE(e.at);
+      return {
+        who: e.userId ? 'Compte du cabinet' : 'Ally (système)',
+        what: JOURNAL_LABELS[e.action] || e.action,
+        when: jour + ' ' + (d.getHours() < 10 ? '0' : '') + d.getHours() + ':'
+          + (d.getMinutes() < 10 ? '0' : '') + d.getMinutes()
+      };
+    });
+  }
+
   function accountPrivacy() {
     var who = store.fullName();
     var log = [
@@ -11486,12 +11518,26 @@ window.ALLY_PLAN_BY_ID = function (id) {
       { who: 'Ally (système)', what: 'Traitement automatique — appel entrant', when: "Aujourd'hui 09:12" },
       { who: who, what: 'Export des données de facturation', when: 'Hier 17:40' }
     ];
+    /* Ligne connectée : le journal vient du serveur et dit ce qui s'est
+       réellement passé. Sans serveur, il reste l'exemple — clairement annoncé
+       comme tel, plutôt que présenté comme un vrai relevé d'accès. */
+    var reel = journalEntries();
+
     return '<div class="stack limit-800">' +
       '<div class="card"><p class="card-title">Journal d\'accès aux données</p>' +
-        log.map(function (row) {
-          return '<div class="tri-row"><span>' + esc(row.who) + '</span>' +
-            '<span>' + esc(row.what) + '</span><span>' + esc(row.when) + '</span></div>';
-        }).join('') +
+        (reel
+          ? (reel.length
+              ? reel.map(function (row) {
+                  return '<div class="tri-row"><span>' + esc(row.who) + '</span>' +
+                    '<span>' + esc(row.what) + '</span><span>' + esc(row.when) + '</span></div>';
+                }).join('')
+              : '<div class="empty">Rien à signaler pour l\'instant.</div>')
+          : log.map(function (row) {
+              return '<div class="tri-row"><span>' + esc(row.who) + '</span>' +
+                '<span>' + esc(row.what) + '</span><span>' + esc(row.when) + '</span></div>';
+            }).join('') +
+            '<p class="note" style="margin-top:12px">Exemple. Le journal réel ' +
+              'apparaît ici dès que la ligne est connectée au serveur.</p>') +
       '</div>' +
       '<div class="card"><p class="card-title">Conservation des enregistrements</p>' +
         '<div class="slider-head"><label for="retention">Durée de conservation</label>' +
@@ -11733,6 +11779,18 @@ window.ALLY_PLAN_BY_ID = function (id) {
     }
     if (ui.tab === 'account' && ui.account === 'plan' && window.ALLY_TEAM) {
       window.ALLY_TEAM.bind(panel, renderPanel);
+    }
+
+    /* Journal d'accès : lu une fois à l'ouverture de l'onglet Sécurité. Il ne
+       change pas assez vite pour mériter un battement. */
+    if (ui.tab === 'account' && ui.account === 'privacy'
+        && window.ALLY_API && window.ALLY_API.online() && window.ALLY_API.cabinetId()) {
+      window.ALLY_API.journal().then(function (res) {
+        if (!res.ok) return;
+        var avant = journal ? journal.length : -1;
+        journal = res.body.events || [];
+        if (journal.length !== avant && ui.account === 'privacy') renderPanel();
+      }).catch(function () {});
     }
 
     /* ---------- Actions réelles sur les données du compte ---------- */

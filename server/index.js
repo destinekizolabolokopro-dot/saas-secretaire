@@ -251,6 +251,18 @@ const routes = {
     });
   },
 
+  /* Journal d'accès du cabinet. La formule Expert le promet ; il était
+     jusqu'ici écrit en dur dans l'interface. Chaque cabinet ne voit que ses
+     propres lignes — le journal de la plateforme, lui, reste à
+     l'administrateur. */
+  'GET /api/account/journal': async (ctx) => {
+    const mine = store.load().events
+      .filter((e) => e.cabinetId === ctx.session.cabinetId)
+      .slice(-60)
+      .reverse();
+    H.json(ctx.res, 200, { events: mine });
+  },
+
   'POST /api/account/delete': async (ctx) => {
     const me = auth.findById(ctx.session.userId);
     if (!auth.isOwner(me)) {
