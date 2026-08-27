@@ -3,6 +3,15 @@
 (function () {
   'use strict';
 
+  /* Estimation assumée du temps gagné : trois minutes par appel pris à votre
+     place, quatre par email rédigé. Prudent, et calculé sur ce qui s'est
+     réellement passé — non sur un chiffre écrit dans le profil métier. */
+  function gagne(usage) {
+    var minutes = usage.calls.used * 3 + usage.emails.used * 4;
+    if (minutes < 60) return minutes + ' min';
+    return Math.floor(minutes / 60) + 'h' + (minutes % 60 < 10 ? '0' : '') + (minutes % 60);
+  }
+
   var store = window.ALLY_STORE;
   var voice = window.ALLY_VOICE;
   var brain = window.ALLY_BRAIN;
@@ -68,6 +77,7 @@
       var S = store.state;
       var p = store.profile();
       var D = store.data();
+      var usage = store.usage();
       var script = store.script();
       var canListen = voice.canListen();
       var blocked = voice.listenBlockedReason();
@@ -85,10 +95,12 @@
                 'Elle ne rappelle jamais elle-m\u00eame : elle vous pose le message \u00e0 traiter.</p>' +
             '</div>' +
           '</div>' +
+          /* Chiffres réels : ils venaient du profil métier et affichaient
+             « 27 appels sauvés » à un cabinet qui n'avait jamais reçu d'appel. */
           '<div class="line-stats">' +
-            '<div><strong>' + store.usage().calls.used + '</strong><span>appels traités</span></div>' +
-            '<div><strong>' + p.stats.avoided + '</strong><span>appels sauvés</span></div>' +
-            '<div><strong>' + p.stats.saved + '</strong><span>gagnées cette semaine</span></div>' +
+            '<div><strong>' + usage.calls.used + '</strong><span>appels traités</span></div>' +
+            '<div><strong>' + usage.emails.used + '</strong><span>emails écrits</span></div>' +
+            '<div><strong>' + gagne(usage) + '</strong><span>gagnées ce mois-ci</span></div>' +
           '</div>' +
         '</div>' +
 

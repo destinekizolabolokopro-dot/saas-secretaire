@@ -858,6 +858,39 @@
       '</div>';
   }
 
+  /* Ce que la semaine a réellement donné.
+
+     Ces trois chiffres venaient du profil métier : « 27 appels manqués évités,
+     6 h 20 gagnées » s'affichaient à l'identique le premier jour, avant le
+     moindre appel. Un tableau de bord qui invente ses chiffres n'est plus un
+     tableau de bord. On les calcule donc — et sur un compte vide ils valent
+     zéro, ce qui est la vérité.
+
+     Le temps gagné reste une estimation, mais une estimation assumée : trois
+     minutes par appel pris à votre place, quatre par email rédigé. C'est
+     prudent, et c'est expliqué à côté. */
+  var MIN_PAR_APPEL = 3;
+  var MIN_PAR_EMAIL = 4;
+
+  function weekStats() {
+    var D2 = D();
+    var reel = store.serverUsage;
+
+    /* Ligne connectée : le serveur compte le mois, l'écran affiche la semaine
+       — on prend ce qu'on a de plus juste sans prétendre à mieux. */
+    var appels = reel ? reel.calls : D2.calls.length;
+    var emails = reel ? reel.messages : D2.sent.length;
+    var minutes = appels * MIN_PAR_APPEL + emails * MIN_PAR_EMAIL;
+
+    return {
+      avoided: appels,
+      validated: emails,
+      saved: minutes >= 60
+        ? Math.floor(minutes / 60) + 'h' + (minutes % 60 < 10 ? '0' : '') + (minutes % 60)
+        : minutes + ' min'
+    };
+  }
+
   function viewToday() {
     if (store.isNew()) return viewEmptyToday();
     var p = P();
@@ -884,7 +917,7 @@
         '<div class="stat"><p class="stat-label">Appels reçus</p><p class="stat-value">' + calls().length + '</p></div>' +
         '<div class="stat"><p class="stat-label">RDV du jour</p><p class="stat-value">' + todayRdv().length + '</p></div>' +
         '<div class="stat"><p class="stat-label">Mails à valider</p><p class="stat-value accent">' + drafts().length + '</p></div>' +
-        '<div class="stat"><p class="stat-label">Temps gagné (semaine)</p><p class="stat-value cyan">' + esc(p.stats.saved) + '</p></div>' +
+        '<div class="stat"><p class="stat-label">Temps gagné (semaine)</p><p class="stat-value cyan">' + esc(weekStats().saved) + '</p></div>' +
       '</div>' +
 
       '<div class="cols cols-11" style="margin-bottom:20px">' +
@@ -907,9 +940,9 @@
         '</div>' +
         '<div class="card"><p class="card-title">Cette semaine</p>' +
           '<div class="mini-stat"><p class="mini-stat-label">Appels manqués évités</p>' +
-            '<p class="mini-stat-value">' + p.stats.avoided + ' <small>appels</small></p></div>' +
+            '<p class="mini-stat-value">' + weekStats().avoided + ' <small>appels</small></p></div>' +
           '<div class="mini-stat"><p class="mini-stat-label">Brouillons validés</p>' +
-            '<p class="mini-stat-value">' + p.stats.validated + ' <small>emails</small></p></div>' +
+            '<p class="mini-stat-value">' + weekStats().validated + ' <small>emails</small></p></div>' +
           '<div class="mini-stat"><p class="mini-stat-label">Prochain rendez-vous</p>' +
             '<p class="mini-stat-value" style="font-size:17px">' +
             (todayRdv()[0] ? esc(todayRdv()[0].time + ' · ' + todayRdv()[0].client) : 'Aucun aujourd\'hui') +

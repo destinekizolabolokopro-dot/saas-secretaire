@@ -157,6 +157,13 @@ tarif, délai de réponse. Chaque champ rempli devient une fiche que le moteur
 peut servir : « où puis-je me garer ? » reçoit une vraie réponse au lieu d'une
 prise de message.
 
+**Des chiffres qui viennent des faits.** « 27 appels manqués évités, 6 h 20
+gagnées cette semaine » venaient du profil métier et s'affichaient à
+l'identique le premier jour, avant le moindre appel. Ils sont calculés : appels
+reçus, emails partis, et une estimation assumée du temps gagné — trois minutes
+par appel pris à votre place, quatre par email rédigé. Sur un compte neuf ils
+valent zéro, ce qui est la vérité.
+
 **L'aperçu du résumé quotidien.** L'email exact qui partirait ce soir, avec les
 données et le nom du compte. Un réglage qu'on n'a jamais vu à l'œuvre ne
 s'active pas.
