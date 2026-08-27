@@ -323,6 +323,29 @@ const routes = {
     H.json(ctx.res, 201, { rdv });
   },
 
+  /* Reporter un rendez-vous : le geste le plus fréquent sur un agenda. Il
+     passe par le serveur comme les autres, sinon le report reviendrait à sa
+     place à la première synchronisation. */
+  'POST /api/rdv/:id/move': async (ctx) => {
+    const data = repo.forCabinet(ctx.session.cabinetId);
+    const rdv = data.rdv.get(ctx.params.id);
+    if (!rdv) return H.fail(ctx.res, 404, 'Introuvable.');
+
+    const date = String(ctx.body.date || rdv.date);
+    const time = String(ctx.body.time || rdv.time);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return H.fail(ctx.res, 400, 'Date invalide.');
+    if (!/^\d{2}:\d{2}$/.test(time)) return H.fail(ctx.res, 400, 'Heure invalide.');
+
+    const collision = data.rdv.list()
+      .find((r) => r.id !== rdv.id && r.date === date && r.time === time);
+    if (collision) return H.fail(ctx.res, 409, 'Ce créneau est déjà pris.');
+
+    const moved = data.rdv.update(ctx.params.id, { date, time });
+    store.record('rdv-moved', { cabinetId: ctx.session.cabinetId, rdvId: rdv.id });
+    store.save();
+    H.json(ctx.res, 200, { rdv: moved });
+  },
+
   'POST /api/rdv/:id/cancel': async (ctx) => {
     const data = repo.forCabinet(ctx.session.cabinetId);
     if (!data.rdv.get(ctx.params.id)) return H.fail(ctx.res, 404, 'Introuvable.');

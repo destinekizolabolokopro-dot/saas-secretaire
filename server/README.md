@@ -5,7 +5,7 @@ natifs, pour qu'il démarre partout et qu'il n'y ait rien de plus à auditer.
 
 ```bash
 node server/index.js       # http://localhost:8787 — API *et* maquette
-node server/test.js        # 63 contrôles
+node server/test.js        # 64 contrôles
 ```
 
 Le serveur sert aussi les fichiers du front : une seule commande fait tourner

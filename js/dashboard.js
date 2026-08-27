@@ -1736,13 +1736,28 @@
     // Agenda : annuler ou déplacer un rendez-vous, bloquer une demi-journée.
     panel.querySelectorAll('[data-rdv-cancel]').forEach(function (button) {
       button.addEventListener('click', function () {
-        var id = Number(button.getAttribute('data-rdv-cancel'));
-        var r = D().rdv.filter(function (x) { return x.id === id; })[0];
-        D().rdv = D().rdv.filter(function (x) { return x.id !== id; });
-        if (r) store.log('Annulation du rendez-vous de ' + r.client, 'Créneau libéré, ' + r.client + ' prévenu');
-        store.save();
-        renderNav(); renderPanel();
-        el.sub.textContent = SUBS[ui.tab]();
+        /* Comparaison en chaîne : les identifiants du serveur n'en sont pas
+           des nombres, et Number() en faisait des NaN — le bouton ne trouvait
+           plus rien à annuler. */
+        var id = button.getAttribute('data-rdv-cancel');
+        var r = D().rdv.filter(function (x) { return String(x.id) === id; })[0];
+
+        var sent = window.ALLY_SYNC && r
+          ? window.ALLY_SYNC.dropRdv(r.id)
+          : Promise.resolve(false);
+
+        sent.then(function (result) {
+          if (result && !result.ok) { flash(result.error); return; }
+
+          D().rdv = D().rdv.filter(function (x) { return String(x.id) !== id; });
+          if (r) {
+            store.log('Annulation du rendez-vous de ' + r.client,
+              'Créneau libéré, ' + r.client + ' prévenu');
+          }
+          store.save();
+          renderNav(); renderPanel();
+          el.sub.textContent = SUBS[ui.tab]();
+        });
       });
     });
     var blockForm = panel.querySelector('#block-form');

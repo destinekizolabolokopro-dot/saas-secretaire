@@ -127,6 +127,7 @@
     rdv: function () { return request('GET', '/rdv'); },
     addRdv: function (payload) { return request('POST', '/rdv', payload); },
     cancelRdv: function (id) { return request('POST', '/rdv/' + id + '/cancel', {}); },
+    moveRdv: function (id, payload) { return request('POST', '/rdv/' + id + '/move', payload); },
 
     /* --------------------------------------------------------- Collaborateurs */
     invite: function (email) { return request('POST', '/cabinet/invite', { email: email }); },

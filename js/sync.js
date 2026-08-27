@@ -102,8 +102,48 @@
     }).catch(function () { return false; });
   }
 
+  /* Les gestes de l'agenda doivent partir au serveur quand le rendez-vous en
+     vient, sinon la synchronisation suivante les annule sans un mot : on
+     annule un rendez-vous, il revient quinze secondes plus tard. Rien n'entame
+     davantage la confiance dans un outil.
+
+     Chaque fonction renvoie une promesse ; « false » veut dire « ce n'est pas
+     du ressort du serveur, fais-le localement comme avant ». */
+  function connected() {
+    return !!(api && api.online() && api.cabinetId());
+  }
+
+  function isReal(id) {
+    return typeof id === 'string' && /^rdv/.test(id);
+  }
+
   window.ALLY_SYNC = {
     pull: pull,
+    connected: connected,
+    isReal: isReal,
+
+    createRdv: function (payload) {
+      if (!connected()) return Promise.resolve(false);
+      return api.addRdv(payload).then(function (res) {
+        if (res.ok) { last = ''; return { ok: true }; }
+        return { ok: false, error: (res.body && res.body.error) || 'Rendez-vous refusé.' };
+      }, function () { return { ok: false, error: 'Serveur injoignable.' }; });
+    },
+
+    dropRdv: function (id) {
+      if (!connected() || !isReal(id)) return Promise.resolve(false);
+      return api.cancelRdv(id).then(function () { last = ''; return { ok: true }; },
+        function () { return { ok: false, error: 'Serveur injoignable.' }; });
+    },
+
+    moveRdv: function (id, date, time) {
+      if (!connected() || !isReal(id)) return Promise.resolve(false);
+      return api.moveRdv(id, { date: date, time: time }).then(function (res) {
+        if (res.ok) { last = ''; return { ok: true }; }
+        return { ok: false, error: (res.body && res.body.error) || 'Report refusé.' };
+      }, function () { return { ok: false, error: 'Serveur injoignable.' }; });
+    },
+
     /* Battement lent : les cartes « réelles » se rafraîchissent déjà toutes les
        cinq secondes pour leur propre compte. Ici, il s'agit seulement que le
        reste de l'application ne raconte pas autre chose. */

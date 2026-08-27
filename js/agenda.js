@@ -265,15 +265,36 @@
           var client = document.getElementById('cal-client').value.trim();
           var time = document.getElementById('cal-time').value;
           if (!time) return;
-          store.data().rdv.push({
-            id: Date.now(), date: view.selected,
-            client: client || 'Nouveau ' + store.profile().clientWord,
-            type: 'Rendez-vous', time: time
+
+          var nom = client || 'Nouveau ' + store.profile().clientWord;
+          var note = function () {
+            store.log('Rendez-vous ajouté depuis le calendrier',
+              nom + ' — ' + longLabel(view.selected) + ' ' + time);
+          };
+
+          /* Ligne connectée : le rendez-vous part au serveur, pour être visible
+             des autres membres du cabinet et survivre à la synchronisation. */
+          var sent = window.ALLY_SYNC
+            ? window.ALLY_SYNC.createRdv({
+                date: view.selected, time: time, client: nom, type: 'Rendez-vous'
+              })
+            : Promise.resolve(false);
+
+          sent.then(function (result) {
+            if (result === false) {
+              store.data().rdv.push({
+                id: Date.now(), date: view.selected,
+                client: nom, type: 'Rendez-vous', time: time
+              });
+              note();
+              store.save();
+              refresh();
+              return;
+            }
+            if (!result.ok) { window.ALLY_UI.toast(result.error); return; }
+            note();
+            window.ALLY_SYNC.pull(refresh);
           });
-          store.log('Rendez-vous ajouté depuis le calendrier',
-            (client || 'Nouveau client') + ' — ' + longLabel(view.selected) + ' ' + time);
-          store.save();
-          refresh();
         });
       }
 
@@ -296,13 +317,30 @@
       /* Reporter d'un jour : le geste le plus fréquent sur un agenda. */
       panel.querySelectorAll('[data-rdv-move]').forEach(function (button) {
         button.addEventListener('click', function () {
-          var id = Number(button.getAttribute('data-rdv-move'));
-          var r = store.data().rdv.filter(function (x) { return x.id === id; })[0];
+          /* Les identifiants du serveur sont des chaînes ; les convertir en
+             nombre donnait NaN, et le bouton ne trouvait plus son
+             rendez-vous. */
+          var id = button.getAttribute('data-rdv-move');
+          var r = store.data().rdv.filter(function (x) { return String(x.id) === id; })[0];
           if (!r) return;
-          r.date = addDays(r.date, 1);
-          store.log('Report de ' + r.client, 'Déplacé au ' + longLabel(r.date));
-          store.save();
-          refresh();
+
+          var demain = addDays(r.date, 1);
+          var sent = window.ALLY_SYNC
+            ? window.ALLY_SYNC.moveRdv(r.id, demain, r.time)
+            : Promise.resolve(false);
+
+          sent.then(function (result) {
+            if (result === false) {
+              r.date = demain;
+              store.log('Report de ' + r.client, 'Déplacé au ' + longLabel(r.date));
+              store.save();
+              refresh();
+              return;
+            }
+            if (!result.ok) { window.ALLY_UI.toast(result.error); return; }
+            store.log('Report de ' + r.client, 'Déplacé au ' + longLabel(demain));
+            window.ALLY_SYNC.pull(refresh);
+          });
         });
       });
     },

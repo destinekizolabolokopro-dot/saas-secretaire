@@ -538,6 +538,34 @@ async function newCabinet(email, org) {
     assert.strictEqual(recu.body.rdvId, null, 'un doublon a été posé');
   });
 
+  await test('reporter un rendez-vous respecte les créneaux occupés', async () => {
+    const autre = await call('POST', '/api/rdv', {
+      cookie: A.cookie,
+      body: { date: '2026-09-16', time: '09:00', client: 'M. Report', type: 'Suivi' }
+    });
+    assert.strictEqual(autre.status, 201);
+
+    /* Sur un créneau libre : accepté. */
+    const bouge = await call('POST', '/api/rdv/' + autre.body.rdv.id + '/move', {
+      cookie: A.cookie, body: { date: '2026-09-17', time: '09:00' }
+    });
+    assert.strictEqual(bouge.status, 200);
+    assert.strictEqual(bouge.body.rdv.date, '2026-09-17');
+    assert.strictEqual(bouge.body.rdv.client, 'M. Report', 'le client a été perdu au report');
+
+    /* Sur un créneau pris : refusé. */
+    const occupe = await call('POST', '/api/rdv/' + autre.body.rdv.id + '/move', {
+      cookie: A.cookie, body: { date: '2026-09-14', time: '14:00' }
+    });
+    assert.strictEqual(occupe.status, 409);
+
+    /* Et le rendez-vous d'un autre cabinet reste hors de portée. */
+    const croise = await call('POST', '/api/rdv/' + autre.body.rdv.id + '/move', {
+      cookie: B.cookie, body: { date: '2026-09-20', time: '09:00' }
+    });
+    assert.strictEqual(croise.status, 404);
+  });
+
   console.log('\n== Collaborateurs ==');
 
   await test('une formule à une place refuse l\'invitation', async () => {

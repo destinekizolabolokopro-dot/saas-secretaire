@@ -4338,6 +4338,7 @@ window.ALLY_PLAN_BY_ID = function (id) {
     rdv: function () { return request('GET', '/rdv'); },
     addRdv: function (payload) { return request('POST', '/rdv', payload); },
     cancelRdv: function (id) { return request('POST', '/rdv/' + id + '/cancel', {}); },
+    moveRdv: function (id, payload) { return request('POST', '/rdv/' + id + '/move', payload); },
 
     /* --------------------------------------------------------- Collaborateurs */
     invite: function (email) { return request('POST', '/cabinet/invite', { email: email }); },
@@ -6176,15 +6177,36 @@ window.ALLY_PLAN_BY_ID = function (id) {
           var client = document.getElementById('cal-client').value.trim();
           var time = document.getElementById('cal-time').value;
           if (!time) return;
-          store.data().rdv.push({
-            id: Date.now(), date: view.selected,
-            client: client || 'Nouveau ' + store.profile().clientWord,
-            type: 'Rendez-vous', time: time
+
+          var nom = client || 'Nouveau ' + store.profile().clientWord;
+          var note = function () {
+            store.log('Rendez-vous ajouté depuis le calendrier',
+              nom + ' — ' + longLabel(view.selected) + ' ' + time);
+          };
+
+          /* Ligne connectée : le rendez-vous part au serveur, pour être visible
+             des autres membres du cabinet et survivre à la synchronisation. */
+          var sent = window.ALLY_SYNC
+            ? window.ALLY_SYNC.createRdv({
+                date: view.selected, time: time, client: nom, type: 'Rendez-vous'
+              })
+            : Promise.resolve(false);
+
+          sent.then(function (result) {
+            if (result === false) {
+              store.data().rdv.push({
+                id: Date.now(), date: view.selected,
+                client: nom, type: 'Rendez-vous', time: time
+              });
+              note();
+              store.save();
+              refresh();
+              return;
+            }
+            if (!result.ok) { window.ALLY_UI.toast(result.error); return; }
+            note();
+            window.ALLY_SYNC.pull(refresh);
           });
-          store.log('Rendez-vous ajouté depuis le calendrier',
-            (client || 'Nouveau client') + ' — ' + longLabel(view.selected) + ' ' + time);
-          store.save();
-          refresh();
         });
       }
 
@@ -6207,13 +6229,30 @@ window.ALLY_PLAN_BY_ID = function (id) {
       /* Reporter d'un jour : le geste le plus fréquent sur un agenda. */
       panel.querySelectorAll('[data-rdv-move]').forEach(function (button) {
         button.addEventListener('click', function () {
-          var id = Number(button.getAttribute('data-rdv-move'));
-          var r = store.data().rdv.filter(function (x) { return x.id === id; })[0];
+          /* Les identifiants du serveur sont des chaînes ; les convertir en
+             nombre donnait NaN, et le bouton ne trouvait plus son
+             rendez-vous. */
+          var id = button.getAttribute('data-rdv-move');
+          var r = store.data().rdv.filter(function (x) { return String(x.id) === id; })[0];
           if (!r) return;
-          r.date = addDays(r.date, 1);
-          store.log('Report de ' + r.client, 'Déplacé au ' + longLabel(r.date));
-          store.save();
-          refresh();
+
+          var demain = addDays(r.date, 1);
+          var sent = window.ALLY_SYNC
+            ? window.ALLY_SYNC.moveRdv(r.id, demain, r.time)
+            : Promise.resolve(false);
+
+          sent.then(function (result) {
+            if (result === false) {
+              r.date = demain;
+              store.log('Report de ' + r.client, 'Déplacé au ' + longLabel(r.date));
+              store.save();
+              refresh();
+              return;
+            }
+            if (!result.ok) { window.ALLY_UI.toast(result.error); return; }
+            store.log('Report de ' + r.client, 'Déplacé au ' + longLabel(demain));
+            window.ALLY_SYNC.pull(refresh);
+          });
         });
       });
     },
@@ -7952,8 +7991,48 @@ window.ALLY_PLAN_BY_ID = function (id) {
     }).catch(function () { return false; });
   }
 
+  /* Les gestes de l'agenda doivent partir au serveur quand le rendez-vous en
+     vient, sinon la synchronisation suivante les annule sans un mot : on
+     annule un rendez-vous, il revient quinze secondes plus tard. Rien n'entame
+     davantage la confiance dans un outil.
+
+     Chaque fonction renvoie une promesse ; « false » veut dire « ce n'est pas
+     du ressort du serveur, fais-le localement comme avant ». */
+  function connected() {
+    return !!(api && api.online() && api.cabinetId());
+  }
+
+  function isReal(id) {
+    return typeof id === 'string' && /^rdv/.test(id);
+  }
+
   window.ALLY_SYNC = {
     pull: pull,
+    connected: connected,
+    isReal: isReal,
+
+    createRdv: function (payload) {
+      if (!connected()) return Promise.resolve(false);
+      return api.addRdv(payload).then(function (res) {
+        if (res.ok) { last = ''; return { ok: true }; }
+        return { ok: false, error: (res.body && res.body.error) || 'Rendez-vous refusé.' };
+      }, function () { return { ok: false, error: 'Serveur injoignable.' }; });
+    },
+
+    dropRdv: function (id) {
+      if (!connected() || !isReal(id)) return Promise.resolve(false);
+      return api.cancelRdv(id).then(function () { last = ''; return { ok: true }; },
+        function () { return { ok: false, error: 'Serveur injoignable.' }; });
+    },
+
+    moveRdv: function (id, date, time) {
+      if (!connected() || !isReal(id)) return Promise.resolve(false);
+      return api.moveRdv(id, { date: date, time: time }).then(function (res) {
+        if (res.ok) { last = ''; return { ok: true }; }
+        return { ok: false, error: (res.body && res.body.error) || 'Report refusé.' };
+      }, function () { return { ok: false, error: 'Serveur injoignable.' }; });
+    },
+
     /* Battement lent : les cartes « réelles » se rafraîchissent déjà toutes les
        cinq secondes pour leur propre compte. Ici, il s'agit seulement que le
        reste de l'application ne raconte pas autre chose. */
@@ -11828,13 +11907,28 @@ window.ALLY_PLAN_BY_ID = function (id) {
     // Agenda : annuler ou déplacer un rendez-vous, bloquer une demi-journée.
     panel.querySelectorAll('[data-rdv-cancel]').forEach(function (button) {
       button.addEventListener('click', function () {
-        var id = Number(button.getAttribute('data-rdv-cancel'));
-        var r = D().rdv.filter(function (x) { return x.id === id; })[0];
-        D().rdv = D().rdv.filter(function (x) { return x.id !== id; });
-        if (r) store.log('Annulation du rendez-vous de ' + r.client, 'Créneau libéré, ' + r.client + ' prévenu');
-        store.save();
-        renderNav(); renderPanel();
-        el.sub.textContent = SUBS[ui.tab]();
+        /* Comparaison en chaîne : les identifiants du serveur n'en sont pas
+           des nombres, et Number() en faisait des NaN — le bouton ne trouvait
+           plus rien à annuler. */
+        var id = button.getAttribute('data-rdv-cancel');
+        var r = D().rdv.filter(function (x) { return String(x.id) === id; })[0];
+
+        var sent = window.ALLY_SYNC && r
+          ? window.ALLY_SYNC.dropRdv(r.id)
+          : Promise.resolve(false);
+
+        sent.then(function (result) {
+          if (result && !result.ok) { flash(result.error); return; }
+
+          D().rdv = D().rdv.filter(function (x) { return String(x.id) !== id; });
+          if (r) {
+            store.log('Annulation du rendez-vous de ' + r.client,
+              'Créneau libéré, ' + r.client + ' prévenu');
+          }
+          store.save();
+          renderNav(); renderPanel();
+          el.sub.textContent = SUBS[ui.tab]();
+        });
       });
     });
     var blockForm = panel.querySelector('#block-form');

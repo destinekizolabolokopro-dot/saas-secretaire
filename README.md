@@ -302,7 +302,7 @@ l'ensemble** :
 
 ```bash
 node server/index.js       # http://localhost:8787 — API et maquette
-node server/test.js        # 63 contrôles
+node server/test.js        # 64 contrôles
 ```
 
 ### Le compte devient réel
@@ -342,6 +342,11 @@ continuait de lire le navigateur. On posait un rendez-vous sur la ligne réelle,
 on demandait à Ally « mes rendez-vous aujourd'hui ? », et elle récitait ceux du
 jeu de démonstration. Le calendrier, l'onglet Aujourd'hui et l'aperçu du résumé
 du soir racontaient la même histoire à côté de la plaque.
+
+Les gestes du calendrier repartent au serveur : annuler, reporter, ajouter.
+Sans cela, on annulait un rendez-vous et il revenait quinze secondes plus tard,
+ramené par la synchronisation — rien n'entame davantage la confiance dans un
+outil.
 
 `js/sync.js` recopie donc les appels et les rendez-vous du serveur dans la
 structure que tout le front lit déjà. La règle : **dès que le serveur a quelque
