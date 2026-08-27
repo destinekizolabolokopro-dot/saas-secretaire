@@ -2284,6 +2284,14 @@
          navigateur. */
       var done = window.ALLY_GATE ? window.ALLY_GATE.adopt() : Promise.resolve();
       done.then(function () {
+        /* Et on recopie les données du serveur dans l'espace de travail, pour
+           qu'Ally, le calendrier et le résumé du soir parlent de la même
+           journée que les cartes « réelles ». */
+        if (window.ALLY_SYNC) {
+          window.ALLY_SYNC.start(function () {
+            renderNav(); renderChrome(); renderPanel();
+          });
+        }
         renderChrome();
         renderNav();
         if (ui.tab === 'telephony' || ui.tab === 'conversations'

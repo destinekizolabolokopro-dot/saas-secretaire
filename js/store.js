@@ -311,7 +311,15 @@
 
     /* Un compte neuf n'a encore rien vécu : plusieurs écrans le disent au lieu
        d'afficher des chiffres qui ne sont pas les siens. */
-    isNew: function () { return state.dataMode === 'empty'; },
+    /* « Neuf » ne veut pas dire « en mode vide » mais « rien ne s'est encore
+       passé ». La nuance est apparue le jour où la ligne réelle a commencé à
+       remplir un compte vide : l'écran continuait d'annoncer « votre ligne n'a
+       pas encore sonné » à quelqu'un dont on affichait les appels. */
+    isNew: function () {
+      if (state.dataMode !== 'empty') return false;
+      var D = this.data();
+      return !D.calls.length && !D.rdv.length && !D.drafts.length && !D.sent.length;
+    },
 
     /* Charge le jeu de démonstration du métier, pour voir l'espace pro rempli. */
     loadSample: function () {

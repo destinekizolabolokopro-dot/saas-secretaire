@@ -231,6 +231,7 @@ js/live.js          carte « la ligne réelle » — les appels livrés par le s
 js/mailbox.js       carte « le courrier réel » — la file d'envoi du serveur
 js/team.js          carte « le cabinet » — collaborateurs, invitations, places
 js/diary.js         carte « l'agenda réel » — rendez-vous du serveur, posés par Ally
+js/sync.js          recopie les données du serveur dans l'espace de travail
 js/platform.js      carte « la plateforme réelle » — ce que le serveur sait vraiment
 js/store.js         configuration du compte connecté, persistance, quotas
 js/ui.js            composants partagés (saisie de code, jauge, message éphémère)
@@ -333,6 +334,20 @@ Connecté par l'écran habituel, il voit en tête de la console la carte **« la
 plateforme réelle »** : les cabinets vraiment inscrits, les sessions ouvertes,
 les volumes, le journal du serveur. Le reste de la console continue d'afficher
 l'annuaire de démonstration, et la carte le dit.
+
+### Toute l'application parle de la même journée
+
+Les trois cartes « réelles » ne suffisaient pas : le reste de l'application
+continuait de lire le navigateur. On posait un rendez-vous sur la ligne réelle,
+on demandait à Ally « mes rendez-vous aujourd'hui ? », et elle récitait ceux du
+jeu de démonstration. Le calendrier, l'onglet Aujourd'hui et l'aperçu du résumé
+du soir racontaient la même histoire à côté de la plaque.
+
+`js/sync.js` recopie donc les appels et les rendez-vous du serveur dans la
+structure que tout le front lit déjà. La règle : **dès que le serveur a quelque
+chose, c'est lui qui a raison** — les exemples cèdent la place, parce qu'on ne
+peut pas afficher deux journées dans le même agenda. Tant que le serveur n'a
+rien, on ne touche à rien : qui explore le produit garde ses exemples.
 
 ### Le serveur apprend qui vous êtes
 
