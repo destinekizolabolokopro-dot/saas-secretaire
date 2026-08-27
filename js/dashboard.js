@@ -1483,9 +1483,35 @@
   };
 
   /* ---------- Liaison des événements ---------- */
+  /* Ligne connectée et jeu de démonstration encore chargé : l'écran montre
+     côte à côte de vraies données et des fausses. On le dit, plutôt que de
+     laisser deviner — et on propose de retirer les exemples d'un clic. */
+  function demoNotice() {
+    if (!window.ALLY_API || !window.ALLY_API.online() || !window.ALLY_API.cabinetId()) return '';
+    if (S.dataMode !== 'sample') return '';
+    if (['today', 'conversations', 'agenda', 'telephony'].indexOf(ui.tab) < 0) return '';
+
+    return '<div class="alert"><span class="dot"></span><div>' +
+      '<strong>Vous voyez deux choses à la fois</strong>' +
+      '<p class="row-meta">Les cartes marquées <em>réel</em> viennent de votre ligne. ' +
+        'Le reste est le jeu de démonstration, chargé pour montrer le produit.</p></div>' +
+      '<button type="button" class="btn btn-ghost btn-sm" data-drop-sample>' +
+        'Retirer les exemples</button>' +
+    '</div>';
+  }
+
   function renderPanel() {
-    el.panel.innerHTML = VIEWS[ui.tab]();
+    el.panel.innerHTML = demoNotice() + VIEWS[ui.tab]();
     var panel = el.panel;
+
+    var drop = panel.querySelector('[data-drop-sample]');
+    if (drop) {
+      drop.addEventListener('click', function () {
+        store.clearActivity();
+        renderNav(); renderPanel(); renderChrome();
+        flash('Données d\'exemple retirées — il ne reste que votre ligne');
+      });
+    }
 
     /* Un envoi peut être en cours au moment où l'on change d'onglet : le
        décompte doit repartir, sinon il se fige sur l'écran suivant. */

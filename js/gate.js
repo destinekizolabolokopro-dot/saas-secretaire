@@ -259,6 +259,18 @@
 
     usage: function () { return realUsage; },
 
+    /* Fait connaître au serveur ce que le questionnaire vient d'apprendre : la
+       raison sociale et le métier. Sans serveur, il n'y a rien à dire à
+       personne — la configuration reste où elle est. */
+    publish: function (cabinet) {
+      return when(function () {
+        if (local() || !api.cabinetId()) return false;
+        return api.saveCabinet(cabinet).then(function (res) {
+          return !!(res && res.ok);
+        }, function () { return false; });
+      });
+    },
+
     logout: function () {
       return when(function () {
         accounts.logout();

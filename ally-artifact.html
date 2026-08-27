@@ -4331,6 +4331,9 @@ window.ALLY_PLAN_BY_ID = function (id) {
     send: function (payload) { return request('POST', '/messages', payload); },
     cancel: function (id) { return request('POST', '/messages/' + id + '/cancel', {}); },
 
+    /* --------------------------------------------------------------- Cabinet */
+    saveCabinet: function (payload) { return request('POST', '/cabinet', payload); },
+
     /* ---------------------------------------------------------------- Agenda */
     rdv: function () { return request('GET', '/rdv'); },
     addRdv: function (payload) { return request('POST', '/rdv', payload); },
@@ -4619,6 +4622,18 @@ window.ALLY_PLAN_BY_ID = function (id) {
     },
 
     usage: function () { return realUsage; },
+
+    /* Fait connaître au serveur ce que le questionnaire vient d'apprendre : la
+       raison sociale et le métier. Sans serveur, il n'y a rien à dire à
+       personne — la configuration reste où elle est. */
+    publish: function (cabinet) {
+      return when(function () {
+        if (local() || !api.cabinetId()) return false;
+        return api.saveCabinet(cabinet).then(function (res) {
+          return !!(res && res.ok);
+        }, function () { return false; });
+      });
+    },
 
     logout: function () {
       return when(function () {
@@ -9901,6 +9916,15 @@ window.ALLY_PLAN_BY_ID = function (id) {
       applySurvey();
       store.save();
       store.syncAccount();
+
+      /* Ligne connectée : le serveur apprend enfin le vrai nom du cabinet et
+         son métier. Il ne les connaissait pas — ils ne sont demandés qu'ici,
+         après l'inscription. On n'attend pas la réponse pour ouvrir l'espace
+         pro : le questionnaire est fini, le reste n'est qu'un rattrapage. */
+      if (window.ALLY_GATE) {
+        window.ALLY_GATE.publish({ org: S.identity.org, trade: S.trade });
+      }
+
       window.ALLY_GOTO('dashboard.html');
       return;
     }
@@ -11427,9 +11451,35 @@ window.ALLY_PLAN_BY_ID = function (id) {
   };
 
   /* ---------- Liaison des événements ---------- */
+  /* Ligne connectée et jeu de démonstration encore chargé : l'écran montre
+     côte à côte de vraies données et des fausses. On le dit, plutôt que de
+     laisser deviner — et on propose de retirer les exemples d'un clic. */
+  function demoNotice() {
+    if (!window.ALLY_API || !window.ALLY_API.online() || !window.ALLY_API.cabinetId()) return '';
+    if (S.dataMode !== 'sample') return '';
+    if (['today', 'conversations', 'agenda', 'telephony'].indexOf(ui.tab) < 0) return '';
+
+    return '<div class="alert"><span class="dot"></span><div>' +
+      '<strong>Vous voyez deux choses à la fois</strong>' +
+      '<p class="row-meta">Les cartes marquées <em>réel</em> viennent de votre ligne. ' +
+        'Le reste est le jeu de démonstration, chargé pour montrer le produit.</p></div>' +
+      '<button type="button" class="btn btn-ghost btn-sm" data-drop-sample>' +
+        'Retirer les exemples</button>' +
+    '</div>';
+  }
+
   function renderPanel() {
-    el.panel.innerHTML = VIEWS[ui.tab]();
+    el.panel.innerHTML = demoNotice() + VIEWS[ui.tab]();
     var panel = el.panel;
+
+    var drop = panel.querySelector('[data-drop-sample]');
+    if (drop) {
+      drop.addEventListener('click', function () {
+        store.clearActivity();
+        renderNav(); renderPanel(); renderChrome();
+        flash('Données d\'exemple retirées — il ne reste que votre ligne');
+      });
+    }
 
     /* Un envoi peut être en cours au moment où l'on change d'onglet : le
        décompte doit repartir, sinon il se fige sur l'écran suivant. */

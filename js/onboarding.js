@@ -642,6 +642,15 @@
       applySurvey();
       store.save();
       store.syncAccount();
+
+      /* Ligne connectée : le serveur apprend enfin le vrai nom du cabinet et
+         son métier. Il ne les connaissait pas — ils ne sont demandés qu'ici,
+         après l'inscription. On n'attend pas la réponse pour ouvrir l'espace
+         pro : le questionnaire est fini, le reste n'est qu'un rattrapage. */
+      if (window.ALLY_GATE) {
+        window.ALLY_GATE.publish({ org: S.identity.org, trade: S.trade });
+      }
+
       window.location.href = 'dashboard.html';
       return;
     }

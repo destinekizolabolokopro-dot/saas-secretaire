@@ -120,6 +120,9 @@
     send: function (payload) { return request('POST', '/messages', payload); },
     cancel: function (id) { return request('POST', '/messages/' + id + '/cancel', {}); },
 
+    /* --------------------------------------------------------------- Cabinet */
+    saveCabinet: function (payload) { return request('POST', '/cabinet', payload); },
+
     /* ---------------------------------------------------------------- Agenda */
     rdv: function () { return request('GET', '/rdv'); },
     addRdv: function (payload) { return request('POST', '/rdv', payload); },

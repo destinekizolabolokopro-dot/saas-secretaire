@@ -188,6 +188,34 @@ const routes = {
     });
   },
 
+  /* Le cabinet tel que le serveur le connaît. Il naissait à l'inscription, où
+     l'on ne sait presque rien — le métier et la raison sociale ne sont demandés
+     qu'au questionnaire, ensuite. Sans cette route, le serveur gardait
+     « Cabinet », métier « avocat », pour un plombier nommé autrement. */
+  'POST /api/cabinet': async (ctx) => {
+    const me = auth.findById(ctx.session.userId);
+    if (!auth.isOwner(me)) {
+      return H.fail(ctx.res, 403, 'Seul le responsable du cabinet peut le modifier.');
+    }
+
+    const db = store.load();
+    const cabinet = db.cabinets.find((c) => c.id === ctx.session.cabinetId);
+    if (!cabinet) return H.fail(ctx.res, 404, 'Introuvable.');
+
+    if (typeof ctx.body.org === 'string' && ctx.body.org.trim()) {
+      cabinet.org = ctx.body.org.trim().slice(0, 120);
+    }
+    if (typeof ctx.body.trade === 'string' && ctx.body.trade.trim()) {
+      cabinet.trade = ctx.body.trade.trim().slice(0, 40);
+    }
+    /* La formule est la seule chose qu'on ne prend pas sur parole : elle
+       décide du nombre de places et du prix. Elle changera par Stripe, pas par
+       un champ de formulaire. */
+    store.record('cabinet-updated', { cabinetId: cabinet.id });
+    store.save();
+    H.json(ctx.res, 200, { ok: true, cabinet });
+  },
+
   /* --------------------------------------------------------- Collaborateurs */
 
   'POST /api/cabinet/invite': async (ctx) => {

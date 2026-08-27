@@ -334,6 +334,18 @@ plateforme réelle »** : les cabinets vraiment inscrits, les sessions ouvertes,
 les volumes, le journal du serveur. Le reste de la console continue d'afficher
 l'annuaire de démonstration, et la carte le dit.
 
+### Le serveur apprend qui vous êtes
+
+Le cabinet naît à l'inscription, où l'on ne sait presque rien : le métier et la
+raison sociale ne sont demandés qu'au questionnaire, ensuite. Le serveur gardait
+donc « Cabinet », métier « avocat », pour un plombier nommé autrement. La
+dernière étape du questionnaire les lui transmet — le responsable seul peut le
+faire, et la formule, elle, ne s'y change pas : elle relèvera du paiement.
+
+Quand la ligne est connectée et que le jeu de démonstration est encore chargé,
+l'écran le dit au lieu de laisser croire que tout est réel, et propose de
+retirer les exemples d'un clic.
+
 ### L'agenda réel
 
 La troisième promesse du produit. Les rendez-vous vivent sur le serveur,
