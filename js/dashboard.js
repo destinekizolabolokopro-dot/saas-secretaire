@@ -2459,6 +2459,10 @@
          navigateur. */
       var done = window.ALLY_GATE ? window.ALLY_GATE.adopt() : Promise.resolve();
       done.then(function () {
+        /* La configuration du cabinet suit l'appareil : on prend celle du
+           serveur si elle est plus récente, on lui donne la nôtre sinon. */
+        if (window.ALLY_CONFIG_SYNC) window.ALLY_CONFIG_SYNC.start();
+
         /* Et on recopie les données du serveur dans l'espace de travail, pour
            qu'Ally, le calendrier et le résumé du soir parlent de la même
            journée que les cartes « réelles ». */

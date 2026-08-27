@@ -239,6 +239,7 @@ js/mailbox.js       carte « le courrier réel » — la file d'envoi du serveur
 js/team.js          carte « le cabinet » — collaborateurs, invitations, places
 js/diary.js         carte « l'agenda réel » — rendez-vous du serveur, posés par Ally
 js/sync.js          recopie les données du serveur dans l'espace de travail
+js/configsync.js    la configuration du cabinet suit le cabinet, pas l'appareil
 js/platform.js      carte « la plateforme réelle » — ce que le serveur sait vraiment
 js/store.js         configuration du compte connecté, persistance, quotas
 js/ui.js            composants partagés (saisie de code, jauge, message éphémère)
@@ -309,7 +310,7 @@ l'ensemble** :
 
 ```bash
 node server/index.js       # http://localhost:8787 — API et maquette
-node server/test.js        # 67 contrôles
+node server/test.js        # 70 contrôles
 ```
 
 ### Le compte devient réel
@@ -341,6 +342,23 @@ Connecté par l'écran habituel, il voit en tête de la console la carte **« la
 plateforme réelle »** : les cabinets vraiment inscrits, les sessions ouvertes,
 les volumes, le journal du serveur. Le reste de la console continue d'afficher
 l'annuaire de démonstration, et la carte le dit.
+
+### La configuration suit le cabinet, pas l'appareil
+
+Métier, horaires, registre de parole, fiche, script d'appel, règles d'urgence :
+tout cela vivait dans le seul navigateur qui l'avait saisi. On configurait Ally
+sur son ordinateur, on ouvrait son téléphone, et l'espace était vierge. L'associé
+qu'on venait d'inviter n'héritait de rien.
+
+C'est le cabinet, pas un réglage d'appareil : la configuration est enregistrée
+sur le serveur, **chiffrée** — le script d'appel et la fiche disent comment
+travaille le cabinet, ses tarifs et ses délais.
+
+Règle de conflit : la dernière écriture gagne, à condition d'être postérieure.
+Le serveur refuse une version plus ancienne que celle qu'il détient, et
+l'appareil concerné reprend alors la sienne. Et rien ne part avant d'avoir lu :
+sans ce verrou, une page qui enregistre au chargement — le questionnaire —
+poussait sa configuration par défaut et effaçait celle du cabinet.
 
 ### Les deux droits qui ne se négocient pas
 

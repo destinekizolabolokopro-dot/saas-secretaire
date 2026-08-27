@@ -650,6 +650,9 @@
       if (window.ALLY_GATE) {
         window.ALLY_GATE.publish({ org: S.identity.org, trade: S.trade });
       }
+      /* Et toute la configuration qu'on vient de saisir : c'est elle que
+         l'associé et le téléphone du professionnel retrouveront. */
+      if (window.ALLY_CONFIG_SYNC) window.ALLY_CONFIG_SYNC.push();
 
       window.location.href = 'dashboard.html';
       return;
@@ -676,6 +679,22 @@
   renderHours();
   renderRules();
   render();
+
+  /* Ligne connectée : on part de la configuration du cabinet, pas d'une page
+     blanche. Refaire le questionnaire depuis un second appareil doit montrer
+     ce qui est déjà réglé — et surtout, ne pas l'écraser. */
+  if (window.ALLY_CONFIG_SYNC) {
+    window.ALLY_CONFIG_SYNC.start().then(function (repris) {
+      if (repris) {
+        S = store.state;
+        renderTrades();
+        syncIdentity();
+        renderHours();
+        renderRules();
+        render();
+      }
+    });
+  }
 
   /* Même rôle que côté espace pro : rejouer le questionnaire sur l'état
      courant quand il n'y a pas de rechargement de page. */

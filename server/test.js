@@ -693,6 +693,50 @@ async function newCabinet(email, org) {
     assert.strictEqual(fresh.status, 200);
   });
 
+  await test('la configuration du cabinet est chiffrée et cloisonnée', async () => {
+    const config = { tone: 'direct', sheet: { parking: 'Parking Saint-Jean' } };
+    const pose = await call('POST', '/api/cabinet/config', {
+      cookie: A.cookie, body: { config, updatedAt: Date.now() }
+    });
+    assert.strictEqual(pose.status, 200);
+
+    const brut = fs.readFileSync(store.FILE, 'utf8');
+    assert.ok(!brut.includes('Parking Saint-Jean'), 'la fiche est lisible en base');
+
+    const relu = await call('GET', '/api/cabinet/config', { cookie: A.cookie });
+    assert.strictEqual(relu.body.config.tone, 'direct');
+    assert.strictEqual(relu.body.config.sheet.parking, 'Parking Saint-Jean');
+
+    /* Un cabinet neuf : celui de B a pu perdre sa session dans les tests
+       précédents, et un 401 se lirait à tort comme un cloisonnement réussi. */
+    const voisin = await newCabinet('config-voisin@cabinet.fr', 'Voisin');
+    const chezLui = await call('GET', '/api/cabinet/config', { cookie: voisin.cookie });
+    assert.strictEqual(chezLui.status, 200, 'session du voisin invalide');
+    assert.strictEqual(chezLui.body.config, null, 'le voisin voit la configuration de A');
+
+    /* Et « qui suis-je » ne la trimballe pas à chaque chargement de page. */
+    const me = await call('GET', '/api/me', { cookie: A.cookie });
+    assert.ok(!me.body.cabinet.config, 'la configuration chiffrée part dans /me');
+  });
+
+  await test('une configuration plus ancienne ne remplace pas la récente', async () => {
+    const vieille = await call('POST', '/api/cabinet/config', {
+      cookie: A.cookie, body: { config: { tone: 'sobre' }, updatedAt: 1000 }
+    });
+    assert.strictEqual(vieille.status, 409);
+
+    const relu = await call('GET', '/api/cabinet/config', { cookie: A.cookie });
+    assert.strictEqual(relu.body.config.tone, 'direct', 'la vieille version a gagné');
+  });
+
+  await test('une configuration démesurée est refusée', async () => {
+    const enorme = { note: 'x'.repeat(200 * 1024) };
+    const res = await call('POST', '/api/cabinet/config', {
+      cookie: A.cookie, body: { config: enorme, updatedAt: Date.now() }
+    });
+    assert.ok(res.status === 413 || res.status === 400, 'statut ' + res.status);
+  });
+
   console.log('\n== RGPD ==');
 
   await test('le responsable exporte tout, en clair, et lui seul', async () => {

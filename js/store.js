@@ -647,8 +647,45 @@
     },
 
     save: function () {
-      try { window.localStorage.setItem(KEY, JSON.stringify(state)); return true; }
-      catch (e) { return false; }
+      var ok;
+      try { window.localStorage.setItem(KEY, JSON.stringify(state)); ok = true; }
+      catch (e) { ok = false; }
+
+      /* La configuration appartient au cabinet, pas à l'appareil : elle part
+         au serveur quand il y en a un. Le module de synchronisation
+         temporise — on enregistre à chaque frappe dans un champ. */
+      if (window.ALLY_CONFIG_SYNC) window.ALLY_CONFIG_SYNC.touch();
+      return ok;
+    },
+
+    /* Les champs qui décrivent le cabinet, par opposition à son activité.
+       C'est cette liste qui voyage d'un appareil à l'autre : ni les appels, ni
+       les emails, ni l'historique des gestes — ceux-là ont déjà leur route. */
+    configFields: function () {
+      return ['identity', 'trade', 'hours', 'closures', 'survey', 'rules',
+        'autonomy', 'greeting', 'notif', 'retentionDays', 'summaryFreq',
+        'voiceEnabled', 'confirmLevel', 'chatSpeaks', 'voice', 'tone', 'sheet',
+        'steps', 'script', 'configured', 'links'];
+    },
+
+    configSnapshot: function () {
+      var out = {};
+      this.configFields().forEach(function (key) {
+        if (state[key] !== undefined) out[key] = state[key];
+      });
+      return out;
+    },
+
+    applyConfig: function (config) {
+      if (!config) return false;
+      var self = this;
+      this.configFields().forEach(function (key) {
+        if (config[key] !== undefined) state[key] = config[key];
+      });
+      /* On enregistre sans repasser par save() : inutile de renvoyer au
+         serveur ce qu'on vient d'en recevoir. */
+      try { window.localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {}
+      return true;
     },
 
     /* Relit le compte de l'utilisateur connecté. Appelé après une connexion ou

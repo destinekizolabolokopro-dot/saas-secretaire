@@ -148,7 +148,7 @@ function forCabinet(cabinetId) {
 const admin = {
   cabinets() {
     const db = store.load();
-    return db.cabinets.map((cabinet) => ({
+    return db.cabinets.map(({ config, ...cabinet }) => ({
       ...cabinet,
       members: db.users.filter((u) => u.cabinetId === cabinet.id).length,
       calls: db.calls.filter((c) => c.cabinetId === cabinet.id).length,

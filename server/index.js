@@ -18,7 +18,7 @@ const auth = require('./lib/auth');
 const repo = require('./lib/repo');
 const H = require('./lib/http');
 const statics = require('./lib/static');
-const { verifySignature } = require('./lib/crypto');
+const { verifySignature, encrypt, decrypt } = require('./lib/crypto');
 
 const PORT = Number(process.env.PORT || 8787);
 
@@ -175,7 +175,9 @@ const routes = {
     if (!ctx.session) return H.json(ctx.res, 200, { authenticated: false });
     const data = repo.forCabinet(ctx.session.cabinetId);
     const me = auth.findById(ctx.session.userId);
-    const cabinet = data.cabinet();
+    /* La configuration chiffrée ne part pas ici : elle a sa route, et elle
+       pèse. « Qui suis-je » est demandé à chaque chargement de page. */
+    const { config, ...cabinet } = data.cabinet() || {};
     H.json(ctx.res, 200, {
       authenticated: true,
       role: ctx.session.role,
@@ -220,6 +222,52 @@ const routes = {
     store.record('cabinet-updated', { cabinetId: cabinet.id });
     store.save();
     H.json(ctx.res, 200, { ok: true, cabinet });
+  },
+
+  /* La configuration du cabinet : métier, horaires, registre de parole, fiche,
+     script d'appel, règles d'urgence. Elle vivait uniquement dans le
+     navigateur — un professionnel qui configurait Ally sur son ordinateur
+     retrouvait un espace vierge sur son téléphone, et son associé n'héritait
+     de rien. Elle appartient au cabinet, pas à l'appareil.
+
+     Le contenu est chiffré en base : le script d'appel et la fiche disent
+     comment travaille le cabinet, ses tarifs et ses délais. */
+  'GET /api/cabinet/config': async (ctx) => {
+    const cabinet = repo.forCabinet(ctx.session.cabinetId).cabinet();
+    if (!cabinet || !cabinet.config) return H.json(ctx.res, 200, { config: null, updatedAt: 0 });
+
+    let config = null;
+    try { config = JSON.parse(decrypt(cabinet.config)); }
+    catch (e) { config = null; }
+    H.json(ctx.res, 200, { config, updatedAt: cabinet.configAt || 0 });
+  },
+
+  'POST /api/cabinet/config': async (ctx) => {
+    const db = store.load();
+    const cabinet = db.cabinets.find((c) => c.id === ctx.session.cabinetId);
+    if (!cabinet) return H.fail(ctx.res, 404, 'Introuvable.');
+    if (!ctx.body.config || typeof ctx.body.config !== 'object') {
+      return H.fail(ctx.res, 400, 'Configuration absente.');
+    }
+
+    const brut = JSON.stringify(ctx.body.config);
+    /* Un garde-fou de taille : cette route accepte un objet libre, elle ne
+       doit pas devenir un espace de stockage gratuit. */
+    if (brut.length > 128 * 1024) return H.fail(ctx.res, 413, 'Configuration trop volumineuse.');
+
+    /* Dernière écriture gagnante, mais seulement si elle est postérieure :
+       deux appareils qui se synchronisent ne doivent pas se ramener l'un
+       l'autre en arrière. */
+    const envoye = Number(ctx.body.updatedAt) || Date.now();
+    if (cabinet.configAt && envoye < cabinet.configAt) {
+      return H.json(ctx.res, 409, { ok: false, updatedAt: cabinet.configAt, stale: true });
+    }
+
+    cabinet.config = encrypt(brut);
+    cabinet.configAt = envoye;
+    store.record('config-saved', { cabinetId: cabinet.id });
+    store.save();
+    H.json(ctx.res, 200, { ok: true, updatedAt: cabinet.configAt });
   },
 
   /* ------------------------------------------------------------- RGPD

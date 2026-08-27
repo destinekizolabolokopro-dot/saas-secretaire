@@ -4341,6 +4341,10 @@ window.ALLY_PLAN_BY_ID = function (id) {
 
     /* --------------------------------------------------------------- Cabinet */
     saveCabinet: function (payload) { return request('POST', '/cabinet', payload); },
+    config: function () { return request('GET', '/cabinet/config'); },
+    saveConfig: function (config, updatedAt) {
+      return request('POST', '/cabinet/config', { config: config, updatedAt: updatedAt });
+    },
     exportAccount: function () { return request('GET', '/account/export'); },
     journal: function () { return request('GET', '/account/journal'); },
     deleteAccount: function (password) {
@@ -5344,8 +5348,45 @@ window.ALLY_PLAN_BY_ID = function (id) {
     },
 
     save: function () {
-      try { window.localStorage.setItem(KEY, JSON.stringify(state)); return true; }
-      catch (e) { return false; }
+      var ok;
+      try { window.localStorage.setItem(KEY, JSON.stringify(state)); ok = true; }
+      catch (e) { ok = false; }
+
+      /* La configuration appartient au cabinet, pas à l'appareil : elle part
+         au serveur quand il y en a un. Le module de synchronisation
+         temporise — on enregistre à chaque frappe dans un champ. */
+      if (window.ALLY_CONFIG_SYNC) window.ALLY_CONFIG_SYNC.touch();
+      return ok;
+    },
+
+    /* Les champs qui décrivent le cabinet, par opposition à son activité.
+       C'est cette liste qui voyage d'un appareil à l'autre : ni les appels, ni
+       les emails, ni l'historique des gestes — ceux-là ont déjà leur route. */
+    configFields: function () {
+      return ['identity', 'trade', 'hours', 'closures', 'survey', 'rules',
+        'autonomy', 'greeting', 'notif', 'retentionDays', 'summaryFreq',
+        'voiceEnabled', 'confirmLevel', 'chatSpeaks', 'voice', 'tone', 'sheet',
+        'steps', 'script', 'configured', 'links'];
+    },
+
+    configSnapshot: function () {
+      var out = {};
+      this.configFields().forEach(function (key) {
+        if (state[key] !== undefined) out[key] = state[key];
+      });
+      return out;
+    },
+
+    applyConfig: function (config) {
+      if (!config) return false;
+      var self = this;
+      this.configFields().forEach(function (key) {
+        if (config[key] !== undefined) state[key] = config[key];
+      });
+      /* On enregistre sans repasser par save() : inutile de renvoyer au
+         serveur ce qu'on vient d'en recevoir. */
+      try { window.localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {}
+      return true;
     },
 
     /* Relit le compte de l'utilisateur connecté. Appelé après une connexion ou
@@ -8052,6 +8093,115 @@ window.ALLY_PLAN_BY_ID = function (id) {
   };
 })();
 
+/* Ally — la configuration suit le cabinet, pas l'appareil.
+
+   Tout ce qui décrit le cabinet — métier, horaires, registre de parole, fiche,
+   script d'appel, règles d'urgence — vivait dans le seul navigateur qui l'avait
+   saisi. Un professionnel qui configurait Ally sur son ordinateur retrouvait un
+   espace vierge sur son téléphone, et l'associé qu'il venait d'inviter
+   n'héritait de rien. Ce n'est pas un réglage d'appareil : c'est le cabinet.
+
+   Règle de conflit : la dernière écriture gagne, à condition d'être
+   postérieure. Deux appareils qui se synchronisent ne doivent pas se ramener
+   l'un l'autre en arrière. Le serveur refuse une écriture plus ancienne que ce
+   qu'il détient, et l'appareil concerné reprend alors la version du serveur. */
+(function () {
+  'use strict';
+
+  var api = window.ALLY_API;
+
+  /* « prêt » compte : tant qu'on n'a pas lu la configuration du serveur, on
+     n'a pas le droit de lui envoyer la nôtre. Sans ce verrou, une page qui
+     enregistre au chargement — le questionnaire, par exemple — poussait sa
+     configuration par défaut et effaçait celle du cabinet. Un professionnel
+     ouvrant Ally sur son téléphone perdait ainsi tout ce qu'il avait réglé
+     depuis son ordinateur. */
+  var state = { at: 0, pushing: false, timer: null, empreinte: '', pret: false };
+  var DELAI = 1500;
+
+  function store() { return window.ALLY_STORE; }
+
+  function connected() {
+    return !!(api && api.online() && api.cabinetId());
+  }
+
+  function empreinte() {
+    return JSON.stringify(store().configSnapshot());
+  }
+
+  /* Appelé à chaque enregistrement local. On temporise : saisir une adresse
+     dans la fiche déclenche un enregistrement par caractère, et le serveur n'a
+     pas à recevoir vingt versions d'une même phrase. */
+  function touch() {
+    if (!connected() || !state.pret) return;
+    window.clearTimeout(state.timer);
+    state.timer = window.setTimeout(push, DELAI);
+  }
+
+  function push() {
+    if (!connected() || state.pushing) return Promise.resolve(false);
+
+    var actuelle = empreinte();
+    if (actuelle === state.empreinte) return Promise.resolve(false);
+
+    state.pushing = true;
+    var quand = Date.now();
+
+    return api.saveConfig(JSON.parse(actuelle), quand).then(function (res) {
+      state.pushing = false;
+      if (res.ok) {
+        state.empreinte = actuelle;
+        state.at = res.body.updatedAt || quand;
+        return true;
+      }
+      /* Le serveur détient une version plus récente : c'est elle qui vaut. */
+      if (res.status === 409) return pull(true);
+      return false;
+    }, function () { state.pushing = false; return false; });
+  }
+
+  /* Reprend la configuration du serveur si elle est plus récente que la
+     nôtre. « force » sert au cas du conflit, où l'on sait déjà qu'elle l'est. */
+  function pull(force) {
+    if (!connected()) return Promise.resolve(false);
+
+    return api.config().then(function (res) {
+      if (!res.ok || !res.body.config) {
+        /* Rien côté serveur : c'est notre configuration qui fait foi. */
+        state.empreinte = '';
+        return push();
+      }
+
+      var distante = res.body.updatedAt || 0;
+      if (!force && distante <= state.at) return false;
+
+      store().applyConfig(res.body.config);
+      state.at = distante;
+      state.empreinte = empreinte();
+      if (window.ALLY_DASHBOARD_REFRESH) window.ALLY_DASHBOARD_REFRESH();
+      return true;
+    }, function () { return false; });
+  }
+
+  window.ALLY_CONFIG_SYNC = {
+    /* Exposé pour les tests : savoir si la reprise a eu lieu, et depuis
+       quand, évite de deviner en cas d'écart. */
+    etat: state,
+    touch: touch,
+    push: push,
+    pull: pull,
+    /* Au chargement : on prend celle du serveur si elle est plus récente, on
+       lui donne la nôtre sinon. */
+    start: function () {
+      state.empreinte = empreinte();
+      return pull(false).then(function (result) {
+        state.pret = true;
+        return result;
+      }, function () { state.pret = true; return false; });
+    }
+  };
+})();
+
 /* Ally — la plateforme réelle.
 
    Pendant administrateur de js/live.js. La console d'administration montre par
@@ -10148,6 +10298,9 @@ window.ALLY_PLAN_BY_ID = function (id) {
       if (window.ALLY_GATE) {
         window.ALLY_GATE.publish({ org: S.identity.org, trade: S.trade });
       }
+      /* Et toute la configuration qu'on vient de saisir : c'est elle que
+         l'associé et le téléphone du professionnel retrouveront. */
+      if (window.ALLY_CONFIG_SYNC) window.ALLY_CONFIG_SYNC.push();
 
       window.ALLY_GOTO('dashboard.html');
       return;
@@ -10174,6 +10327,22 @@ window.ALLY_PLAN_BY_ID = function (id) {
   renderHours();
   renderRules();
   render();
+
+  /* Ligne connectée : on part de la configuration du cabinet, pas d'une page
+     blanche. Refaire le questionnaire depuis un second appareil doit montrer
+     ce qui est déjà réglé — et surtout, ne pas l'écraser. */
+  if (window.ALLY_CONFIG_SYNC) {
+    window.ALLY_CONFIG_SYNC.start().then(function (repris) {
+      if (repris) {
+        S = store.state;
+        renderTrades();
+        syncIdentity();
+        renderHours();
+        renderRules();
+        render();
+      }
+    });
+  }
 
   /* Même rôle que côté espace pro : rejouer le questionnaire sur l'état
      courant quand il n'y a pas de rechargement de page. */
@@ -12651,6 +12820,10 @@ window.ALLY_PLAN_BY_ID = function (id) {
          navigateur. */
       var done = window.ALLY_GATE ? window.ALLY_GATE.adopt() : Promise.resolve();
       done.then(function () {
+        /* La configuration du cabinet suit l'appareil : on prend celle du
+           serveur si elle est plus récente, on lui donne la nôtre sinon. */
+        if (window.ALLY_CONFIG_SYNC) window.ALLY_CONFIG_SYNC.start();
+
         /* Et on recopie les données du serveur dans l'espace de travail, pour
            qu'Ally, le calendrier et le résumé du soir parlent de la même
            journée que les cartes « réelles ». */
