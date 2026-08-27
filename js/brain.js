@@ -369,6 +369,10 @@
             + ' à ' + nt.replace(':', 'h') + '.',
           detail: kindLabel + ' — ajouté à votre agenda',
           apply: function () {
+            /* Ligne connectée : le rendez-vous part au serveur, sinon la
+               synchronisation suivante l'effacerait sans explication. On
+               l'affiche tout de suite quand même — la réponse d'Ally vient
+               d'être prononcée, l'agenda doit suivre dans la seconde. */
             D.rdv.push({
               id: Date.now(), date: iso, client: client,
               type: kindLabel, time: nt
@@ -376,6 +380,15 @@
             A.select(iso);
             store.log('Création de rendez-vous — ' + client,
               label + ' ' + nt.replace(':', 'h'));
+
+            if (window.ALLY_SYNC && window.ALLY_SYNC.connected()) {
+              window.ALLY_SYNC.createRdv({
+                date: iso, time: nt, client: client, type: kindLabel
+              }).then(function (result) {
+                if (result && !result.ok) window.ALLY_UI.toast(result.error);
+                window.ALLY_SYNC.pull(window.ALLY_DASHBOARD_REFRESH);
+              });
+            }
           },
           follow: ['Quel est mon prochain rendez-vous ?', 'Résume-moi ma journée']
         };
@@ -432,9 +445,21 @@
             + '. Je préviens ' + (p.clientWord === 'patient' ? 'le patient' : 'le client') + '.',
           detail: 'Modification visible dans le calendrier',
           apply: function () {
+            var ancienne = target.date;
             target.date = newDate;
             A2.select(newDate);
             store.log('Déplacement de ' + who, 'Reporté au ' + A2.longLabel(newDate));
+
+            if (window.ALLY_SYNC && window.ALLY_SYNC.isReal(target.id)) {
+              window.ALLY_SYNC.moveRdv(target.id, newDate, target.time)
+                .then(function (result) {
+                  if (result && !result.ok) {
+                    target.date = ancienne;
+                    window.ALLY_UI.toast(result.error);
+                  }
+                  window.ALLY_SYNC.pull(window.ALLY_DASHBOARD_REFRESH);
+                });
+            }
           }
         };
       }

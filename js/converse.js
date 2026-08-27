@@ -151,6 +151,14 @@
               apply: function () {
                 D.rdv = D.rdv.filter(function (x) { return x.id !== r.id; });
                 store.log('Annulation de ' + r.client, 'Créneau libéré');
+
+                /* Et sur le serveur, quand le rendez-vous en vient : sans
+                   cela, il reviendrait à la synchronisation suivante. */
+                if (window.ALLY_SYNC) {
+                  window.ALLY_SYNC.dropRdv(r.id).then(function (result) {
+                    if (result && !result.ok) window.ALLY_UI.toast(result.error);
+                  });
+                }
               },
               follow: ['Qui reste-t-il aujourd\'hui ?', 'Bloque ce créneau']
             });

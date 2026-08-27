@@ -343,7 +343,9 @@ on demandait à Ally « mes rendez-vous aujourd'hui ? », et elle récitait ceux
 jeu de démonstration. Le calendrier, l'onglet Aujourd'hui et l'aperçu du résumé
 du soir racontaient la même histoire à côté de la plaque.
 
-Les gestes du calendrier repartent au serveur : annuler, reporter, ajouter.
+Les gestes repartent au serveur : annuler, reporter, ajouter — au calendrier
+comme à la voix. « Prends un rendez-vous demain à 15 h 30 pour M. Bonnet » pose
+vraiment le créneau sur la ligne, et le collaborateur d'à côté le voit.
 Sans cela, on annulait un rendez-vous et il revenait quinze secondes plus tard,
 ramené par la synchronisation — rien n'entame davantage la confiance dans un
 outil.
