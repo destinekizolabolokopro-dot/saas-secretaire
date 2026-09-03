@@ -150,6 +150,10 @@
     /* ------------------------------------------------------------ Plateforme */
     adminStats: function () { return request('GET', '/admin/stats'); },
     adminEvents: function () { return request('GET', '/admin/events'); },
+    assignLine: function (cabinetId, numero, operateur) {
+      return request('POST', '/admin/cabinets/' + cabinetId + '/line',
+        { numero: numero, operateur: operateur });
+    },
 
     /* Mémorise la session ouverte, pour que l'interface s'y réfère. */
     remember: function (body) {

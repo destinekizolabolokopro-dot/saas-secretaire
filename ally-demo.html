@@ -1194,6 +1194,12 @@ input[type="range"] {
 .rdv-day { width: 56px; font-family: var(--ff-h); font-size: 13px; color: var(--cyan); flex-shrink: 0; }
 .sync-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .sync-row span:first-child { font-size: 14px; color: var(--txt-2); }
+/* Deux actions par code de renvoi : composer d'un doigt sur un téléphone,
+   copier sur un ordinateur. Empilées en petit écran, côte à côte au-delà. */
+.serve-actions { display: flex; flex-direction: column; gap: 8px; flex-shrink: 0; }
+.serve-actions .btn { white-space: nowrap; text-align: center; }
+@media (min-width: 560px) { .serve-actions { flex-direction: row; } }
+
 .sync-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--cyan); flex-shrink: 0; }
 /* Éteinte : une pastille verte pour une connexion absente est un mensonge
    qu'on ne remarque qu'au moment où l'on en a besoin. */
@@ -4369,6 +4375,10 @@ window.ALLY_PLAN_BY_ID = function (id) {
     /* ------------------------------------------------------------ Plateforme */
     adminStats: function () { return request('GET', '/admin/stats'); },
     adminEvents: function () { return request('GET', '/admin/events'); },
+    assignLine: function (cabinetId, numero, operateur) {
+      return request('POST', '/admin/cabinets/' + cabinetId + '/line',
+        { numero: numero, operateur: operateur });
+    },
 
     /* Mémorise la session ouverte, pour que l'interface s'y réfère. */
     remember: function (body) {
@@ -4461,6 +4471,13 @@ window.ALLY_PLAN_BY_ID = function (id) {
     }
     if (cabinet.trade && !S.configured && S.trade !== cabinet.trade) {
       S.trade = cabinet.trade;
+      changed = true;
+    }
+    /* Le numéro sur lequel Ally décroche. Il est attribué par la plateforme —
+       personne ne choisit son propre numéro entrant — et l'écran de mise en
+       service en a besoin pour composer les vrais codes de renvoi. */
+    if (JSON.stringify(cabinet.line || null) !== JSON.stringify(S.line || null)) {
+      S.line = cabinet.line || null;
       changed = true;
     }
     if (changed) store.save();
@@ -4763,6 +4780,11 @@ window.ALLY_PLAN_BY_ID = function (id) {
       voice: { uri: '', rate: 1, pitch: 1 },
       planId: 'cabinet',
       plan: '',
+      /* Numéro attribué par la plateforme, sur lequel Ally décroche. Null tant
+         qu'aucune ligne n'est ouverte : les codes de renvoi n'ont alors aucun
+         sens, et l'écran le dit au lieu d'afficher un numéro d'exemple qu'on
+         composerait pour rien. */
+      line: null,
       subscription: null,
       links: { gmail: false, outlook: false, gcal: false, phone: false, sms: true },
       waitlist: [],
@@ -8972,6 +8994,12 @@ window.ALLY_PLAN_BY_ID = function (id) {
       var D = store.data();
       D.calls = calls.map(asCall);
       D.rdv = rdv.map(asRdv);
+
+      /* Un appel reçu est la seule preuve qu'un renvoi a été posé : le
+         téléphone a sonné chez Ally, donc les codes ont bien été composés.
+         Aucune déclaration ne vaut celle-là. */
+      if (calls.length) store.markStep('forward');
+
       store.save();
 
       if (onChange) onChange();
@@ -9244,11 +9272,19 @@ window.ALLY_PLAN_BY_ID = function (id) {
               ' · ' + esc(c.messages) + ' email' + (c.messages > 1 ? 's' : '') + '</p>' +
           '</div>' +
           '<div class="row-side">' +
-            '<span class="badge-status badge-ok">' + esc(c.plan || 'cabinet') + '</span>' +
+            /* La ligne attribuée, ou le bouton pour l'attribuer : c'est le
+               geste qui met un cabinet en service, il doit être à portée. */
+            (c.line && c.line.numero
+              ? '<span class="badge-status badge-ok">' + esc(c.line.numero) + '</span>'
+              : '<button type="button" class="btn btn-ghost btn-sm" data-line="' +
+                esc(c.id) + '">Attribuer un numéro</button>') +
             '<span class="row-meta">' + window.ALLY_DATE(c.createdAt) + '</span>' +
           '</div>' +
         '</div>';
-      }).join('') + '</div>';
+      }).join('') + '</div>' +
+      '<p class="note" style="margin-top:12px">Le numéro attribué ici est celui sur ' +
+        'lequel Ally décroche pour ce cabinet. C\'est lui qui apparaît dans ses codes ' +
+        'de renvoi : tant qu\'il n\'est pas posé, le professionnel n\'a rien à composer.</p>';
   }
 
   /* Le journal ne porte que des identifiants. Un identifiant de cabinet, on
@@ -9323,6 +9359,30 @@ window.ALLY_PLAN_BY_ID = function (id) {
     var host = panel.querySelector('[data-platform]');
     if (!host) return;
 
+    host.querySelectorAll('[data-line]').forEach(function (bouton) {
+      bouton.addEventListener('click', function () {
+        var cabinetId = bouton.getAttribute('data-line');
+        var numero = window.prompt('Numéro sur lequel Ally décroche pour ce cabinet '
+          + '(format 0X XX XX XX XX) :');
+        if (!numero) return;
+
+        bouton.disabled = true;
+        api.assignLine(cabinetId, numero).then(function (res) {
+          bouton.disabled = false;
+          if (!res.ok) {
+            window.alert((res.body && res.body.error) || 'Attribution refusée.');
+            return;
+          }
+          state.stats = null;
+          refresh(rerender);
+          if (rerender) rerender();
+        }).catch(function () {
+          bouton.disabled = false;
+          window.alert('Serveur injoignable.');
+        });
+      });
+    });
+
     /* Un seul minuteur : sans ce remplacement, changer d'onglet dix fois en
        laisserait dix qui interrogent le serveur en parallèle. */
     if (state.timer) window.clearInterval(state.timer);
@@ -9364,16 +9424,154 @@ window.ALLY_PLAN_BY_ID = function (id) {
       .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
   }
 
-  /* Num\u00e9ro sur lequel les renvois pointent. R\u00e9serv\u00e9 \u00e0 la mise en service :
-     le professionnel garde le sien, il ne le communique jamais. */
+  /* Numéro sur lequel Ally décroche. Il est attribué par la plateforme — on ne
+     choisit pas son propre numéro entrant — et tant qu'il ne l'est pas, il n'y
+     a rien à composer. On affichait jusqu'ici « 09 72 XX XX 00 » : un numéro
+     d'exemple dans un code qu'on demande à quelqu'un de composer pour de vrai,
+     c'est-à-dire un renvoi vers nulle part. */
+  function ligne() {
+    var l = store.state.line;
+    return l && l.numero ? l : null;
+  }
+
   function allyNumber() {
-    return store.state.subscription ? '09 72 XX XX 41' : '09 72 XX XX 00';
+    var l = ligne();
+    return l ? l.numero : null;
+  }
+
+  /* 06 12 34 56 78 se lit mieux que 0612345678, et se recopie moins mal. */
+  function espace(numero) {
+    return String(numero || '').replace(/(\d{2})(?=\d)/g, '$1 ').trim();
+  }
+
+  /* Un code GSM dans un lien tel: se compose d'un doigt sur un téléphone —
+     c'est là qu'on est quand on pose un renvoi. Le dièse doit être encodé,
+     sinon le navigateur le prend pour une ancre et le code part tronqué. */
+  function lienTel(code) {
+    return 'tel:' + encodeURIComponent(code).replace(/%2A/g, '*');
+  }
+
+  /* Les trois renvois conditionnels, dans l'ordre où on les pose. */
+  function renvois() {
+    var num = allyNumber();
+    if (!num) return [];
+    return [
+      { id: 'sans-reponse', titre: 'Sans réponse après 4 sonneries',
+        code: '**61*' + num + '*11*20#',
+        note: 'Vous décrochez si vous pouvez. Sinon Ally prend le relais au bout de 20 secondes.',
+        repli: '**61*' + num + '#' },
+      { id: 'occupe', titre: 'Quand vous êtes déjà en ligne',
+        code: '**67*' + num + '#',
+        note: 'Le deuxième appelant tombe sur Ally au lieu de la messagerie.' },
+      { id: 'injoignable', titre: 'Quand vous êtes injoignable',
+        code: '**62*' + num + '#',
+        note: 'Tunnel, avion, batterie vide : la ligne répond quand même.' }
+    ];
   }
 
   /* Phrase courte pour essayer une voix, personnalisée au cabinet. */
   function sampleLine() {
     var S = store.state;
     return S.identity.org + ', bonjour. Je suis Ally, l\'assistante. Comment puis-je vous aider ?';
+  }
+
+  /* ====================== MISE EN SERVICE ======================
+
+     L'étape qui décide de tout : sans renvoi posé, la ligne ne sonne jamais et
+     le professionnel conclut que le produit ne marche pas. Elle a trois états,
+     et il faut les distinguer honnêtement.
+
+     1. Aucun numéro attribué — il n'y a rien à composer, et on le dit.
+     2. Numéro attribué, aucun appel encore reçu — on donne les codes, et on
+        propose l'appel test qui prouvera que ça marche.
+     3. Un appel est arrivé — le renvoi fonctionne, la preuve est là. */
+
+  function miseEnService() {
+    var l = ligne();
+    var recus = store.data().calls.length;
+
+    return '<div class="card">' +
+      '<p class="card-title">Mise en service de votre ligne</p>' +
+      (l ? avecNumero(l, recus) : sansNumero()) +
+    '</div>';
+  }
+
+  function sansNumero() {
+    return '<p class="note" style="margin-bottom:16px">Vous gardez votre numéro actuel. ' +
+        'Ally reçoit vos appels sur un numéro qui lui est propre, attribué à ' +
+        'l\'ouverture de la ligne — c\'est vers lui que pointeront les renvois.</p>' +
+      '<div class="empty">Aucun numéro n\'est encore attribué à ce cabinet. ' +
+        'Les codes de renvoi apparaîtront ici dès qu\'il le sera : sans numéro réel, ' +
+        'il n\'y a rien à composer.</div>' +
+      '<p class="note serve-foot">La ligne s\'ouvre à la mise en service de ' +
+        'l\'abonnement. Vous n\'avez rien à faire d\'ici là — et surtout rien à ' +
+        'composer sur votre téléphone.</p>';
+  }
+
+  function avecNumero(l, recus) {
+    var pose = store.state.steps.forward;
+
+    return '<p class="note" style="margin-bottom:18px">Vous gardez votre numéro actuel. ' +
+        'Trois renvois conditionnels suffisent : Ally ne prend l\'appel que si vous ne ' +
+        'répondez pas, si vous êtes déjà en ligne, ou si vous êtes injoignable. ' +
+        'Vos appels décrochés restent les vôtres, Ally ne les voit pas.</p>' +
+
+      '<div class="recap-row"><span>Numéro d\'Ally pour ce cabinet</span>' +
+        '<strong>' + esc(espace(l.numero)) + '</strong></div>' +
+      (l.operateur
+        ? '<div class="recap-row"><span>Opérateur de la ligne</span><span>' +
+          esc(l.operateur) + '</span></div>' : '') +
+
+      '<p class="note" style="margin:16px 0 10px">Sur votre téléphone, touchez le code : ' +
+        'il s\'ouvre dans le clavier, il ne reste qu\'à appeler. Sur ordinateur, ' +
+        'copiez-le et composez-le depuis votre mobile.</p>' +
+
+      '<div class="steps-list">' +
+        renvois().map(function (r, i) {
+          return '<div class="serve-step">' +
+            '<span class="script-num">0' + (i + 1) + '</span>' +
+            '<div class="serve-main">' +
+              '<strong>' + esc(r.titre) + '</strong>' +
+              '<code class="serve-code">' + esc(r.code) + '</code>' +
+              '<span>' + esc(r.note) + '</span>' +
+              (r.repli
+                ? '<span class="note">Refusé par votre opérateur ? Essayez sans le délai : ' +
+                  '<code>' + esc(r.repli) + '</code></span>'
+                : '') +
+            '</div>' +
+            '<div class="serve-actions">' +
+              '<a class="btn btn-primary btn-sm" href="' + lienTel(r.code) + '">Composer</a>' +
+              '<button type="button" class="btn btn-ghost btn-sm" data-copy="' +
+                esc(r.code) + '">Copier</button>' +
+            '</div>' +
+          '</div>';
+        }).join('') +
+      '</div>' +
+
+      /* La preuve, et rien d'autre : un code copié ne prouve rien. */
+      (recus
+        ? '<div class="alert" style="margin:20px 0 0">' +
+            '<span class="dot"></span><div><strong>Le renvoi fonctionne</strong>' +
+            '<p class="row-meta">Ally a déjà reçu ' + recus + ' appel' +
+              (recus > 1 ? 's' : '') + ' sur cette ligne.</p></div></div>'
+        : '<div class="live-connect" style="margin-top:20px">' +
+            '<p class="note" style="margin-bottom:12px"><strong>Vérifiez en trente secondes :</strong> ' +
+              'depuis un autre téléphone, appelez votre numéro habituel et laissez sonner. ' +
+              'Ally doit décrocher. L\'appel apparaîtra ici tout seul.</p>' +
+            '<div class="voice-try">' +
+              '<a class="btn btn-ghost btn-md" href="tel:' +
+                esc(String(store.state.identity.phone || '').replace(/\s/g, '')) +
+                '">Appeler mon numéro</a>' +
+              (pose
+                ? '<span class="badge-status badge-ok">Renvoi déclaré posé</span>'
+                : '<button type="button" class="btn btn-ghost btn-md" data-forward-done>' +
+                  'J\'ai composé les codes</button>') +
+            '</div>' +
+          '</div>') +
+
+      '<p class="note serve-foot">Pour vérifier l\'état de vos renvois, composez ' +
+        '<code>*#61#</code>. Pour tout désactiver, <code>##002#</code> : vos appels ' +
+        'reviennent immédiatement sur votre ligne, sans nous prévenir.</p>';
   }
 
   /* ====================== SIMULATION D'APPEL ====================== */
@@ -9448,38 +9646,7 @@ window.ALLY_PLAN_BY_ID = function (id) {
         '</div>' +
 
         /* ---- Mise en service ---- */
-        '<div class="card">' +
-          '<p class="card-title">Mise en service de votre ligne</p>' +
-          '<p class="note" style="margin-bottom:18px">Vous gardez votre num\u00e9ro actuel. ' +
-            'Trois renvois conditionnels suffisent : Ally ne prend l\'appel que si vous ne ' +
-            'r\u00e9pondez pas, si vous \u00eates d\u00e9j\u00e0 en ligne, ou si vous \u00eates injoignable.</p>' +
-
-          '<div class="steps-list">' +
-            [['Sans r\u00e9ponse apr\u00e8s 4 sonneries',
-              '**61*' + allyNumber() + '*11*20#',
-              'Vous d\u00e9crochez si vous pouvez. Sinon Ally prend le relais au bout de 20 secondes.'],
-             ['Quand vous \u00eates d\u00e9j\u00e0 en ligne',
-              '**67*' + allyNumber() + '#',
-              'Le deuxi\u00e8me appelant tombe sur Ally au lieu de la messagerie.'],
-             ['Quand vous \u00eates injoignable',
-              '**62*' + allyNumber() + '#',
-              'Tunnel, avion, batterie vide : la ligne r\u00e9pond quand m\u00eame.']
-            ].map(function (step, i) {
-              return '<div class="serve-step">' +
-                '<span class="script-num">0' + (i + 1) + '</span>' +
-                '<div class="serve-main">' +
-                  '<strong>' + esc(step[0]) + '</strong>' +
-                  '<code class="serve-code">' + esc(step[1]) + '</code>' +
-                  '<span>' + esc(step[2]) + '</span>' +
-                '</div>' +
-                '<button type="button" class="btn btn-ghost btn-sm" data-copy="' + esc(step[1]) + '">Copier</button>' +
-              '</div>';
-            }).join('') +
-          '</div>' +
-
-          '<p class="note serve-foot">Pour tout d\u00e9sactiver, composez <code>##002#</code>. ' +
-            'Vos appels reviennent imm\u00e9diatement sur votre ligne, sans nous pr\u00e9venir.</p>' +
-        '</div>' +
+        miseEnService() +
 
         /* ---- Voix d'Ally ---- */
         (window.ALLY_LIVE ? window.ALLY_LIVE.view() : '') +
@@ -9573,18 +9740,30 @@ window.ALLY_PLAN_BY_ID = function (id) {
         }
       });
 
-      /* ---- Codes de renvoi ---- */
+      /* ---- Codes de renvoi ----
+         Copier ne coche plus l'étape : copier un code n'est pas le composer, et
+         se féliciter d'un geste qui n'a pas eu lieu est le meilleur moyen de
+         laisser quelqu'un croire que sa ligne est branchée alors qu'elle ne
+         sonnera jamais. L'étape se coche sur une déclaration explicite, ou
+         mieux, sur le premier appel réellement reçu. */
       panel.querySelectorAll('[data-copy]').forEach(function (button) {
         button.addEventListener('click', function () {
           var code = button.getAttribute('data-copy');
           if (navigator.clipboard) navigator.clipboard.writeText(code);
-          /* Copier un code de renvoi est le seul signe qu'on dispose que la
-             ligne est en train d'être branchée : c'est ce qui coche l'étape. */
-          store.markStep('forward');
-          button.textContent = 'Copi\u00e9';
+          button.textContent = 'Copié';
           window.setTimeout(function () { button.textContent = 'Copier'; }, 1600);
         });
       });
+
+      var declare = panel.querySelector('[data-forward-done]');
+      if (declare) {
+        declare.addEventListener('click', function () {
+          store.markStep('forward');
+          store.log('Renvoi d\'appel déclaré posé',
+            'À confirmer par un appel test : c\'est lui qui prouve que la ligne sonne');
+          if (refresh) refresh();
+        });
+      }
 
       /* ---- Script d'appel ---- */
       panel.querySelectorAll('[data-script]').forEach(function (area) {

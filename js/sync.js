@@ -95,6 +95,12 @@
       var D = store.data();
       D.calls = calls.map(asCall);
       D.rdv = rdv.map(asRdv);
+
+      /* Un appel reçu est la seule preuve qu'un renvoi a été posé : le
+         téléphone a sonné chez Ally, donc les codes ont bien été composés.
+         Aucune déclaration ne vaut celle-là. */
+      if (calls.length) store.markStep('forward');
+
       store.save();
 
       if (onChange) onChange();

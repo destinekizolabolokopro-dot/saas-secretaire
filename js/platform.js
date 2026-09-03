@@ -102,11 +102,19 @@
               ' · ' + esc(c.messages) + ' email' + (c.messages > 1 ? 's' : '') + '</p>' +
           '</div>' +
           '<div class="row-side">' +
-            '<span class="badge-status badge-ok">' + esc(c.plan || 'cabinet') + '</span>' +
+            /* La ligne attribuée, ou le bouton pour l'attribuer : c'est le
+               geste qui met un cabinet en service, il doit être à portée. */
+            (c.line && c.line.numero
+              ? '<span class="badge-status badge-ok">' + esc(c.line.numero) + '</span>'
+              : '<button type="button" class="btn btn-ghost btn-sm" data-line="' +
+                esc(c.id) + '">Attribuer un numéro</button>') +
             '<span class="row-meta">' + window.ALLY_DATE(c.createdAt) + '</span>' +
           '</div>' +
         '</div>';
-      }).join('') + '</div>';
+      }).join('') + '</div>' +
+      '<p class="note" style="margin-top:12px">Le numéro attribué ici est celui sur ' +
+        'lequel Ally décroche pour ce cabinet. C\'est lui qui apparaît dans ses codes ' +
+        'de renvoi : tant qu\'il n\'est pas posé, le professionnel n\'a rien à composer.</p>';
   }
 
   /* Le journal ne porte que des identifiants. Un identifiant de cabinet, on
@@ -180,6 +188,30 @@
     if (!api || !api.online()) return;
     var host = panel.querySelector('[data-platform]');
     if (!host) return;
+
+    host.querySelectorAll('[data-line]').forEach(function (bouton) {
+      bouton.addEventListener('click', function () {
+        var cabinetId = bouton.getAttribute('data-line');
+        var numero = window.prompt('Numéro sur lequel Ally décroche pour ce cabinet '
+          + '(format 0X XX XX XX XX) :');
+        if (!numero) return;
+
+        bouton.disabled = true;
+        api.assignLine(cabinetId, numero).then(function (res) {
+          bouton.disabled = false;
+          if (!res.ok) {
+            window.alert((res.body && res.body.error) || 'Attribution refusée.');
+            return;
+          }
+          state.stats = null;
+          refresh(rerender);
+          if (rerender) rerender();
+        }).catch(function () {
+          bouton.disabled = false;
+          window.alert('Serveur injoignable.');
+        });
+      });
+    });
 
     /* Un seul minuteur : sans ce remplacement, changer d'onglet dix fois en
        laisserait dix qui interrogent le serveur en parallèle. */

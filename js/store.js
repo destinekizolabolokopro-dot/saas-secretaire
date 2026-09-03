@@ -62,6 +62,11 @@
       voice: { uri: '', rate: 1, pitch: 1 },
       planId: 'cabinet',
       plan: '',
+      /* Numéro attribué par la plateforme, sur lequel Ally décroche. Null tant
+         qu'aucune ligne n'est ouverte : les codes de renvoi n'ont alors aucun
+         sens, et l'écran le dit au lieu d'afficher un numéro d'exemple qu'on
+         composerait pour rien. */
+      line: null,
       subscription: null,
       links: { gmail: false, outlook: false, gcal: false, phone: false, sms: true },
       waitlist: [],

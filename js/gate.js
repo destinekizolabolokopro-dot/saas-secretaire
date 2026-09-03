@@ -81,6 +81,13 @@
       S.trade = cabinet.trade;
       changed = true;
     }
+    /* Le numéro sur lequel Ally décroche. Il est attribué par la plateforme —
+       personne ne choisit son propre numéro entrant — et l'écran de mise en
+       service en a besoin pour composer les vrais codes de renvoi. */
+    if (JSON.stringify(cabinet.line || null) !== JSON.stringify(S.line || null)) {
+      S.line = cabinet.line || null;
+      changed = true;
+    }
     if (changed) store.save();
   }
 

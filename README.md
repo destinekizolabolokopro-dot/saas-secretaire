@@ -29,7 +29,8 @@ vrai Chromium :
 
 ```bash
 python3 -m http.server 8123
-node tests/navigateur/ecran.js
+node tests/navigateur/ecran.js     # les pages, les onglets, la voix, le mobile
+node tests/navigateur/ligne.js     # la mise en service du renvoi d'appel
 ```
 
 Le fichier `ally-demo.html` s'ouvre par simple double-clic : il contient tout
@@ -214,6 +215,33 @@ Le journal ne contient que des types d'événements et des horodatages, jamais d
 contenu métier. Une IA qui suggère au hasard use la patience plus vite qu'elle
 ne rend service : sans geste compté, aucune carte ne s'affiche.
 
+## Poser le renvoi d'appel
+
+C'est l'étape qui décide de tout : sans renvoi, la ligne ne sonne jamais et le
+professionnel conclut que le produit ne marche pas. Elle a trois états, et ils
+sont distingués honnêtement.
+
+**Aucun numéro attribué.** Ally décroche sur un numéro qui lui est propre, loué
+chez un opérateur et branché sur l'agent vocal. Il est **attribué par la
+plateforme** — on ne choisit pas son propre numéro entrant, sinon n'importe qui
+détournerait les appels d'un autre cabinet vers le sien. Tant qu'il n'est pas
+posé, l'écran ne montre aucun code : il affichait jusqu'ici
+`**61*09 72 XX XX 00*11*20#`, c'est-à-dire un renvoi vers nulle part, à
+composer pour de vrai.
+
+**Numéro attribué.** Les trois codes portent le vrai numéro, et chacun est un
+lien `tel:` — sur un téléphone, une touche l'ouvre dans le clavier, il ne reste
+qu'à appeler. C'est là qu'on est quand on pose un renvoi. Le dièse est encodé,
+sinon le navigateur le prend pour une ancre et le code part tronqué. Un code de
+repli sans délai est proposé pour les opérateurs qui refusent `*11*20#`, et
+`*#61#` permet de vérifier l'état des renvois.
+
+**Le renvoi fonctionne.** L'étape ne se coche plus quand on **copie** un code :
+copier n'est pas composer, et se féliciter d'un geste qui n'a pas eu lieu laisse
+quelqu'un croire que sa ligne est branchée alors qu'elle ne sonnera jamais. Elle
+se coche sur le **premier appel réellement reçu** — la seule preuve qui existe —
+ou sur une déclaration explicite, en attendant l'appel test.
+
 ## Parler à Ally, et l'entendre répondre
 
 ### Ce qu'elle prononce
@@ -369,7 +397,7 @@ l'ensemble** :
 
 ```bash
 node server/index.js       # http://localhost:8787 — API et maquette
-node server/test.js        # 70 contrôles
+node server/test.js        # 73 contrôles
 ```
 
 ### Le compte devient réel

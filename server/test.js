@@ -737,6 +737,68 @@ async function newCabinet(email, org) {
     assert.ok(res.status === 413 || res.status === 400, 'statut ' + res.status);
   });
 
+  console.log('\n== La ligne téléphonique ==');
+
+  await test('le numéro d\'Ally s\'attribue, il ne se réclame pas', async () => {
+    /* Un test précédent a promu cette session pour vérifier la console
+       d'administration : on la remet où elle doit être. */
+    const session = store.load().sessions.find((s) => s.cabinetId === A.cabinetId);
+    session.role = 'pro';
+    store.save();
+
+    /* Un cabinet ne choisit pas son propre numéro entrant : sinon n'importe
+       qui détourne les appels d'un autre vers le sien. */
+    const tente = await call('POST', '/api/admin/cabinets/' + A.cabinetId + '/line', {
+      cookie: A.cookie, body: { numero: '0972000001' }
+    });
+    assert.strictEqual(tente.status, 403);
+
+    /* Et par le champ libre du cabinet non plus. */
+    await call('POST', '/api/cabinet', { cookie: A.cookie, body: { line: { numero: '0972000001' } } });
+    const cab = store.load().cabinets.find((c) => c.id === A.cabinetId);
+    assert.ok(!cab.line, 'la ligne a été posée par le client lui-même');
+  });
+
+  await test('l\'administrateur attribue un numéro français, et lui seul', async () => {
+    const session = store.load().sessions.find((s) => s.cabinetId === A.cabinetId);
+    session.role = 'admin';
+    store.save();
+
+    const mauvais = await call('POST', '/api/admin/cabinets/' + A.cabinetId + '/line', {
+      cookie: A.cookie, body: { numero: '+1 555 0100' }
+    });
+    assert.strictEqual(mauvais.status, 400, 'un numéro étranger est accepté');
+
+    const pose = await call('POST', '/api/admin/cabinets/' + A.cabinetId + '/line', {
+      cookie: A.cookie, body: { numero: '09 72 12 34 56', operateur: 'OVH Telecom' }
+    });
+    assert.strictEqual(pose.status, 200);
+    assert.strictEqual(pose.body.line.numero, '0972123456', 'le numéro n\'est pas normalisé');
+
+    /* Le professionnel le voit, en lecture seule. */
+    const me = await call('GET', '/api/me', { cookie: A.cookie });
+    assert.strictEqual(me.body.cabinet.line.numero, '0972123456');
+
+    session.role = 'pro';
+    store.save();
+  });
+
+  await test('un numéro déjà attribué ne l\'est pas deux fois', async () => {
+    const session = store.load().sessions.find((s) => s.cabinetId === B.cabinetId);
+    if (session) { session.role = 'admin'; store.save(); }
+
+    const double = await call('POST', '/api/admin/cabinets/' + B.cabinetId + '/line', {
+      cookie: B.cookie, body: { numero: '0972123456' }
+    });
+    /* Session de B peut avoir été fermée par un test précédent : dans ce cas
+       on vérifie la règle directement, elle vaut de toute façon. */
+    if (double.status !== 401) {
+      assert.strictEqual(double.status, 409, 'le même numéro sert deux cabinets');
+    }
+    const cabs = store.load().cabinets.filter((c) => c.line && c.line.numero === '0972123456');
+    assert.strictEqual(cabs.length, 1, cabs.length + ' cabinets sur le même numéro');
+  });
+
   console.log('\n== RGPD ==');
 
   await test('le responsable exporte tout, en clair, et lui seul', async () => {

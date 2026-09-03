@@ -473,6 +473,48 @@ const routes = {
     H.json(ctx.res, 200, { stats: repo.admin.stats(), cabinets: repo.admin.cabinets() });
   },
 
+  /* Attribution du numéro d'Ally à un cabinet.
+
+     Ce numéro ne se choisit pas : c'est un vrai numéro français, loué chez
+     l'opérateur et branché sur l'agent vocal. Il est donc attribué par la
+     plateforme, jamais réclamé par le client — sans quoi n'importe qui
+     détournerait les appels d'un autre cabinet vers son propre numéro. */
+  'POST /api/admin/cabinets/:id/line': async (ctx) => {
+    if (ctx.session.role !== 'admin') return H.fail(ctx.res, 403, 'Accès réservé.');
+
+    const db = store.load();
+    const cabinet = db.cabinets.find((c) => c.id === ctx.params.id);
+    if (!cabinet) return H.fail(ctx.res, 404, 'Introuvable.');
+
+    const brut = String(ctx.body.numero || '').replace(/[^\d+]/g, '');
+    if (ctx.body.numero === null || brut === '') {
+      delete cabinet.line;
+      store.record('line-released', { cabinetId: cabinet.id });
+      store.save();
+      return H.json(ctx.res, 200, { ok: true, line: null });
+    }
+
+    /* Un numéro français, en national (0X…) ou en international (+33…). Le
+       reste est refusé : un renvoi vers un numéro surtaxé ou étranger se
+       paierait très cher, et pas par nous. */
+    if (!/^(?:0[1-9]\d{8}|\+33[1-9]\d{8})$/.test(brut)) {
+      return H.fail(ctx.res, 400, 'Numéro français attendu, au format 0X XX XX XX XX.');
+    }
+
+    const national = brut.startsWith('+33') ? '0' + brut.slice(3) : brut;
+    const pris = db.cabinets.find((c) => c.id !== cabinet.id && c.line && c.line.numero === national);
+    if (pris) return H.fail(ctx.res, 409, 'Ce numéro est déjà attribué à un autre cabinet.');
+
+    cabinet.line = {
+      numero: national,
+      operateur: String(ctx.body.operateur || '').slice(0, 40) || null,
+      attribueLe: Date.now()
+    };
+    store.record('line-assigned', { cabinetId: cabinet.id });
+    store.save();
+    H.json(ctx.res, 200, { ok: true, line: cabinet.line });
+  },
+
   'GET /api/admin/events': async (ctx) => {
     if (ctx.session.role !== 'admin') return H.fail(ctx.res, 403, 'Accès réservé.');
     H.json(ctx.res, 200, { events: repo.admin.events(100) });

@@ -273,6 +273,12 @@
 .rdv-day { width: 56px; font-family: var(--ff-h); font-size: 13px; color: var(--cyan); flex-shrink: 0; }
 .sync-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .sync-row span:first-child { font-size: 14px; color: var(--txt-2); }
+/* Deux actions par code de renvoi : composer d'un doigt sur un téléphone,
+   copier sur un ordinateur. Empilées en petit écran, côte à côte au-delà. */
+.serve-actions { display: flex; flex-direction: column; gap: 8px; flex-shrink: 0; }
+.serve-actions .btn { white-space: nowrap; text-align: center; }
+@media (min-width: 560px) { .serve-actions { flex-direction: row; } }
+
 .sync-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--cyan); flex-shrink: 0; }
 /* Éteinte : une pastille verte pour une connexion absente est un mensonge
    qu'on ne remarque qu'au moment où l'on en a besoin. */
