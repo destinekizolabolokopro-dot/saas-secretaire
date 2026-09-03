@@ -162,9 +162,10 @@ des emails. Le choix se fait au questionnaire, avec l'aperçu écrit et un bouto
 **Écouter** : c'est le moment où le professionnel entend sa secrétaire pour la
 première fois.
 
-**La mise en service.** Quatre gestes en tête du tableau de bord, cochés
-automatiquement quand l'action est réellement faite — écouter l'accueil, copier
-un code de renvoi, connecter l'agenda, remplir la fiche du cabinet. La carte
+**La mise en service.** Quatre gestes en tête du tableau de bord, cochés quand
+l'action est réellement faite — écouter l'accueil, poser le renvoi d'appel
+(coché par le premier appel reçu, pas par un code copié), connecter l'agenda,
+remplir la fiche du cabinet. La carte
 disparaît d'elle-même. Sans renvoi d'appel posé, la ligne ne sonne jamais et le
 professionnel conclut que le produit ne marche pas.
 
