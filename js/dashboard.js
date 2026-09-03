@@ -2296,7 +2296,10 @@
 
     VOICE.listen({
       onPartial: function (text) { el.heard.textContent = '« ' + text + '… »'; },
-      onResult: function (text) { handle(text); },
+      /* « dit » est ce que la personne a prononcé, « text » ce que le moteur
+         doit lire — « quatorze heures trente » d'un côté, « 14h30 » de
+         l'autre. On affiche le premier et on traite le second. */
+      onResult: function (text, dit) { handle(text, dit); },
       onError: function (message) {
         document.getElementById('voice-viz').classList.remove('is-live');
         el.voiceTitle.textContent = 'Micro indisponible';
@@ -2308,12 +2311,12 @@
   }
 
   /* Traite une demande, qu'elle vienne du micro ou du clavier. */
-  function handle(text) {
+  function handle(text, dit) {
     VOICE.stopListening();
     clearTimers();
     document.getElementById('voice-viz').classList.remove('is-live');
 
-    el.heard.textContent = '« ' + text + ' »';
+    el.heard.textContent = '« ' + (dit || text) + ' »';
     el.voiceTitle.textContent = 'Ally répond';
 
     var result = window.ALLY_CONVERSE.respond(text);

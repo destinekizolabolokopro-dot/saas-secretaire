@@ -215,14 +215,36 @@
       }
 
       var current = voice.resolveVoice(S.voice.uri);
+
+      /* Les voix arrivent classées par qualité. On le dit : « naturelle » pour
+         les moteurs récents, « en ligne » pour celles calculées à distance,
+         « système » pour les historiques. Sans cette indication, on choisit au
+         hasard, on tombe sur la plus robotique, et on en conclut que
+         l'application parle mal. */
+      var naturelles = list.filter(function (v) {
+        return voice.describe(v).niveau === 'naturelle';
+      }).length;
+
       chips.innerHTML = list.map(function (v) {
         var active = current && v.voiceURI === current.voiceURI;
+        var info = voice.describe(v);
         return '<button type="button" class="voice-chip" data-voice="' + esc(v.voiceURI) + '"' +
           ' aria-pressed="' + active + '">' +
-          '<span class="voice-name">' + esc(v.name.replace(/\s*\(.*\)\s*/, '')) + '</span>' +
-          '<span class="voice-lang">' + esc(v.lang) + '</span>' +
+          '<span class="voice-name">' + esc(info.nom) +
+            (info.niveau === 'naturelle' ? '<span class="chip-mini">naturelle</span>' : '') +
+          '</span>' +
+          '<span class="voice-lang">' + esc(v.lang) +
+            (info.niveau !== 'naturelle' ? ' · ' + info.niveau : '') + '</span>' +
           '</button>';
-      }).join('');
+      }).join('') +
+      (naturelles
+        ? '<p class="note" style="flex-basis:100%;margin-top:10px">Les voix marquées ' +
+          '« naturelle » viennent des moteurs récents : timbre plus riche, ' +
+          'liaisons correctes, intonation qui monte en fin de question.</p>'
+        : '<p class="note" style="flex-basis:100%;margin-top:10px">Aucune voix de ' +
+          'dernière génération sur cet appareil. Chrome et Edge en installent ' +
+          'plusieurs en français ; la voix du téléphone, elle, ne dépend pas de ' +
+          'ce navigateur.</p>');
 
       chips.querySelectorAll('[data-voice]').forEach(function (chip) {
         chip.addEventListener('click', function () {

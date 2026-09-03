@@ -23,6 +23,71 @@
     return words.some(function (w) { return text.indexOf(w) !== -1; });
   }
 
+  /* ---------- Tolérance aux fautes ----------
+
+     On tape « rendez vou », on dicte « rendé vous », le micro rend « rendez
+     vou » : trois façons d'échouer sur la demande la plus courante du produit.
+     Une distance d'édition de 1 sur les mots d'au moins cinq lettres rattrape
+     l'essentiel — une lettre en trop, en moins, inversée ou fausse — sans
+     confondre des mots réellement différents.
+
+     Volontairement limité : deux erreurs dans un même mot restent une demande
+     qu'on ne comprend pas, et il vaut mieux le dire que deviner de travers. */
+  function distance(a, b) {
+    if (Math.abs(a.length - b.length) > 1) return 2;
+    var ligne = [], i, j;
+    for (j = 0; j <= b.length; j++) ligne[j] = j;
+    for (i = 1; i <= a.length; i++) {
+      var precedent = ligne[0];
+      ligne[0] = i;
+      for (j = 1; j <= b.length; j++) {
+        var garde = ligne[j];
+        ligne[j] = Math.min(
+          ligne[j] + 1,
+          ligne[j - 1] + 1,
+          precedent + (a[i - 1] === b[j - 1] ? 0 : 1)
+        );
+        precedent = garde;
+      }
+    }
+    return ligne[b.length];
+  }
+
+  function motProche(mot, cible) {
+    if (mot === cible) return true;
+    if (cible.length < 5) return false;
+    if (Math.abs(mot.length - cible.length) > 1) return false;
+    return distance(mot, cible) <= 1;
+  }
+
+  /* Comme hasAny, mais en pardonnant une faute de frappe. Les expressions à
+     plusieurs mots sont comparées mot à mot, dans l'ordre. */
+  function hasAnyLoose(text, words) {
+    if (hasAny(text, words)) return true;
+    var dits = text.split(' ');
+
+    return words.some(function (attendu) {
+      var parts = attendu.split(' ');
+      for (var i = 0; i + parts.length <= dits.length; i++) {
+        var tout = true;
+        for (var j = 0; j < parts.length; j++) {
+          if (!motProche(dits[i + j], parts[j])) { tout = false; break; }
+        }
+        if (tout) return true;
+      }
+      return false;
+    });
+  }
+
+  /* Le vocabulaire du rendez-vous revient partout : on le nomme une fois.
+     « vous » ne fait que quatre lettres, en dessous du seuil de tolérance —
+     on écrit donc à la main les fautes que tout le monde fait sur le mot le
+     plus utilisé du produit, plutôt que d'abaisser le seuil et de confondre
+     « mais » avec « mail ». */
+  var MOTS_RDV = ['rendez vous', 'rendezvous', 'rendez vou', 'rendes vous',
+    'rdv', 'rdvs', 'consultation', 'creneau', 'agenda'];
+  function parleDeRdv(t) { return hasAnyLoose(t, MOTS_RDV); }
+
   /* Mots qui déclenchent un transfert pendant un appel.
      « urgent » et « urgence » sont irréductibles : un appelant qui le dit
      explicitement doit toujours être entendu. Le reste vient du questionnaire —
@@ -77,8 +142,166 @@
     for (var i = 0; i < DAYS.length; i++) {
       if (text.indexOf(DAYS[i][0]) !== -1) return DAYS[i][0];
     }
-    if (text.indexOf('demain') !== -1) return 'demain';
     if (text.indexOf('apres demain') !== -1) return 'après-demain';
+    if (text.indexOf('demain') !== -1) return 'demain';
+    return null;
+  }
+
+  /* ---------- Outils de créneau ---------- */
+
+  function decale(isoDate, jours) {
+    var p = String(isoDate).split('-');
+    var d = new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2]));
+    d.setDate(d.getDate() + jours);
+    var m = d.getMonth() + 1, j = d.getDate();
+    return d.getFullYear() + '-' + (m < 10 ? '0' : '') + m + '-' + (j < 10 ? '0' : '') + j;
+  }
+
+  function enMinutes(hhmm) {
+    var p = String(hhmm).split(':');
+    return Number(p[0]) * 60 + Number(p[1] || 0);
+  }
+
+  function enHeure(minutes) {
+    var h = Math.floor(minutes / 60), m = minutes % 60;
+    return (h < 10 ? '0' : '') + h + ':' + (m < 10 ? '0' : '') + m;
+  }
+
+  function heureCourante() {
+    var d = new Date();
+    return enHeure(d.getHours() * 60 + d.getMinutes());
+  }
+
+  /* Les trous d'un jour donné, dans les horaires déclarés, une fois retirés
+     les rendez-vous et les demi-journées bloquées. */
+  function creneauxLibres(isoDate, duree) {
+    var store = window.ALLY_STORE;
+    var A = window.ALLY_AGENDA;
+    var p = String(isoDate).split('-');
+    var jourSemaine = new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2])).getDay();
+    var cles = ['dim', 'lun', 'mar', 'mer', 'jeu', 'ven', 'sam'];
+
+    var plage = store.state.hours.filter(function (h) {
+      return h.id === cles[jourSemaine] && h.on;
+    })[0];
+    if (!plage) return [];
+
+    var bloque = (store.data().blocked || []).some(function (b) { return b.date === isoDate; });
+    if (bloque) return [];
+
+    var pris = A.rdvOn(isoDate).map(function (r) { return enMinutes(r.time); });
+    var debut = enMinutes(plage.from);
+    var fin = enMinutes(plage.to);
+    var maintenant = isoDate === A.TODAY ? enMinutes(heureCourante()) : -1;
+
+    var libres = [];
+    for (var m = debut; m + duree <= fin; m += 30) {
+      if (m < maintenant) continue;
+      var occupe = pris.some(function (debutRdv) {
+        return m < debutRdv + duree && debutRdv < m + duree;
+      });
+      if (!occupe) libres.push(enHeure(m));
+    }
+    return libres;
+  }
+
+  /* Le jour, dit comme on le dit. « auj » et « dem » sont des abréviations de
+     tableau : à l'oral comme à l'écrit, on dit « aujourd'hui » et « demain ». */
+  function quandDit(isoDate) {
+    var A = window.ALLY_AGENDA;
+    if (isoDate === A.TODAY) return 'aujourd\'hui';
+    if (isoDate === decale(A.TODAY, 1)) return 'demain';
+    if (isoDate === decale(A.TODAY, 2)) return 'après-demain';
+    return A.longLabel(isoDate);
+  }
+
+  /* Le nom cherché dans « avec Mme Aubert », « rappelle M. Petit ». On reprend
+     le texte d'origine : la casse et les accents aident à reconnaître un nom. */
+  function nomCherche(input) {
+    var m = String(input).match(/\b(?:avec|de|pour|à|a)\s+((?:M\.|Mme|Mlle|Dr|Me)?\s*[A-ZÉÈÀÂÎÔÙ][\wÀ-ÿ-]+)/);
+    if (m) return norm(m[1]).replace(/^(m|mme|mlle|dr|me)\s+/, '').trim();
+
+    /* Dernier recours : un mot capitalisé qui n'est pas en début de phrase. */
+    var mots = String(input).trim().split(/\s+/).slice(1);
+    for (var i = 0; i < mots.length; i++) {
+      if (/^[A-ZÉÈÀÂÎÔÙ][\wÀ-ÿ-]{2,}$/.test(mots[i])) return norm(mots[i]);
+    }
+    return null;
+  }
+
+  /* ---------- Dates dites comme on les dit ----------
+
+     « le 14 septembre », « le 14 », « dans trois jours », « la semaine
+     prochaine », « lundi prochain » : autant de formulations naturelles qui
+     retombaient toutes sur aujourd'hui, ce qui posait le rendez-vous au mauvais
+     jour sans rien signaler. Renvoie une date ISO, ou null si la phrase ne
+     parle pas d'un jour précis. */
+  var MOIS_NOMS = ['janvier', 'fevrier', 'mars', 'avril', 'mai', 'juin', 'juillet',
+    'aout', 'septembre', 'octobre', 'novembre', 'decembre'];
+
+  function iso(d) {
+    var m = d.getMonth() + 1, j = d.getDate();
+    return d.getFullYear() + '-' + (m < 10 ? '0' : '') + m + '-' + (j < 10 ? '0' : '') + j;
+  }
+
+  function resolveWhen(t) {
+    var A = window.ALLY_AGENDA;
+    var base = A.TODAY;
+    var parts = base.split('-');
+    var aujourd = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+
+    /* « le 14 septembre », « le 14 » */
+    var avecMois = t.match(/\b(\d{1,2})\s+(janvier|fevrier|mars|avril|mai|juin|juillet|aout|septembre|octobre|novembre|decembre)\b/);
+    if (avecMois) {
+      var jour = Number(avecMois[1]);
+      var mois = MOIS_NOMS.indexOf(avecMois[2]);
+      var annee = aujourd.getFullYear();
+      var vise = new Date(annee, mois, jour);
+      /* Un mois déjà passé désigne l'année suivante : « le 3 janvier » dit en
+         décembre ne veut pas dire il y a onze mois. */
+      if (vise < aujourd) vise = new Date(annee + 1, mois, jour);
+      return iso(vise);
+    }
+
+    var seul = t.match(/\ble\s+(\d{1,2})\b/);
+    if (seul) {
+      var n = Number(seul[1]);
+      if (n >= 1 && n <= 31) {
+        var ceMois = new Date(aujourd.getFullYear(), aujourd.getMonth(), n);
+        if (ceMois < aujourd) ceMois = new Date(aujourd.getFullYear(), aujourd.getMonth() + 1, n);
+        return iso(ceMois);
+      }
+    }
+
+    /* « dans trois jours », « dans deux semaines » */
+    var dans = t.match(/\bdans\s+(\d{1,2})\s+(jour|jours|semaine|semaines)\b/);
+    if (dans) {
+      var pas = Number(dans[1]) * (/semaine/.test(dans[2]) ? 7 : 1);
+      var futur = new Date(aujourd.getTime());
+      futur.setDate(futur.getDate() + pas);
+      return iso(futur);
+    }
+
+    /* « la semaine prochaine » sans autre précision : le lundi suivant. */
+    if (/semaine prochaine/.test(t) && !findDay(t)) {
+      var lundi = new Date(aujourd.getTime());
+      lundi.setDate(lundi.getDate() + ((8 - lundi.getDay()) % 7 || 7));
+      return iso(lundi);
+    }
+
+    var jourDit = findDay(t);
+    if (jourDit) {
+      var resolu = A.resolveDate(jourDit, base);
+      /* « lundi prochain » : la semaine d'après, pas le lundi qui vient. */
+      if (/prochaine?\b/.test(t) && !/demain/.test(jourDit)) {
+        var p2 = resolu.split('-');
+        var d2 = new Date(Number(p2[0]), Number(p2[1]) - 1, Number(p2[2]));
+        if ((d2 - aujourd) / 86400000 < 7) { d2.setDate(d2.getDate() + 7); return iso(d2); }
+      }
+      return resolu;
+    }
+
+    if (/aujourd hui|ce soir|cet apres midi|ce matin/.test(t)) return base;
     return null;
   }
   function findHalf(text) {
@@ -183,7 +406,9 @@
       var first = D.rdv[0];
       return [
         'Quel est mon prochain rendez-vous ?',
+        'Quels sont mes créneaux libres cette semaine ?',
         first ? 'Déplace le rendez-vous de ' + first.time + ' à demain' : 'Bloque mon agenda vendredi après-midi',
+        'Résume-moi la semaine',
         'Combien de brouillons attendent ma validation ?',
         D.faq[1] ? D.faq[1].q + ' ?' : 'Quels sont mes horaires ?',
         'Y a-t-il eu des urgences aujourd\'hui ?'
@@ -199,7 +424,12 @@
       var S = store.state;
       var p = store.profile();
       var D = store.data();
+      /* « dans trois jours », « à quatorze heures » : les nombres dits en
+         toutes lettres deviennent des chiffres avant l'analyse. Écrit ou
+         dicté, le moteur lit la même chose — c'est la même traduction qui sert
+         à la reconnaissance vocale. */
       var t = norm(input);
+      if (window.ALLY_SPEECH) t = window.ALLY_SPEECH.depuisLaVoix(t);
 
       if (!t) {
         return { kind: 'unknown', reply: 'Je n\'ai rien entendu. Vous pouvez répéter ?' };
@@ -244,7 +474,7 @@
          signature à vendredi. » Ally retrouve l'interlocuteur dans l'agenda,
          rédige, et envoie — sans demander de confirmation, par choix produit. */
       if (hasAny(t, ['envoie', 'envoyer', 'ecris', 'previens', 'previens'])
-          && hasAny(t, ['rendez vous', 'rdv', 'client', 'patient'])) {
+          && (parleDeRdv(t) || hasAnyLoose(t, ['client', 'patient']))) {
         var at = findTime(t);
         var target = at
           ? D.rdv.filter(function (r) { return r.time === at; })[0]
@@ -330,8 +560,8 @@
         'note', 'noter', 'planifie', 'programme', 'reserve', 'fixe', 'cale',
         'inscris', 'mets', 'bloque moi', 'organise'];
 
-      if (hasAny(t, CREATE_VERBS)
-          && hasAny(t, ['rendez vous', 'rdv', 'consultation', 'creneau', 'visite', 'audience'])
+      if (hasAnyLoose(t, CREATE_VERBS)
+          && (parleDeRdv(t) || hasAnyLoose(t, ['visite', 'audience']))
           && !hasAny(t, ['deplace', 'decale', 'bouge', 'annule', 'supprime'])) {
 
         var nt = findTime(t);
@@ -354,7 +584,10 @@
         }
 
         var A = window.ALLY_AGENDA;
-        var iso = A.resolveDate(nd, A.TODAY);
+        /* « le 14 septembre », « dans trois jours », « lundi prochain » : tout
+           cela retombait sur aujourd'hui, et le rendez-vous se posait au
+           mauvais jour sans que rien ne le signale. */
+        var iso = resolveWhen(t) || A.TODAY;
         var label = A.shortLabel(iso);
 
         var client = who || 'Nouveau ' + p.clientWord;
@@ -365,7 +598,7 @@
 
         return {
           kind: 'action', sensitive: false,
-          reply: 'C\'est posé : ' + client + ', ' + label.toLowerCase().replace('.', '')
+          reply: 'C\'est posé : ' + client + ', ' + quandDit(iso)
             + ' à ' + nt.replace(':', 'h') + '.',
           detail: kindLabel + ' — ajouté à votre agenda',
           apply: function () {
@@ -407,16 +640,30 @@
         };
       }
 
-      if (hasAny(t, ['agenda', 'rendez vous', 'rdv', 'planning'])
+      if ((parleDeRdv(t) || hasAnyLoose(t, ['planning']))
           && hasAny(t, ['combien', 'quoi', 'journee', 'aujourd hui', 'demain', 'programme', 'ai je'])
           && !hasAny(t, ['deplace', 'decale', 'bouge', 'bloque', 'annule'])
           && !hasAny(t, CREATE_VERBS)) {
-        var today = window.ALLY_AGENDA.rdvOn(window.ALLY_AGENDA.TODAY);
+        /* « et demain ? », « mes rendez-vous lundi » : le jour demandé était
+           ignoré, et Ally répondait toujours pour aujourd'hui — en ayant l'air
+           d'avoir compris, ce qui est pire que de ne pas répondre. */
+        var A4 = window.ALLY_AGENDA;
+        var quand = resolveWhen(t) || A4.TODAY;
+        var liste = A4.rdvOn(quand);
+        var libelleJour = quandDit(quand);
+
+        if (!liste.length) {
+          return {
+            kind: 'answer',
+            reply: 'Aucun rendez-vous ' + libelleJour + '.',
+            detail: D.rdv.length ? D.rdv.length + ' au total dans l\'agenda' : null
+          };
+        }
         return {
           kind: 'answer',
-          reply: today.length + ' rendez-vous aujourd\'hui : '
-            + today.map(function (r) { return r.client + ' à ' + r.time; }).join(', ') + '.',
-          detail: D.rdv.length - today.length + ' autres cette semaine'
+          reply: liste.length + ' rendez-vous ' + libelleJour + ' : '
+            + liste.map(function (r) { return r.client + ' à ' + r.time; }).join(', ') + '.',
+          detail: D.rdv.length - liste.length + ' autres dans l\'agenda'
         };
       }
 
@@ -433,7 +680,7 @@
           return { kind: 'answer', reply: 'Je ne trouve pas ce rendez-vous dans votre agenda.' };
         }
 
-        var newDate = day ? A2.resolveDate(day, A2.TODAY) : target.date;
+        var newDate = resolveWhen(t) || target.date;
         var who = target.client;
 
         return {
@@ -466,8 +713,7 @@
 
       if (hasAny(t, ['bloque', 'bloquer', 'indisponible', 'reserve moi'])) {
         var A3 = window.ALLY_AGENDA;
-        var d = findDay(t);
-        var iso3 = A3.resolveDate(d, A3.TODAY);
+        var iso3 = resolveWhen(t) || A3.TODAY;
         var half = findHalf(t) || 'toute la journée';
         return {
           kind: 'action', sensitive: false,
@@ -482,7 +728,7 @@
         };
       }
 
-      if (hasAny(t, ['annule']) && hasAny(t, ['rendez vous', 'rdv', 'consultation'])) {
+      if (hasAnyLoose(t, ['annule', 'annuler', 'supprime']) && parleDeRdv(t)) {
         return {
           kind: 'action', sensitive: true,
           confirm: 'J\'annule ce rendez-vous et je préviens l\'intéressé, vous confirmez ?',
@@ -525,6 +771,168 @@
         };
       }
 
+      /* ---------- Quand suis-je libre ? ----------
+
+         La question qu'on pose vraiment à une secrétaire, et la seule à
+         laquelle Ally ne savait pas répondre : elle savait lister les
+         rendez-vous, pas trouver un trou entre deux. On croise les horaires
+         déclarés, les rendez-vous posés et la durée habituelle d'un
+         rendez-vous — les trois sont déjà là, il suffisait de les regarder
+         ensemble. */
+      if (hasAnyLoose(t, ['libre', 'disponible', 'disponibilite', 'dispo'])
+          || (parleDeRdv(t) && hasAnyLoose(t, ['trou', 'place', 'prochain creneau']))) {
+        var A5 = window.ALLY_AGENDA;
+        var duree = Number(S.survey.rdvDuration || 45);
+        var depart = resolveWhen(t) || A5.TODAY;
+        var trouves = [];
+
+        for (var jour = 0; jour < 14 && trouves.length < 3; jour++) {
+          var date = jour === 0 ? depart : decale(depart, jour);
+          var libres = creneauxLibres(date, duree);
+          if (libres.length) {
+            trouves.push({ date: date, heures: libres.slice(0, 3) });
+          }
+          /* Un jour demandé explicitement ne s'étend pas aux suivants. */
+          if (resolveWhen(t) && jour === 0 && !hasAny(t, ['semaine', 'prochain'])) break;
+        }
+
+        if (!trouves.length) {
+          return {
+            kind: 'answer',
+            reply: 'Rien de libre dans vos horaires sur la période demandée.',
+            detail: 'Vos horaires sont réglés dans Ally → Disponibilités.'
+          };
+        }
+
+        var dit = trouves.map(function (j) {
+          return A5.shortLabel(j.date) + ' à ' + j.heures.join(', ');
+        }).join(' ; ');
+
+        return {
+          kind: 'answer',
+          reply: 'Créneaux libres de ' + duree + ' minutes : ' + dit + '.',
+          detail: 'Calculé sur vos horaires, moins les rendez-vous déjà posés',
+          follow: ['Crée un rendez-vous ' + A5.shortLabel(trouves[0].date)
+            + ' à ' + trouves[0].heures[0]]
+        };
+      }
+
+      /* ---------- Quand est mon rendez-vous avec X ? ---------- */
+      if (parleDeRdv(t) && hasAnyLoose(t, ['avec', 'quand'])
+          && !hasAny(t, CREATE_VERBS)
+          && !hasAny(t, ['deplace', 'decale', 'bouge', 'annule', 'libre'])) {
+        var cherche = nomCherche(input);
+        if (cherche) {
+          var trouve = D.rdv.filter(function (r) {
+            return norm(r.client).indexOf(cherche) !== -1;
+          }).sort(function (a, b) { return (a.date + a.time) < (b.date + b.time) ? -1 : 1; })[0];
+
+          if (trouve) {
+            return {
+              kind: 'answer',
+              reply: 'Rendez-vous avec ' + trouve.client + ' le '
+                + window.ALLY_AGENDA.longLabel(trouve.date) + ' à ' + trouve.time + '.',
+              detail: trouve.type,
+              follow: ['Déplace le rendez-vous de ' + trouve.time,
+                'Annule le rendez-vous de ' + trouve.time]
+            };
+          }
+          return {
+            kind: 'answer',
+            reply: 'Aucun rendez-vous à ce nom dans l\'agenda.',
+            detail: D.rdv.length + ' rendez-vous enregistrés au total'
+          };
+        }
+      }
+
+      /* ---------- Résumé de la semaine ---------- */
+      if (hasAnyLoose(t, ['resume', 'resumer', 'bilan', 'recapitulatif', 'ou en suis je'])
+          && hasAnyLoose(t, ['semaine', 'mois', 'journee', 'jour'])) {
+        var surMois = hasAny(t, ['mois']);
+        var usage = store.usage();
+        var rdvAVenir = D.rdv.filter(function (r) { return r.date >= window.ALLY_AGENDA.TODAY; });
+        var urgences = D.calls.filter(function (c) { return c.kind === 'urgent'; }).length;
+
+        return {
+          kind: 'answer',
+          reply: (surMois ? 'Ce mois-ci' : 'Cette semaine') + ' : '
+            + usage.calls.used + ' appel' + (usage.calls.used > 1 ? 's' : '') + ' reçu'
+            + (usage.calls.used > 1 ? 's' : '') + ', '
+            + usage.emails.used + ' email' + (usage.emails.used > 1 ? 's' : '') + ' parti'
+            + (usage.emails.used > 1 ? 's' : '') + ', '
+            + rdvAVenir.length + ' rendez-vous à venir'
+            + (urgences ? ', ' + urgences + ' urgence' + (urgences > 1 ? 's' : '') : '')
+            + '.',
+          detail: D.drafts.length
+            ? D.drafts.length + ' brouillon(s) attendent encore votre validation'
+            : 'Rien ne vous attend.',
+          follow: ['Quels sont mes créneaux libres ?', 'Résume-moi ma journée']
+        };
+      }
+
+      /* ---------- Rappeler quelqu'un ---------- */
+      if (hasAnyLoose(t, ['rappelle', 'rappeler', 'recontacte', 'recontacter'])
+          && !hasAny(t, ['rappelle moi', 'rappel moi'])) {
+        var qui = nomCherche(input);
+        var appel = qui
+          ? D.calls.filter(function (c) { return norm(c.caller).indexOf(qui) !== -1; })[0]
+          : D.calls.filter(function (c) { return c.kind === 'pending'; })[0];
+
+        if (!appel) {
+          return {
+            kind: 'answer',
+            reply: qui
+              ? 'Je ne trouve pas d\'appel à ce nom aujourd\'hui.'
+              : 'Personne n\'attend de rappel pour l\'instant.',
+            detail: D.calls.length + ' appel(s) dans la journée'
+          };
+        }
+
+        return {
+          kind: 'action', sensitive: false,
+          reply: appel.caller + ' attend un rappel — appel de ' + appel.time
+            + ', ' + (appel.subject || 'sans motif noté') + '. '
+            + 'Je note le rappel en tête de vos actions.',
+          detail: 'Le numéro est dans la fiche de l\'appel',
+          apply: function () {
+            store.log('Rappel à programmer — ' + appel.caller, appel.subject || 'Rappel demandé');
+          },
+          follow: ['Envoie-lui un email', 'Qui a appelé aujourd\'hui ?']
+        };
+      }
+
+      /* ---------- Je suis en retard ----------
+
+         Dit à voix haute en voiture, c'est le cas d'usage le plus concret du
+         produit. Il tombait jusqu'ici dans la base de connaissances et
+         recevait le tarif d'une consultation en réponse. */
+      if (hasAnyLoose(t, ['en retard', 'retarde', 'bloque dans', 'embouteillage'])
+          && !parleDeRdv(t)) {
+        var minutes = (t.match(/(\d{1,3})\s*(?:min|minutes)/) || [])[1];
+        var suivant = window.ALLY_AGENDA.rdvOn(window.ALLY_AGENDA.TODAY)
+          .filter(function (r) { return r.time >= heureCourante(); })[0];
+
+        if (!suivant) {
+          return {
+            kind: 'answer',
+            reply: 'Rien dans l\'agenda d\'ici la fin de la journée : personne ne vous attend.',
+            detail: 'Je préviens quand même si un rendez-vous arrive.'
+          };
+        }
+        return {
+          kind: 'action', sensitive: true,
+          confirm: 'Je préviens ' + suivant.client + ' que vous aurez '
+            + (minutes ? minutes + ' minutes' : 'un peu') + ' de retard ?',
+          reply: suivant.client + ' est prévenu' + (minutes ? ' de vos ' + minutes + ' minutes' : '')
+            + ' de retard. Le rendez-vous de ' + suivant.time + ' est maintenu.',
+          detail: 'Email préparé et envoyé dans les dix secondes',
+          apply: function () {
+            store.log('Retard signalé à ' + suivant.client,
+              (minutes ? minutes + ' min' : 'Retard') + ' — rendez-vous de ' + suivant.time);
+          }
+        };
+      }
+
       /* ---------- Base de connaissances du cabinet ---------- */
       var found = faqMatch(input, store.knowledge());
       if (found) {
@@ -535,12 +943,48 @@
         };
       }
 
-      /* ---------- Repli ---------- */
+      /* ---------- Repli ----------
+
+         Un « je n'ai pas compris » identique pour tout ne dit rien de ce qu'il
+         fallait dire. On regarde donc de quoi la phrase parlait pour proposer
+         la compétence la plus proche : c'est la différence entre un mur et une
+         indication. */
+      var pistes = [
+        { mots: ['agenda', 'rendez', 'rdv', 'creneau', 'planning', 'libre', 'dispo'],
+          dit: 'Pour l\'agenda, dites « mes rendez-vous demain », « quels créneaux libres ? » '
+            + 'ou « crée un rendez-vous jeudi à 10h ».' },
+        { mots: ['mail', 'email', 'courriel', 'ecrire', 'repondre', 'envoyer', 'envoie'],
+          dit: 'Pour le courrier, dites « envoie un email à Mme Aubert pour confirmer » '
+            + 'ou « combien de brouillons attendent ? ».' },
+        { mots: ['appel', 'telephone', 'appele', 'rappel', 'sonne'],
+          dit: 'Pour les appels, dites « qui a appelé aujourd\'hui ? », « y a-t-il eu des '
+            + 'urgences ? » ou « rappelle M. Untel ».' },
+        { mots: ['tarif', 'prix', 'honoraire', 'facture', 'paiement'],
+          dit: 'Les tarifs se règlent dans la fiche du cabinet — Ally les donne alors '
+            + 'toute seule aux appelants qui posent la question.' },
+        { mots: ['horaire', 'ouvert', 'ferme', 'vacances', 'absence'],
+          dit: 'Pour vos horaires, dites « quels sont mes horaires ? » ou « bloque '
+            + 'vendredi après-midi ».' }
+      ];
+
+      var proche = null;
+      pistes.forEach(function (piste) {
+        if (!proche && hasAnyLoose(t, piste.mots)) proche = piste;
+      });
+
+      if (proche) {
+        return {
+          kind: 'unknown',
+          reply: 'Je n\'ai pas bien saisi la demande. ' + proche.dit,
+          detail: 'Reformulez, ou dictez-la : je comprends aussi « à quatorze heures trente ».'
+        };
+      }
+
       return {
         kind: 'unknown',
-        reply: 'Je n\'ai pas compris cette demande. Je sais consulter votre agenda, '
-          + 'déplacer ou bloquer un rendez-vous, préparer un email, et répondre à partir '
-          + 'de la base de connaissances du cabinet.',
+        reply: 'Je n\'ai pas compris cette demande. Je sais consulter et modifier votre '
+          + 'agenda, trouver un créneau libre, préparer un email, dire qui a appelé, '
+          + 'et répondre à partir de la fiche du cabinet.',
         detail: 'Essayez : « ' + this.suggestions()[0] + ' »'
       };
     },
@@ -586,7 +1030,7 @@
         'quel', 'quels', 'quelle', 'quelles']);
       if (known && isQuestion) return { kind: 'answer', reply: known.a };
 
-      var wantsBooking = hasAny(t, ['rendez vous', 'rdv', 'creneau', 'disponibilite', 'devis'])
+      var wantsBooking = parleDeRdv(t) || hasAnyLoose(t, ['disponibilite', 'devis'])
         || (hasAny(t, ['consultation', 'accompagnement', 'intervention'])
             && hasAny(t, ['souhaite', 'voudrais', 'cherche', 'prendre', 'avoir', 'possible']));
 

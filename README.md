@@ -17,6 +17,21 @@ python3 -m http.server 8000
 # → http://localhost:8000
 ```
 
+## Vérifier
+
+```bash
+node tests/run.js          # prononciation, moteur d'intentions, serveur
+```
+
+Une seconde, sans navigateur ni réseau : ces tests chargent le front dans Node
+et interrogent directement le moteur. Les tests d'interface, eux, ouvrent un
+vrai Chromium :
+
+```bash
+python3 -m http.server 8123
+node tests/navigateur/ecran.js
+```
+
 Le fichier `ally-demo.html` s'ouvre par simple double-clic : il contient tout
 (CSS, JS, polices). **Le micro n'y fonctionne pas** — la reconnaissance vocale
 exige un contexte sécurisé, donc `https` ou `localhost`. Servi par un serveur,
@@ -199,6 +214,42 @@ Le journal ne contient que des types d'événements et des horodatages, jamais d
 contenu métier. Une IA qui suggère au hasard use la patience plus vite qu'elle
 ne rend service : sans geste compté, aucune carte ne s'affiche.
 
+## Parler à Ally, et l'entendre répondre
+
+### Ce qu'elle prononce
+
+La synthèse du navigateur lit le texte tel qu'il est écrit — ce qui est parfait
+à l'écran et mauvais à l'oreille. « 14:00 » se dit « quatorze deux points zéro
+zéro », « M. Lefebvre » devient « M point Lefebvre », « 06 12 34 56 78 » se
+récite chiffre par chiffre et « 180 € » finit en « cent quatre-vingts E-U-R-O ».
+
+`js/speech.js` réécrit donc le texte pour l'oreille avant de le confier au
+moteur : heures, dates, montants, pourcentages, titres, sigles, adresses email,
+et les numéros de téléphone dits par paires — « zéro six, douze, trente-quatre,
+cinquante-six, soixante-dix-huit », comme au téléphone.
+
+C'est le levier le plus efficace sur le naturel d'une voix : **changer de
+moteur vocal s'entend moins que d'arrêter d'épeler les heures.**
+
+Les réponses sont aussi découpées phrase par phrase, avec une respiration entre
+chacune — plus longue après une question. La même voix paraît nettement moins
+mécanique.
+
+### Ce qu'elle comprend quand vous parlez
+
+La reconnaissance rend des mots, jamais des chiffres : on dit « quatorze heures
+trente », le navigateur écrit « quatorze heures trente », et le moteur cherchait
+« 14h30 ». Dicter une heure ne marchait donc pas — l'usage le plus naturel qui
+soit. La traduction inverse est faite avant l'analyse : « dans trois jours »,
+« vingt-trois », « midi et demi », « dix heures moins le quart ».
+
+Elle sert aussi au clavier : écrire « dans trois jours » marche désormais aussi
+bien que « dans 3 jours ».
+
+Le micro exige une page servie en `https` ou `localhost` — pas un fichier ouvert
+en double-clic. L'écran le dit et bascule sur la saisie au clavier au lieu de
+faire semblant d'écouter.
+
 ## Changer la voix d'Ally
 
 Le sélecteur est le même composant à trois endroits, pour qu'il ne diverge pas :
@@ -216,6 +267,13 @@ plutôt que d'afficher une liste vide.
 Le choix s'applique partout — accueil téléphonique, simulation d'appel,
 réponses du chat — et survit au rechargement. La barre latérale affiche la voix
 retenue.
+
+Les voix ne se valent pas, et l'ordre du navigateur ne dit rien de leur
+qualité. Ally les classe : les moteurs récents — Neural, Natural, Premium,
+Enhanced, Google, Siri — sont d'une autre génération que les voix système
+historiques, et portent la mention **« naturelle »**. Sans cette indication, on
+choisit au hasard, on tombe sur la plus robotique, et on en conclut que
+l'application parle mal.
 
 > Cette voix est celle du **navigateur**, pour écouter et régler. La voix
 > entendue au téléphone sera choisie côté serveur, chez le fournisseur de
@@ -245,6 +303,7 @@ js/store.js         configuration du compte connecté, persistance, quotas
 js/ui.js            composants partagés (saisie de code, jauge, message éphémère)
 js/brain.js         moteur d'intentions — déterministe, pas de LLM
 js/converse.js      couche conversationnelle (contexte court, suivi, relances)
+js/speech.js        prononciation : ce qu'Ally dit, et ce qu'elle comprend dictée
 js/voice.js         synthèse et reconnaissance vocale du navigateur
 js/agenda.js        calendrier mensuel, résolution de dates en langage naturel
 js/telephony.js     ligne, script d'appel, simulation d'appel entrant
