@@ -3,10 +3,16 @@
 .shell { display: grid; grid-template-columns: 264px 1fr; min-height: 100vh; }
 
 /* ============ SIDEBAR ============ */
+/* La barre latérale est une matière, pas un bloc : translucide, floutée, elle
+   laisse deviner les halos de la page derrière elle. C'est ce qui donne
+   l'impression de deux plans superposés plutôt que de deux aplats collés. */
 .sidebar {
-  background: var(--s0); border-right: 1px solid var(--bd);
+  background: oklch(0.085 0.016 264 / 0.76);
+  backdrop-filter: var(--mat-2); -webkit-backdrop-filter: var(--mat-2);
+  border-right: 1px solid var(--bd);
   display: flex; flex-direction: column; padding: 22px 16px;
   height: 100vh; position: sticky; top: 0; overflow-y: auto;
+  box-shadow: 1px 0 0 oklch(0.05 0.02 264 / 0.4);
 }
 .sidebar-head { display: flex; align-items: center; gap: 10px; padding: 6px 10px 26px; }
 .sidebar-head .logo-mark { width: 28px; height: 28px; border-radius: 8px; }
@@ -23,24 +29,35 @@
 .nav-item {
   position: relative;
   display: flex; align-items: center; gap: 12px;
-  padding: 12px 14px; border-radius: var(--r-sm);
+  padding: 12px 14px; border-radius: var(--r-md);
   background: none; border: none; width: 100%;
   font-family: inherit; font-size: 14px; text-align: left;
+  letter-spacing: -.005em;
   color: var(--txt-3); cursor: pointer;
-  transition: background .15s, color .15s;
+  transition: background var(--t-fast) var(--ease-soft), color var(--t-fast) var(--ease-soft),
+              transform var(--t-fast) var(--ease);
 }
-.nav-item:hover { background: oklch(1 0 0 / 0.04); color: var(--txt-2); }
+.nav-item:hover { background: oklch(1 0 0 / 0.05); color: var(--txt-2); }
+.nav-item:active { transform: scale(0.98); }
 .nav-label { flex: 1; }
 .nav-item .dot {
   width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0;
   background: oklch(0.4 0.01 264); transition: background .15s;
 }
-.nav-item[aria-current="page"] { background: oklch(0.72 0.19 296 / 0.15); color: oklch(0.95 0.05 296); }
-.nav-item[aria-current="page"] .dot { background: var(--accent-bright); }
+/* L'onglet actif est une pastille pleine, avec son arête haute éclairée : il
+   est posé sur la barre, il ne la teinte pas. */
+.nav-item[aria-current="page"] {
+  background: oklch(0.72 0.19 296 / 0.18); color: oklch(0.96 0.05 296);
+  font-weight: 500;
+  box-shadow: inset 0 1px 0 oklch(1 0 0 / 0.10),
+              0 1px 6px oklch(0.55 0.19 296 / 0.20);
+}
+.nav-item[aria-current="page"] .dot { background: var(--accent-bright); box-shadow: 0 0 8px oklch(0.7 0.19 296 / 0.7); }
 /* Repère vertical sur l'onglet actif : la couleur seule ne suffisait pas. */
 .nav-item[aria-current="page"]::before {
   content: ''; position: absolute; left: 0; top: 9px; bottom: 9px;
-  width: 2px; border-radius: 2px; background: var(--accent-bright);
+  width: 3px; border-radius: 0 3px 3px 0; background: var(--accent-bright);
+  box-shadow: 0 0 10px oklch(0.7 0.19 296 / 0.6);
 }
 .nav-count {
   font-size: 11px; font-weight: 600; min-width: 20px; text-align: center;
@@ -51,17 +68,22 @@
 
 .profile-card {
   margin-top: auto; padding: 12px; border-radius: var(--r-md);
-  background: var(--s3); border: 1px solid var(--bd);
+  background: oklch(0.20 0.02 264 / 0.78); border: 1px solid var(--bd);
   display: flex; align-items: center; gap: 10px; width: 100%;
   font-family: inherit; text-align: left; cursor: pointer;
-  transition: border-color .15s, background .15s;
+  box-shadow: var(--sh-1), var(--hi);
+  transition: border-color var(--t-fast) var(--ease-soft),
+              background var(--t-fast) var(--ease-soft),
+              transform var(--t-fast) var(--ease);
 }
-.profile-card:hover { border-color: var(--bd-3); background: oklch(0.2 0.02 264); }
+.profile-card:hover { border-color: var(--bd-3); background: oklch(0.21 0.02 264 / 0.8); }
+.profile-card:active { transform: scale(0.985); }
 .profile-card[aria-current="page"] { border-color: oklch(0.72 0.19 296 / 0.5); }
 .avatar {
   width: 34px; height: 34px; border-radius: 50%; background: var(--grad);
   flex-shrink: 0; display: flex; align-items: center; justify-content: center;
   font-family: var(--ff-h); font-size: 13px; font-weight: 700; color: var(--on-accent);
+  box-shadow: 0 2px 8px oklch(0.55 0.19 296 / 0.35), var(--hi-2);
 }
 .profile-text { min-width: 0; flex: 1; }
 .profile-text strong {
@@ -83,22 +105,38 @@
   display: flex; align-items: center; justify-content: space-between;
   gap: 16px; margin-bottom: 32px;
 }
-.topbar h1 { font-size: clamp(20px, 2.4vw, 27px); font-weight: 700; margin-bottom: 5px; }
+.topbar h1 {
+  font-size: clamp(21px, 2.5vw, 29px); font-weight: 700; margin-bottom: 5px;
+  letter-spacing: var(--tr-display); line-height: 1.15;
+}
 .topbar-id { min-width: 0; }
 .topbar-sub { color: var(--txt-4); font-size: 14px; }
 .topbar-tools { display: flex; align-items: center; gap: 14px; }
 .search {
-  background: var(--s4); border: 1px solid oklch(1 0 0 / 0.08);
-  border-radius: var(--r-sm); padding: 10px 14px;
+  background: oklch(1 0 0 / 0.05); border: 1px solid oklch(1 0 0 / 0.08);
+  border-radius: var(--pill); padding: 10px 16px;
   color: oklch(0.9 0.006 264); font-family: inherit; font-size: 13px;
   width: 200px; outline: none;
+  box-shadow: inset 0 1px 2px oklch(0.05 0.02 264 / 0.25);
+  transition: width var(--t-med) var(--ease), border-color var(--t-fast) var(--ease-soft),
+              box-shadow var(--t-med) var(--ease), background var(--t-fast) var(--ease-soft);
 }
+.search:focus {
+  width: 240px; border-color: oklch(0.72 0.19 296 / 0.5);
+  background: oklch(1 0 0 / 0.07);
+  box-shadow: 0 0 0 4px oklch(0.72 0.19 296 / 0.14);
+}
+.search:focus-visible { outline: none; }
 .icon-btn {
   position: relative; width: 38px; height: 38px; flex-shrink: 0;
-  border-radius: var(--r-sm); background: var(--s4);
+  border-radius: 50%; background: oklch(1 0 0 / 0.05);
   border: 1px solid oklch(1 0 0 / 0.08); cursor: pointer;
   display: flex; align-items: center; justify-content: center;
+  box-shadow: var(--hi);
+  transition: background var(--t-fast) var(--ease-soft), transform var(--t-fast) var(--ease);
 }
+.icon-btn:hover { background: oklch(1 0 0 / 0.10); }
+.icon-btn:active { transform: scale(0.92); }
 .icon-btn .glyph-sq { width: 16px; height: 16px; border-radius: 4px; border: 2px solid var(--txt-3); }
 .icon-btn .glyph-mag { width: 13px; height: 13px; border-radius: 50%; border: 2px solid var(--txt-3); }
 .icon-btn .badge {
@@ -110,17 +148,31 @@
 
 /* ============ PRIMITIVES DE CONTENU ============ */
 .stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; margin-bottom: 28px; }
-.stat { background: var(--card); border: 1px solid var(--bd); border-radius: var(--r); padding: 22px; }
+/* Les tuiles se soulèvent au survol. Rien ne se clique dessus : le
+   mouvement dit seulement qu'on est bien sur celle-là. */
+.stat {
+  background: var(--card); border: 1px solid var(--bd); border-radius: var(--r);
+  padding: 22px;
+  box-shadow: var(--sh-1), var(--hi);
+  backdrop-filter: var(--mat); -webkit-backdrop-filter: var(--mat);
+  transition: transform var(--t-med) var(--ease), box-shadow var(--t-med) var(--ease),
+              border-color var(--t-med) var(--ease-soft);
+}
+.stat:hover { transform: translateY(-2px); box-shadow: var(--sh-2), var(--hi); border-color: var(--bd-2); }
 .stat-label { font-size: 13px; color: var(--txt-4); margin-bottom: 8px; }
-.stat-value { font-family: var(--ff-h); font-size: 30px; font-weight: 700; line-height: 1.1; }
+.stat-value {
+  font-family: var(--ff-h); font-size: 30px; font-weight: 700; line-height: 1.1;
+  letter-spacing: var(--tr-display); font-variant-numeric: tabular-nums;
+}
 .stat-value.accent { color: var(--accent-bright); }
 .stat-value.cyan { color: var(--cyan); }
 
 .alert {
   display: flex; align-items: center; gap: 14px; padding: 18px 22px;
-  border-radius: var(--r-md); margin-bottom: 28px;
+  border-radius: var(--r); margin-bottom: 28px;
   background: oklch(0.72 0.19 296 / 0.1); border: 1px solid oklch(0.72 0.19 296 / 0.35);
   font-size: 14px;
+  box-shadow: 0 6px 24px oklch(0.55 0.19 296 / 0.14), var(--hi);
 }
 .alert .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--accent-bright); animation: pulse-dot 1.4s ease-in-out infinite; flex-shrink: 0; }
 
@@ -167,6 +219,8 @@
   background: linear-gradient(135deg, oklch(0.22 0.04 296 / 0.5), oklch(0.2 0.03 200 / 0.38));
   border: 1px solid oklch(0.72 0.19 296 / 0.28);
   border-radius: var(--r); padding: 22px 24px; margin-bottom: 24px;
+  box-shadow: var(--sh-2), var(--hi);
+  backdrop-filter: var(--mat); -webkit-backdrop-filter: var(--mat);
 }
 .todo-head { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
 .todo-count {
@@ -203,6 +257,8 @@
 .conv-list {
   background: var(--card); border: 1px solid var(--bd);
   border-radius: var(--r); overflow: hidden; margin-bottom: 30px;
+  box-shadow: var(--sh-1), var(--hi);
+  backdrop-filter: var(--mat); -webkit-backdrop-filter: var(--mat);
 }
 .conv-list.flat { padding: 6px 20px; }
 .conv { border-bottom: 1px solid var(--hair); }
@@ -213,7 +269,8 @@
   font-family: inherit; color: var(--txt); cursor: pointer; text-align: left;
   transition: background .15s;
 }
-.conv-head:hover { background: oklch(1 0 0 / 0.03); }
+.conv-head:hover { background: oklch(1 0 0 / 0.04); }
+.conv-head:active { background: oklch(1 0 0 / 0.06); }
 /* Pastille de canal : rond pour un appel, rectangle pour un email. */
 .conv-chan { width: 16px; height: 16px; flex-shrink: 0; }
 .chan-call { border-radius: 50%; border: 2px solid var(--accent-bright); }
@@ -296,7 +353,10 @@
 .voice-status.wait { color: var(--yellow); }
 
 /* ============ BASE DE CONNAISSANCES ============ */
-.faq { background: var(--card); border: 1px solid var(--bd); border-radius: var(--r-md); padding: 18px 20px; }
+.faq {
+  background: var(--card); border: 1px solid var(--bd); border-radius: var(--r-md);
+  padding: 18px 20px; box-shadow: var(--sh-1), var(--hi);
+}
 .faq strong { display: block; font-size: 14px; font-weight: 600; margin-bottom: 6px; }
 .faq p { font-size: 13px; color: oklch(0.68 0.01 264); line-height: 1.6; }
 .add-row {
@@ -310,9 +370,11 @@
 .plan-card {
   background: linear-gradient(135deg, oklch(0.22 0.04 296 / 0.6), oklch(0.2 0.03 200 / 0.5));
   border: 1px solid var(--bd-2); border-radius: var(--r); padding: 24px;
+  box-shadow: var(--sh-2), var(--hi);
+  backdrop-filter: var(--mat); -webkit-backdrop-filter: var(--mat);
 }
 .plan-kicker { font-size: 13px; color: oklch(0.75 0.1 296); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 6px; }
-.plan-name { font-family: var(--ff-h); font-size: 24px; font-weight: 700; margin-bottom: 18px; }
+.plan-name { font-family: var(--ff-h); font-size: 24px; font-weight: 700; margin-bottom: 18px; letter-spacing: var(--tr-title); }
 .meter + .meter { margin-top: 12px; }
 .meter-head { display: flex; justify-content: space-between; gap: 12px; font-size: 13px; margin-bottom: 6px; }
 .meter-track { height: 6px; border-radius: var(--pill); background: oklch(1 0 0 / 0.1); overflow: hidden; }
@@ -358,16 +420,27 @@
   padding: 14px 22px; border: none; border-radius: var(--pill);
   background: var(--grad); color: var(--on-accent);
   font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer;
-  box-shadow: 0 8px 30px oklch(0.7 0.19 296 / 0.35);
+  box-shadow: 0 4px 16px oklch(0.55 0.19 296 / 0.40),
+              0 14px 44px oklch(0.55 0.19 296 / 0.32), var(--hi-2);
+  transition: transform var(--t-med) var(--ease), box-shadow var(--t-med) var(--ease),
+              filter var(--t-fast) var(--ease-soft);
 }
-.voice-fab:hover { filter: brightness(1.08); }
+.voice-fab:hover {
+  filter: brightness(1.06); transform: translateY(-2px);
+  box-shadow: 0 6px 20px oklch(0.55 0.19 296 / 0.45),
+              0 20px 56px oklch(0.55 0.19 296 / 0.36), var(--hi-2);
+}
+.voice-fab:active { transform: scale(0.95); transition-duration: .06s; }
 .voice-fab .mic { width: 10px; height: 15px; border-radius: 5px; background: var(--on-accent); flex-shrink: 0; }
 
 .voice-overlay {
   position: fixed; inset: 0; z-index: 100;
-  background: oklch(0.12 0.02 264 / 0.82); backdrop-filter: blur(10px);
+  background: oklch(0.12 0.02 264 / 0.72);
+  backdrop-filter: saturate(140%) blur(28px); -webkit-backdrop-filter: saturate(140%) blur(28px);
   display: flex; align-items: center; justify-content: center; padding: 24px;
+  animation: veil-in .3s var(--ease-soft) both;
 }
+@keyframes veil-in { from { opacity: 0; } to { opacity: 1; } }
 .voice-overlay[hidden] { display: none; }
 .voice-panel { width: 100%; max-width: 420px; text-align: center; }
 .voice-viz { position: relative; height: 180px; display: flex; align-items: center; justify-content: center; margin-bottom: 28px; }
@@ -828,26 +901,40 @@
 .foot-links { list-style: none; margin: 4px 0 0; padding: 0; display: flex; flex-direction: column; gap: 5px; }
 .foot-links li { font-size: 10.5px; line-height: 1.45; color: var(--txt-5); }
 .foot-dim { color: oklch(0.45 0.01 264); }
+/* Ces raccourcis étaient soulignés comme des liens de document : cinq traits
+   bleus empilés sous la carte de profil, qui tiraient l'œil plus fort que la
+   navigation elle-même. Sans soulignement, ils redeviennent ce qu'ils sont —
+   du second plan qui se révèle au survol. */
 .foot-link {
-  background: none; border: none; padding: 0; cursor: pointer; text-align: left;
-  font-family: inherit; font-size: 10.5px; color: var(--txt-4);
-  text-decoration: underline; text-decoration-color: oklch(1 0 0 / 0.15);
-  text-underline-offset: 2px;
+  background: none; border: none; padding: 2px 0; cursor: pointer; text-align: left;
+  font-family: inherit; font-size: 10.5px; color: var(--txt-5);
+  text-decoration: none;
+  transition: color var(--t-fast) var(--ease-soft);
 }
-.foot-link:hover { color: var(--accent-bright); }
+.foot-link:hover { color: var(--txt-2); }
 .foot-version { font-size: 10px; color: oklch(0.4 0.01 264); margin-top: 2px; }
 
 /* ============ PALETTE DE COMMANDES ============ */
 .palette-overlay {
   position: fixed; inset: 0; z-index: 120;
-  background: oklch(0.1 0.02 264 / 0.72); backdrop-filter: blur(6px);
+  background: oklch(0.1 0.02 264 / 0.62);
+  backdrop-filter: saturate(140%) blur(20px); -webkit-backdrop-filter: saturate(140%) blur(20px);
   display: flex; align-items: flex-start; justify-content: center; padding: 12vh 20px 20px;
+  animation: veil-in .22s var(--ease-soft) both;
 }
+/* La palette descend de quelques pixels en s'ouvrant : elle arrive, elle
+   n'apparaît pas. */
 .palette {
   width: 100%; max-width: 560px;
-  background: oklch(0.18 0.02 264); border: 1px solid var(--bd-3);
-  border-radius: var(--r); overflow: hidden;
-  box-shadow: 0 30px 70px oklch(0.06 0.02 264 / 0.7);
+  background: oklch(0.19 0.02 264 / 0.86); border: 1px solid var(--bd-3);
+  border-radius: var(--r-lg); overflow: hidden;
+  box-shadow: var(--sh-3), var(--hi-2);
+  backdrop-filter: var(--mat-2); -webkit-backdrop-filter: var(--mat-2);
+  animation: palette-in .34s var(--ease) both;
+}
+@keyframes palette-in {
+  from { opacity: 0; transform: translateY(-12px) scale(0.97); }
+  to   { opacity: 1; transform: none; }
 }
 .palette-input {
   width: 100%; padding: 18px 20px; border: none; outline: none;
@@ -859,9 +946,10 @@
 .palette-list { max-height: 46vh; overflow-y: auto; padding: 6px; }
 .palette-item {
   display: flex; align-items: center; gap: 12px; width: 100%;
-  padding: 10px 14px; border: none; border-radius: var(--r-sm);
+  padding: 10px 14px; border: none; border-radius: var(--r-md);
   background: none; font-family: inherit; text-align: left;
   color: var(--txt-2); cursor: pointer;
+  transition: background var(--t-fast) var(--ease-soft);
 }
 .palette-item:hover, .palette-item.is-active { background: oklch(0.72 0.19 296 / 0.16); color: var(--txt); }
 .palette-kind {
@@ -930,6 +1018,8 @@
   background: linear-gradient(135deg, oklch(0.22 0.04 296 / 0.55), oklch(0.19 0.02 200 / 0.4));
   border: 1px solid oklch(0.72 0.19 296 / 0.28);
   border-radius: var(--r); padding: 22px 24px; margin-bottom: 24px;
+  box-shadow: var(--sh-2), var(--hi);
+  backdrop-filter: var(--mat); -webkit-backdrop-filter: var(--mat);
 }
 .setup-head {
   display: flex; align-items: flex-start; justify-content: space-between;
@@ -957,6 +1047,17 @@
   font-size: 11px; font-weight: 700; color: var(--on-accent);
 }
 .setup-item.is-done .setup-text strong { color: var(--txt-4); text-decoration: line-through; }
+.setup-item .btn { flex-shrink: 0; }
+
+/* Sur un téléphone, le bouton et le texte se disputaient la largeur : les
+   intitulés passaient à trois lignes pour laisser tenir « Voir les codes ».
+   Le geste passe donc sous son explication, aligné à droite, et le texte
+   récupère la largeur entière. */
+@media (max-width: 560px) {
+  .setup-item { flex-wrap: wrap; row-gap: 10px; }
+  .setup-text { flex: 1 0 calc(100% - 32px); }
+  .setup-item .btn, .setup-item .badge-status { margin-left: auto; }
+}
 
 /* ============ COMPTE SANS ACTIVITÉ ============ */
 .blank-card { margin-bottom: 24px; }

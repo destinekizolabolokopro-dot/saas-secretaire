@@ -23,6 +23,21 @@ const dit = (question) => {
   return { kind: r.kind, texte: (r.reply || r.confirm || ''), r };
 };
 
+/* Le premier jour ouvert à partir d'aujourd'hui, selon les horaires du
+   cabinet. Les tests qui parlent de créneaux en ont besoin : un samedi fermé
+   n'a rien à proposer, et ce n'est pas un défaut. */
+const prochainJourOuvert = () => {
+  const ids = ['dim', 'lun', 'mar', 'mer', 'jeu', 'ven', 'sam'];
+  for (let i = 0; i < 8; i++) {
+    const jour = A.resolveDate('dans ' + i + ' jours', A.TODAY) ||
+      new Date(Date.parse(A.TODAY + 'T00:00:00') + i * 864e5).toISOString().slice(0, 10);
+    const id = ids[new Date(jour + 'T00:00:00').getDay()];
+    const h = store.state.hours.filter((x) => x.id === id)[0];
+    if (h && h.on) return jour;
+  }
+  throw new Error('aucun jour ouvert dans les horaires du cabinet');
+};
+
 const comprend = (question, attendu) => {
   const r = dit(question);
   assert.notStrictEqual(r.kind, 'unknown', '« ' + question +' » n\'est pas comprise');
@@ -74,13 +89,18 @@ test('Ally trouve un trou dans la journée', () => {
 
 test('un créneau proposé est réellement libre', () => {
   /* On pose un rendez-vous à une heure connue, puis on demande les créneaux
-     de ce jour-là : celui-ci ne doit plus être proposé. */
+     de ce jour-là : celui-ci ne doit plus être proposé.
+
+     Le jour n'est pas « demain » : le test tournait un jeudi, il a fini par
+     tourner un vendredi, et « demain » est devenu un samedi fermé — plus un
+     seul créneau à proposer, et un échec qui ne disait rien du produit. On
+     demande donc explicitement le prochain jour ouvert. */
   const D = store.data();
-  const jour = A.resolveDate('demain', A.TODAY);
+  const jour = prochainJourOuvert();
   D.rdv.push({ id: 'test-libre', date: jour, time: '10:00',
     client: 'M. Occupé', type: 'Consultation' });
 
-  const r = B.ask('suis-je libre demain ?');
+  const r = B.ask('suis-je libre le ' + A.longLabel(jour) + ' ?');
   const heures = r.reply.match(/\d{2}:\d{2}/g) || [];
   assert.ok(heures.length, 'aucun créneau proposé : ' + r.reply);
   assert.ok(heures.indexOf('10:00') === -1, '10:00 est pris et pourtant proposé');
@@ -130,16 +150,22 @@ test('« rappelle Mme X » retrouve son appel', () => {
 /* ---------------------------------------------------------------- Retard */
 
 test('« je suis en retard » prévient le bon client', () => {
-  /* On place un rendez-vous plus tard dans la journée pour que le cas ait un
-     sens quelle que soit l'heure à laquelle le test tourne. */
+  /* Un seul rendez-vous dans l'agenda, plus tard dans la journée : Ally
+     prévient le prochain, et le test veut savoir lequel. Ajouter le nôtre à
+     côté des autres ne suffisait pas — un rendez-vous du jeu de démonstration
+     tombait avant, et c'est lui qui était prévenu, à juste titre. */
   const D = store.data();
-  D.rdv.push({ id: 'test-retard', date: A.TODAY, time: '23:30',
-    client: 'M. Tardif', type: 'Consultation' });
+  const garde = D.rdv;
+  D.rdv = [{ id: 'test-retard', date: A.TODAY, time: '23:30',
+    client: 'Mme Tardif', type: 'Consultation' }];
 
-  const r = comprend('je suis en retard de 15 minutes', 'M. Tardif');
+  const r = comprend('je suis en retard de 15 minutes', 'Mme Tardif');
   assert.ok(/15/.test(r.texte), 'le retard annoncé n\'est pas repris : ' + r.texte);
+  /* Le féminin s'accorde : « Mme Aubert est prévenu » se lisait mal, et se
+     lisait sur l'écran de la seule personne concernée. */
+  assert.ok(/prévenue/.test(r.texte), 'l\'accord n\'est pas fait : ' + r.texte);
 
-  D.rdv = D.rdv.filter((x) => x.id !== 'test-retard');
+  D.rdv = garde;
 });
 
 test('un retard sans rendez-vous ne réveille personne', () => {

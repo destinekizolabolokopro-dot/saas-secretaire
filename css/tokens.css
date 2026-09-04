@@ -1,27 +1,40 @@
-/* Ally — design tokens extraits du handoff design */
+/* Ally — jetons de design.
+
+   La palette vient du handoff : violet et cyan sur ardoise, pour ne pas se
+   confondre avec l'autre produit. Ce qui a été ajouté depuis, c'est la
+   grammaire qui manquait — profondeur, courbes, rythme d'animation.
+
+   Le repère est la façon dont Apple pose une interface sombre : des surfaces
+   qui flottent au lieu de se juxtaposer, une ombre douce et large plutôt
+   qu'un trait dur, un filet de lumière sur l'arête haute de chaque volume, et
+   des grands titres au crénage resserré. Rien de tout cela ne se remarque
+   isolément ; ensemble, cela fait la différence entre « des rectangles » et
+   « un objet ». */
 :root {
-  /* Surfaces (7 niveaux relevés dans les maquettes) */
-  --bg:        oklch(0.15 0.02 264);
-  --s0:        oklch(0.13 0.02 264); /* sidebar */
-  --s1:        oklch(0.16 0.02 264); /* inputs, panneaux internes */
-  --s2:        oklch(0.17 0.02 264); /* cartes Problème */
-  --s3:        oklch(0.18 0.02 264); /* carte profil */
-  --s4:        oklch(0.19 0.02 264); /* carte standard */
-  --s5:        oklch(0.20 0.02 264);
-  --s6:        oklch(0.24 0.02 264); /* avatars, bulle chat */
+/* Le fond a été descendu et les surfaces remontées. Auparavant l'écart entre
+   la page et une carte valait trois centièmes de luminance : l'ombre n'avait
+   rien sur quoi tomber, et tout le tableau de bord était un seul aplat gris
+   traversé de filets. Un fond plus profond rend la profondeur lisible — c'est
+   le principe du mode sombre d'iOS, où le fond est presque noir et où toute
+   la matière se trouve dans ce qui flotte au-dessus. */
+  --bg:        oklch(0.105 0.016 264);
+  --s0:        oklch(0.085 0.016 264); /* sidebar */
+  --s1:        oklch(0.155 0.02 264); /* inputs, panneaux internes */
+  --s2:        oklch(0.185 0.02 264); /* cartes Problème */
+  --s3:        oklch(0.20 0.02 264); /* carte profil */
+  --s4:        oklch(0.215 0.02 264); /* carte standard */
+  --s5:        oklch(0.235 0.02 264);
+  --s6:        oklch(0.27 0.02 264); /* avatars, bulle chat */
   --toggle-off:oklch(0.30 0.01 264);
+  --card:      oklch(0.215 0.02 264 / 0.86);
+  --card-glass:oklch(0.215 0.02 264 / 0.76);
 
-  --card:      oklch(0.19 0.02 264 / 0.8);
-  --card-glass:oklch(0.19 0.02 264 / 0.7);
-
-  /* Texte */
   --txt:   oklch(0.95 0.006 264);
   --txt-2: oklch(0.85 0.006 264);
   --txt-3: oklch(0.72 0.010 264);
   --txt-4: oklch(0.62 0.010 264);
   --txt-5: oklch(0.55 0.010 264);
 
-  /* Accents (3 nuances de violet dans les maquettes) */
   --accent:        oklch(0.72 0.19 296);
   --accent-bright: oklch(0.75 0.19 296);
   --accent-glow:   oklch(0.70 0.19 296);
@@ -31,32 +44,59 @@
   --on-accent:     oklch(0.12 0.02 264);
   --grad: linear-gradient(135deg, var(--accent), var(--cyan));
 
-  /* Bordures */
   --hair: oklch(1 0 0 / 0.06);
   --bd:   oklch(1 0 0 / 0.07);
   --bd-2: oklch(1 0 0 / 0.10);
   --bd-3: oklch(1 0 0 / 0.16);
 
-  /* Typo */
+  /* ---- Profondeur ----
+     Trois hauteurs, pas davantage : posé, soulevé, flottant. Chaque ombre est
+     double — un contact court et sombre juste sous l'objet, une diffusion
+     large et très transparente en dessous. Une ombre unique donne un
+     rectangle gris ; deux donnent une distance. */
+  --sh-1: 0 1px 2px oklch(0.05 0.02 264 / 0.30),
+          0 4px 14px oklch(0.05 0.02 264 / 0.22);
+  --sh-2: 0 2px 6px oklch(0.05 0.02 264 / 0.34),
+          0 12px 32px oklch(0.05 0.02 264 / 0.30);
+  --sh-3: 0 6px 16px oklch(0.05 0.02 264 / 0.40),
+          0 28px 70px oklch(0.05 0.02 264 / 0.42);
+  /* Halo coloré des surfaces qui portent l'accent (bouton principal, FAB). */
+  --sh-key: 0 2px 10px oklch(0.55 0.19 296 / 0.30),
+            0 10px 30px oklch(0.55 0.19 296 / 0.26);
+
+  /* Filet de lumière sur l'arête haute : la surface prend le ciel, comme un
+     objet réel. C'est ce détail qui empêche une carte sombre d'avoir l'air
+     d'un trou dans la page. */
+  --hi:    inset 0 1px 0 oklch(1 0 0 / 0.07);
+  --hi-2:  inset 0 1px 0 oklch(1 0 0 / 0.12);
+
+  /* Matière translucide : le flou seul grise, la saturation lui rend la
+     couleur du fond qu'il laisse passer. */
+  --mat:   saturate(180%) blur(24px);
+  --mat-2: saturate(180%) blur(40px);
+
+  /* ---- Mouvement ----
+     Décélération très marquée : rapide au départ, longue à s'arrêter. C'est
+     la courbe des panneaux d'iOS ; elle donne du poids sans ressort. */
+  --ease:      cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-soft: cubic-bezier(0.4, 0, 0.2, 1);
+  --t-fast: .16s;
+  --t-med:  .28s;
+
+  /* ---- Crénage ----
+     Un grand titre laissé au crénage du corps paraît lâche ; on le resserre à
+     mesure qu'il grandit. */
+  --tr-display: -0.028em;
+  --tr-title:   -0.016em;
+
   --ff-h: 'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
   --ff-b: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
 
-  /* Rayons */
-  --r-sm: 10px;
-  --r-md: 14px;
-  --r:    16px;
-  --r-lg: 20px;
+  --r-sm: 10px;  --r-md: 14px;  --r: 18px;  --r-lg: 24px;  --r-xl: 30px;
   --pill: 100px;
 
-  /* Rythme */
-  --pad-x: 48px;
-  --orbit-r: 170px;
-  --orbit-d: 340px;
+  --pad-x: 48px;  --orbit-r: 170px;  --orbit-d: 340px;
 }
 
-@media (max-width: 900px) {
-  :root { --pad-x: 28px; --orbit-r: 132px; --orbit-d: 264px; }
-}
-@media (max-width: 560px) {
-  :root { --pad-x: 20px; --orbit-r: 104px; --orbit-d: 208px; }
-}
+@media (max-width: 900px) { :root { --pad-x: 28px; --orbit-r: 132px; --orbit-d: 264px; } }
+@media (max-width: 560px) { :root { --pad-x: 20px; --orbit-r: 104px; --orbit-d: 208px; } }

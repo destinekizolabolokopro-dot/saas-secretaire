@@ -52,22 +52,42 @@ body {
   font-size: 15px;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  /* Inter a des variantes optiques : les activer, c'est laisser la fonte
+     décider elle-même de son crénage selon la taille rendue. */
+  font-optical-sizing: auto;
+  text-rendering: optimizeLegibility;
 }
 
-h1, h2, h3, h4 { font-family: var(--ff-h); margin: 0; }
+/* Les titres se resserrent en grandissant : le crénage du corps, laissé tel
+   quel sur un 60 px, fait une ligne qui s'effiloche. */
+h1, h2, h3, h4 { font-family: var(--ff-h); margin: 0; letter-spacing: var(--tr-title); }
+h1 { letter-spacing: var(--tr-display); }
+
+/* Un chiffre qui change ne doit pas décaler ce qui l'entoure. */
+.stat-value, .mini-stat-value, time, .tabular { font-variant-numeric: tabular-nums; }
 p { margin: 0; }
 img, svg { max-width: 100%; }
 
 ::selection { background: oklch(0.7 0.19 296 / 0.35); }
-::-webkit-scrollbar { width: 8px; height: 8px; }
-::-webkit-scrollbar-thumb { background: oklch(1 0 0 / 0.12); border-radius: 8px; }
+/* Ascenseur discret, qui se révèle au survol de ce qu'il gouverne. */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: oklch(1 0 0 / 0.10); border-radius: 10px;
+  border: 3px solid transparent; background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover { background: oklch(1 0 0 / 0.22); background-clip: content-box; }
 
 /* Le prototype n'avait aucun état de focus : tous les contrôles sont ici
    de vrais éléments interactifs, donc focus visible obligatoire. */
+/* Anneau de focus en deux couches : un trait net pour la lisibilité, un halo
+   large et coloré qui le pose sur la surface au lieu de le découper. */
 :focus-visible {
   outline: 2px solid var(--accent-bright);
   outline-offset: 2px;
-  border-radius: 4px;
+  box-shadow: 0 0 0 6px oklch(0.72 0.19 296 / 0.18);
+  border-radius: 6px;
 }
 
 .sr-only {
@@ -86,24 +106,54 @@ img, svg { max-width: 100%; }
 .skip-link:focus { top: 16px; }
 
 /* ---- Boutons ---- */
+/* Un bouton doit répondre au doigt avant de répondre au serveur : il
+   s'enfonce à l'appui. C'est la seule animation de l'interface qui n'est pas
+   décorative — elle dit « c'est reçu » pendant les 200 ms où rien d'autre ne
+   le dit encore. */
 .btn {
   display: inline-flex; align-items: center; justify-content: center; gap: 8px;
   font-family: inherit; font-size: 15px; font-weight: 600;
+  letter-spacing: -.005em;
   padding: 15px 30px; border-radius: var(--pill);
   border: 1px solid transparent; cursor: pointer;
   text-decoration: none; white-space: nowrap;
-  transition: transform .15s ease, filter .15s ease, background .15s ease;
+  transition: transform var(--t-fast) var(--ease),
+              filter var(--t-fast) var(--ease-soft),
+              background var(--t-fast) var(--ease-soft),
+              box-shadow var(--t-med) var(--ease),
+              border-color var(--t-fast) var(--ease-soft);
 }
-.btn:hover { transform: translateY(-1px); }
-.btn:active { transform: translateY(0); }
-.btn-primary { background: var(--grad); color: var(--on-accent); }
-.btn-primary:hover { filter: brightness(1.08); }
-.btn-ghost { background: none; border-color: var(--bd-3); color: var(--txt); }
-.btn-ghost:hover { background: oklch(1 0 0 / 0.05); }
+.btn:active { transform: scale(0.965); transition-duration: .06s; }
+
+.btn-primary {
+  background: var(--grad); color: var(--on-accent);
+  box-shadow: var(--sh-key), var(--hi-2);
+}
+.btn-primary:hover {
+  filter: brightness(1.06);
+  box-shadow: 0 4px 14px oklch(0.55 0.19 296 / 0.38),
+              0 16px 40px oklch(0.55 0.19 296 / 0.30), var(--hi-2);
+}
+.btn-primary:active { box-shadow: 0 1px 4px oklch(0.55 0.19 296 / 0.35), var(--hi-2); }
+
+/* Le fantôme n'est pas un trou : un voile clair très faible lui donne une
+   surface, et le filet du haut lui donne une arête. */
+.btn-ghost {
+  background: oklch(1 0 0 / 0.045); border-color: var(--bd-3); color: var(--txt);
+  box-shadow: var(--hi);
+}
+.btn-ghost:hover { background: oklch(1 0 0 / 0.09); border-color: oklch(1 0 0 / 0.22); }
+
 .btn-sm { font-size: 13px; padding: 8px 16px; }
 .btn-md { font-size: 13px; padding: 10px 18px; }
-.btn-danger { background: none; border-color: oklch(0.65 0.18 25 / 0.4); color: var(--danger); }
-.btn-danger:hover { background: oklch(0.65 0.18 25 / 0.12); }
+.btn-danger { background: oklch(0.65 0.18 25 / 0.07); border-color: oklch(0.65 0.18 25 / 0.4); color: var(--danger); }
+.btn-danger:hover { background: oklch(0.65 0.18 25 / 0.14); border-color: oklch(0.65 0.18 25 / 0.55); }
+
+/* Un bouton désactivé qui garde son relief ment sur ce qu'il peut faire. */
+.btn:disabled, .btn[disabled] {
+  opacity: .45; cursor: not-allowed;
+  box-shadow: none; filter: none; transform: none;
+}
 
 .btn-link {
   font-family: inherit; font-size: 13px; color: var(--cyan);
@@ -112,22 +162,30 @@ img, svg { max-width: 100%; }
 .btn-link:hover { text-decoration: underline; }
 
 /* ---- Cartes ---- */
+/* Une carte flotte au-dessus du fond, elle ne s'y découpe pas : d'où l'ombre
+   douce, le filet de lumière en haut, et le flou qui laisse passer les halos
+   colorés de la page. */
 .card {
   background: var(--card);
   border: 1px solid var(--bd);
   border-radius: var(--r);
   padding: 24px;
+  box-shadow: var(--sh-1), var(--hi);
+  backdrop-filter: var(--mat);
+  -webkit-backdrop-filter: var(--mat);
 }
 .card-glass {
   background: var(--card-glass);
-  border: 1px solid oklch(1 0 0 / 0.08);
+  border: 1px solid oklch(1 0 0 / 0.09);
   border-radius: var(--r-lg);
   padding: 32px;
-  backdrop-filter: blur(10px);
+  box-shadow: var(--sh-2), var(--hi);
+  backdrop-filter: var(--mat-2);
+  -webkit-backdrop-filter: var(--mat-2);
 }
 
 /* ---- Titres de carte et notes (partagés par l'onboarding et l'espace pro) ---- */
-.card-title { font-size: 15px; font-weight: 600; margin-bottom: 16px; }
+.card-title { font-size: 15px; font-weight: 600; margin-bottom: 16px; letter-spacing: -.008em; }
 .note { font-size: 13px; color: var(--txt-4); line-height: 1.55; }
 .lock-note {
   margin-top: 14px; font-size: 12px; color: var(--yellow);
@@ -137,40 +195,68 @@ img, svg { max-width: 100%; }
 
 /* ---- Logo ---- */
 .logo { display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--txt); }
-.logo-mark { width: 30px; height: 30px; border-radius: 9px; background: var(--grad); flex-shrink: 0; }
-.logo-word { font-family: var(--ff-h); font-weight: 700; font-size: 20px; letter-spacing: .02em; }
+.logo-mark {
+  width: 30px; height: 30px; border-radius: 10px; background: var(--grad); flex-shrink: 0;
+  box-shadow: 0 2px 10px oklch(0.55 0.19 296 / 0.35), var(--hi-2);
+}
+.logo-word { font-family: var(--ff-h); font-weight: 700; font-size: 20px; letter-spacing: -.01em; }
 
 /* ---- Champs ---- */
 .field {
   width: 100%;
   background: var(--s1);
   border: 1px solid oklch(1 0 0 / 0.08);
-  border-radius: var(--r-sm);
+  border-radius: var(--r-md);
   padding: 13px 16px;
   color: var(--txt);
   font-family: inherit;
   font-size: 14px;
   outline: none;
+  box-shadow: inset 0 1px 2px oklch(0.05 0.02 264 / 0.30);
+  transition: border-color var(--t-fast) var(--ease-soft),
+              box-shadow var(--t-med) var(--ease),
+              background var(--t-fast) var(--ease-soft);
 }
-.field:focus { border-color: oklch(0.72 0.19 296 / 0.6); }
+.field:hover { border-color: oklch(1 0 0 / 0.14); }
+/* Le champ actif s'éclaire au lieu de se cerner : le halo dit « ici » sans
+   ajouter un trait de plus à une page qui en a déjà beaucoup. */
+.field:focus {
+  border-color: oklch(0.72 0.19 296 / 0.65);
+  background: var(--s2);
+  box-shadow: 0 0 0 4px oklch(0.72 0.19 296 / 0.16),
+              inset 0 1px 2px oklch(0.05 0.02 264 / 0.25);
+}
+.field:focus-visible { outline: none; }
 .field-pill { border-radius: var(--pill); padding: 15px 20px; font-size: 15px; }
 .field::placeholder { color: var(--txt-5); }
 textarea.field { min-height: 80px; resize: vertical; line-height: 1.55; }
 
 /* ---- Toggle (role="switch") ---- */
+/* Interrupteur : creux à l'arrêt, plein à la marche, avec un galet qui porte
+   sa propre ombre. Il glisse sur la courbe lente — c'est ce qui le fait
+   ressembler à une pièce qu'on pousse plutôt qu'à une couleur qui change. */
 .toggle {
   width: 42px; height: 24px; flex-shrink: 0;
   border-radius: var(--pill); border: none;
   background: var(--toggle-off); position: relative; cursor: pointer;
-  transition: background .2s;
+  box-shadow: inset 0 1px 3px oklch(0.05 0.02 264 / 0.45);
+  transition: background var(--t-med) var(--ease-soft), box-shadow var(--t-med) var(--ease-soft);
 }
-.toggle[aria-checked="true"] { background: var(--accent); }
+.toggle[aria-checked="true"] {
+  background: var(--accent);
+  box-shadow: inset 0 1px 2px oklch(0.05 0.02 264 / 0.20),
+              0 0 0 0 transparent, 0 2px 8px oklch(0.55 0.19 296 / 0.35);
+}
 .toggle::after {
   content: ''; position: absolute; top: 3px; left: 3px;
   width: 18px; height: 18px; border-radius: 50%; background: #fff;
-  transition: left .2s;
+  box-shadow: 0 1px 3px oklch(0.05 0.02 264 / 0.45), 0 0 1px oklch(0.05 0.02 264 / 0.3);
+  transition: left var(--t-med) var(--ease), width var(--t-fast) var(--ease);
 }
 .toggle[aria-checked="true"]::after { left: 21px; }
+/* Le galet s'étire sous le doigt, comme une vraie pièce mécanique. */
+.toggle:active::after { width: 22px; }
+.toggle[aria-checked="true"]:active::after { left: 17px; }
 
 /* ---- Sliders ---- */
 input[type="range"] {
@@ -182,12 +268,18 @@ input[type="range"] {
 .choice {
   font-family: inherit; font-size: 13px;
   padding: 9px 18px; border-radius: var(--pill);
-  background: var(--s4); border: 1px solid var(--bd-2);
+  background: oklch(1 0 0 / 0.045); border: 1px solid var(--bd-2);
   color: var(--txt-2); cursor: pointer;
+  box-shadow: var(--hi);
+  transition: transform var(--t-fast) var(--ease), background var(--t-fast) var(--ease-soft),
+              color var(--t-fast) var(--ease-soft), box-shadow var(--t-med) var(--ease);
 }
+.choice:hover { background: oklch(1 0 0 / 0.09); color: var(--txt); }
+.choice:active { transform: scale(0.96); }
 .choice[aria-pressed="true"] {
   background: var(--grad); color: var(--on-accent);
   font-weight: 600; border-color: transparent;
+  box-shadow: var(--sh-1), var(--hi-2);
 }
 
 /* ---- Lignes de récapitulatif (onboarding et console d'administration) ---- */
@@ -216,11 +308,15 @@ input[type="range"] {
 .chip {
   font-family: inherit; font-size: 13px; line-height: 1.35;
   padding: 10px 16px; border-radius: var(--pill);
-  background: var(--s1); border: 1px solid var(--bd-2);
+  background: oklch(1 0 0 / 0.04); border: 1px solid var(--bd-2);
   color: var(--txt-2); cursor: pointer; text-align: left;
-  transition: border-color .15s, background .15s;
+  box-shadow: var(--hi);
+  transition: border-color var(--t-fast) var(--ease-soft),
+              background var(--t-fast) var(--ease-soft),
+              transform var(--t-fast) var(--ease);
 }
-.chip:hover { border-color: var(--bd-3); background: var(--s4); }
+.chip:hover { border-color: var(--bd-3); background: oklch(1 0 0 / 0.08); }
+.chip:active { transform: scale(0.97); }
 .chip[aria-pressed="true"] {
   background: oklch(0.72 0.19 296 / 0.18);
   border-color: oklch(0.72 0.19 296 / 0.55);
@@ -234,11 +330,19 @@ input[type="range"] {
 .code-input { display: flex; gap: 10px; }
 .code-box {
   width: 100%; max-width: 56px; aspect-ratio: 3 / 4;
-  background: var(--s1); border: 1px solid var(--bd-2); border-radius: var(--r-sm);
+  background: var(--s1); border: 1px solid var(--bd-2); border-radius: var(--r-md);
   color: var(--txt); font-family: var(--ff-h); font-size: 22px; font-weight: 700;
   text-align: center; outline: none;
+  box-shadow: inset 0 1px 2px oklch(0.05 0.02 264 / 0.35);
+  transition: border-color var(--t-fast) var(--ease-soft),
+              box-shadow var(--t-med) var(--ease), transform var(--t-fast) var(--ease);
 }
-.code-box:focus { border-color: oklch(0.72 0.19 296 / 0.7); background: var(--s2); }
+.code-box:focus {
+  border-color: oklch(0.72 0.19 296 / 0.7); background: var(--s2);
+  transform: translateY(-1px);
+  box-shadow: 0 0 0 4px oklch(0.72 0.19 296 / 0.16), var(--sh-1);
+}
+.code-box:focus-visible { outline: none; }
 .code-input.is-wrong .code-box { border-color: oklch(0.65 0.18 25 / 0.6); }
 .code-input.is-wrong { animation: shake .4s ease; }
 @keyframes shake {
@@ -262,7 +366,7 @@ input[type="range"] {
 /* ---- Robustesse du mot de passe ---- */
 .pass-meter { display: flex; align-items: center; gap: 12px; margin-top: 10px; }
 .meter-bar { flex: 1; height: 4px; border-radius: var(--pill); background: oklch(1 0 0 / 0.1); overflow: hidden; }
-.meter-bar i { display: block; height: 100%; width: 0; border-radius: var(--pill); transition: width .2s, background .2s; }
+.meter-bar i { display: block; height: 100%; width: 0; border-radius: var(--pill); transition: width var(--t-med) var(--ease), background var(--t-med) var(--ease-soft); }
 .meter-bar i.lvl-1, .meter-bar i.lvl-2 { background: var(--danger); }
 .meter-bar i.lvl-3 { background: var(--yellow); }
 .meter-bar i.lvl-4, .meter-bar i.lvl-5 { background: var(--cyan); }
@@ -286,12 +390,16 @@ input[type="range"] {
 .voice-picker { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 22px; }
 .voice-chip {
   display: flex; flex-direction: column; gap: 2px; align-items: flex-start;
-  padding: 11px 16px; border-radius: var(--r-sm); cursor: pointer;
-  background: var(--s4); border: 1px solid var(--bd-2);
+  padding: 11px 16px; border-radius: var(--r-md); cursor: pointer;
+  background: oklch(1 0 0 / 0.045); border: 1px solid var(--bd-2);
   font-family: inherit; color: var(--txt-2); text-align: left;
-  transition: border-color .15s, background .15s;
+  box-shadow: var(--hi);
+  transition: border-color var(--t-fast) var(--ease-soft),
+              background var(--t-fast) var(--ease-soft),
+              transform var(--t-fast) var(--ease);
 }
-.voice-chip:hover { border-color: var(--bd-3); }
+.voice-chip:hover { border-color: var(--bd-3); background: oklch(1 0 0 / 0.08); }
+.voice-chip:active { transform: scale(0.97); }
 .voice-chip[aria-pressed="true"] {
   background: oklch(0.72 0.19 296 / 0.15);
   border-color: oklch(0.72 0.19 296 / 0.55); color: var(--txt);
@@ -312,9 +420,17 @@ input[type="range"] {
   pointer-events: none;
 }
 .toast {
-  background: var(--s6); border: 1px solid var(--bd-3); border-radius: var(--pill);
-  padding: 12px 22px; font-size: 14px; box-shadow: 0 12px 40px oklch(0 0 0 / 0.4);
-  transition: opacity .35s, transform .35s;
+  background: oklch(0.24 0.02 264 / 0.82); border: 1px solid var(--bd-3);
+  border-radius: var(--pill);
+  padding: 12px 22px; font-size: 14px;
+  box-shadow: var(--sh-3), var(--hi-2);
+  backdrop-filter: var(--mat); -webkit-backdrop-filter: var(--mat);
+  animation: toast-in .4s var(--ease) both;
+  transition: opacity .35s var(--ease-soft), transform .35s var(--ease);
+}
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(14px) scale(0.96); }
+  to   { opacity: 1; transform: none; }
 }
 .toast-ok { border-color: oklch(0.7 0.14 200 / 0.5); }
 .toast-warn { border-color: oklch(0.7 0.15 25 / 0.5); }

@@ -126,7 +126,7 @@ const hosted = `<title>Ally — secrétaire IA pour professionnels solo</title>
 :root { color-scheme: dark; }
 /* La page assume une identité sombre unique, celle du produit : on neutralise
    le thème clair de l'hôte plutôt que de livrer deux identités. */
-html, body { background: oklch(0.15 0.02 264); margin: 0; }
+html, body { background: oklch(0.105 0.016 264); margin: 0; }
 ${css}
 .screen { display: none; }
 .screen[data-active] { display: block; }

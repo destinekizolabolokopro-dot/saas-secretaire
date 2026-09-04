@@ -215,6 +215,15 @@
     return A.longLabel(isoDate);
   }
 
+  /* « Mme Aubert est prévenu » : la faute sautait aux yeux de la seule
+     personne à qui elle était adressée. On ne devine pas le genre d'un
+     prénom — mais la civilité, elle, est écrite noir sur blanc dans la fiche,
+     et c'est la seule chose sur laquelle on accorde. Sans civilité, on ne
+     suppose rien : le masculin reste la forme non marquée. */
+  function accord(nom) {
+    return /^\s*(mme|mlle|madame)\b/i.test(String(nom || '')) ? 'e' : '';
+  }
+
   /* Le nom cherché dans « avec Mme Aubert », « rappelle M. Petit ». On reprend
      le texte d'origine : la casse et les accents aident à reconnaître un nom. */
   function nomCherche(input) {
@@ -923,7 +932,8 @@
           kind: 'action', sensitive: true,
           confirm: 'Je préviens ' + suivant.client + ' que vous aurez '
             + (minutes ? minutes + ' minutes' : 'un peu') + ' de retard ?',
-          reply: suivant.client + ' est prévenu' + (minutes ? ' de vos ' + minutes + ' minutes' : '')
+          reply: suivant.client + ' est prévenu' + accord(suivant.client)
+            + (minutes ? ' de vos ' + minutes + ' minutes' : '')
             + ' de retard. Le rendez-vous de ' + suivant.time + ' est maintenu.',
           detail: 'Email préparé et envoyé dans les dix secondes',
           apply: function () {
