@@ -272,10 +272,19 @@ textarea.field { min-height: 80px; resize: vertical; line-height: 1.55; }
 .toggle:active::after { width: 22px; }
 .toggle[aria-checked="true"]:active::after { left: 17px; }
 
-/* ---- Sliders ---- */
+/* ---- Sliders ----
+   accent-color, et pas un habillage complet : c'est lui qui donne au
+   navigateur le remplissage coloré à gauche du curseur, et on ne sait pas le
+   refaire en CSS sans JavaScript. On se contente donc de lui donner de la
+   place et un anneau de focus qui ne coupe pas la piste. */
 input[type="range"] {
   width: 100%; accent-color: var(--accent);
-  height: 20px; cursor: pointer;
+  height: 22px; cursor: pointer;
+  border-radius: var(--pill);
+}
+input[type="range"]:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 4px oklch(0.72 0.19 296 / 0.22);
 }
 
 /* ---- Pills de choix ---- */
@@ -420,7 +429,12 @@ input[type="range"] {
 }
 .voice-name { font-size: 13px; font-weight: 600; }
 .voice-lang { font-size: 11px; color: var(--txt-5); }
+/* .slider-block + .slider-block pose une marge haute au second — ce qu'il
+   faut quand ils s'empilent, et ce qui décalait « Hauteur » de vingt pixels
+   sous « Débit » alors que la grille les met côte à côte. La gouttière fait
+   déjà l'espacement ici. */
 .voice-sliders { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 20px; }
+.voice-sliders .slider-block + .slider-block { margin-top: 0; }
 .voice-try { display: flex; gap: 10px; flex-wrap: wrap; }
 
 @media (max-width: 560px) {
