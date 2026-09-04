@@ -93,7 +93,6 @@
   background: oklch(1 0 0 / 0.055); border: 1px solid var(--bd-2);
   font-size: 13px; color: oklch(0.82 0.05 296); margin-bottom: 28px;
   box-shadow: var(--sh-1), var(--hi);
-  backdrop-filter: var(--mat); -webkit-backdrop-filter: var(--mat);
 }
 .eyebrow-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent-bright); animation: pulse-core 2s ease-in-out infinite; }
 .hero h1 {
@@ -157,7 +156,6 @@
   padding: 10px 16px; border-radius: var(--pill);
   background: oklch(0.22 0.02 264 / 0.78);
   border: 1px solid oklch(1 0 0 / 0.13);
-  backdrop-filter: var(--mat); -webkit-backdrop-filter: var(--mat);
   box-shadow: var(--sh-2), var(--hi);
   white-space: nowrap; font-size: 13px; color: oklch(0.92 0.006 264);
 }
@@ -287,7 +285,6 @@
   background: oklch(0.19 0.02 264 / 0.62); border: 1px solid oklch(1 0 0 / 0.09);
   border-radius: var(--r); padding: 22px 24px;
   box-shadow: var(--sh-1), var(--hi);
-  backdrop-filter: var(--mat); -webkit-backdrop-filter: var(--mat);
   transition: transform var(--t-med) var(--ease), border-color var(--t-med) var(--ease-soft);
 }
 .focus-card:hover { transform: translateX(4px); border-color: oklch(1 0 0 / 0.16); }
@@ -553,7 +550,6 @@
   background: var(--card-glass); border: 1px solid oklch(1 0 0 / 0.09);
   border-radius: var(--r-lg); padding: 30px 26px;
   box-shadow: var(--sh-2), var(--hi);
-  backdrop-filter: var(--mat-2); -webkit-backdrop-filter: var(--mat-2);
   transition: transform var(--t-med) var(--ease), box-shadow var(--t-med) var(--ease),
               border-color var(--t-med) var(--ease-soft);
 }

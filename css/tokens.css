@@ -71,7 +71,15 @@
   --hi-2:  inset 0 1px 0 oklch(1 0 0 / 0.12);
 
   /* Matière translucide : le flou seul grise, la saturation lui rend la
-     couleur du fond qu'il laisse passer. */
+     couleur du fond qu'il laisse passer.
+
+     À réserver à ce qui flotte au-dessus de la page — barre latérale, barre
+     de navigation, palette, tiroir, voiles, message éphémère. Posé sur les
+     cartes du tableau de bord, il faisait retomber le défilement à dix-sept
+     images par seconde : le navigateur refloutait quatorze surfaces à chaque
+     image. Les cartes se lisent déjà par leur clarté ; elles n'ont pas besoin
+     de laisser voir au travers, et personne ne regarde à travers une carte
+     qui défile. */
   --mat:   saturate(180%) blur(24px);
   --mat-2: saturate(180%) blur(40px);
 

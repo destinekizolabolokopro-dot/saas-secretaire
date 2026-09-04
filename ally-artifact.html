@@ -77,7 +77,15 @@ html, body { background: oklch(0.105 0.016 264); margin: 0; }
   --hi-2:  inset 0 1px 0 oklch(1 0 0 / 0.12);
 
   /* Matière translucide : le flou seul grise, la saturation lui rend la
-     couleur du fond qu'il laisse passer. */
+     couleur du fond qu'il laisse passer.
+
+     À réserver à ce qui flotte au-dessus de la page — barre latérale, barre
+     de navigation, palette, tiroir, voiles, message éphémère. Posé sur les
+     cartes du tableau de bord, il faisait retomber le défilement à dix-sept
+     images par seconde : le navigateur refloutait quatorze surfaces à chaque
+     image. Les cartes se lisent déjà par leur clarté ; elles n'ont pas besoin
+     de laisser voir au travers, et personne ne regarde à travers une carte
+     qui défile. */
   --mat:   saturate(180%) blur(24px);
   --mat-2: saturate(180%) blur(40px);
 
@@ -294,8 +302,6 @@ img, svg { max-width: 100%; }
   border-radius: var(--r);
   padding: 24px;
   box-shadow: var(--sh-1), var(--hi);
-  backdrop-filter: var(--mat);
-  -webkit-backdrop-filter: var(--mat);
 }
 .card-glass {
   background: var(--card-glass);
@@ -700,7 +706,6 @@ input[type="range"]:focus-visible {
   background: oklch(1 0 0 / 0.055); border: 1px solid var(--bd-2);
   font-size: 13px; color: oklch(0.82 0.05 296); margin-bottom: 28px;
   box-shadow: var(--sh-1), var(--hi);
-  backdrop-filter: var(--mat); -webkit-backdrop-filter: var(--mat);
 }
 .eyebrow-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent-bright); animation: pulse-core 2s ease-in-out infinite; }
 .hero h1 {
@@ -764,7 +769,6 @@ input[type="range"]:focus-visible {
   padding: 10px 16px; border-radius: var(--pill);
   background: oklch(0.22 0.02 264 / 0.78);
   border: 1px solid oklch(1 0 0 / 0.13);
-  backdrop-filter: var(--mat); -webkit-backdrop-filter: var(--mat);
   box-shadow: var(--sh-2), var(--hi);
   white-space: nowrap; font-size: 13px; color: oklch(0.92 0.006 264);
 }
@@ -894,7 +898,6 @@ input[type="range"]:focus-visible {
   background: oklch(0.19 0.02 264 / 0.62); border: 1px solid oklch(1 0 0 / 0.09);
   border-radius: var(--r); padding: 22px 24px;
   box-shadow: var(--sh-1), var(--hi);
-  backdrop-filter: var(--mat); -webkit-backdrop-filter: var(--mat);
   transition: transform var(--t-med) var(--ease), border-color var(--t-med) var(--ease-soft);
 }
 .focus-card:hover { transform: translateX(4px); border-color: oklch(1 0 0 / 0.16); }
@@ -1160,7 +1163,6 @@ input[type="range"]:focus-visible {
   background: var(--card-glass); border: 1px solid oklch(1 0 0 / 0.09);
   border-radius: var(--r-lg); padding: 30px 26px;
   box-shadow: var(--sh-2), var(--hi);
-  backdrop-filter: var(--mat-2); -webkit-backdrop-filter: var(--mat-2);
   transition: transform var(--t-med) var(--ease), box-shadow var(--t-med) var(--ease),
               border-color var(--t-med) var(--ease-soft);
 }
@@ -1407,7 +1409,6 @@ input[type="range"]:focus-visible {
   background: var(--card); border: 1px solid var(--bd); border-radius: var(--r);
   padding: 22px;
   box-shadow: var(--sh-1), var(--hi);
-  backdrop-filter: var(--mat); -webkit-backdrop-filter: var(--mat);
   transition: transform var(--t-med) var(--ease), box-shadow var(--t-med) var(--ease),
               border-color var(--t-med) var(--ease-soft);
 }
@@ -1473,7 +1474,6 @@ input[type="range"]:focus-visible {
   border: 1px solid oklch(0.72 0.19 296 / 0.28);
   border-radius: var(--r); padding: 22px 24px; margin-bottom: 24px;
   box-shadow: var(--sh-2), var(--hi);
-  backdrop-filter: var(--mat); -webkit-backdrop-filter: var(--mat);
 }
 .todo-head { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
 .todo-count {
@@ -1511,7 +1511,6 @@ input[type="range"]:focus-visible {
   background: var(--card); border: 1px solid var(--bd);
   border-radius: var(--r); overflow: hidden; margin-bottom: 30px;
   box-shadow: var(--sh-1), var(--hi);
-  backdrop-filter: var(--mat); -webkit-backdrop-filter: var(--mat);
 }
 .conv-list.flat { padding: 6px 20px; }
 .conv { border-bottom: 1px solid var(--hair); }
@@ -1624,7 +1623,6 @@ input[type="range"]:focus-visible {
   background: linear-gradient(135deg, oklch(0.22 0.04 296 / 0.6), oklch(0.2 0.03 200 / 0.5));
   border: 1px solid var(--bd-2); border-radius: var(--r); padding: 24px;
   box-shadow: var(--sh-2), var(--hi);
-  backdrop-filter: var(--mat); -webkit-backdrop-filter: var(--mat);
 }
 .plan-kicker { font-size: 13px; color: oklch(0.75 0.1 296); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 6px; }
 .plan-name { font-family: var(--ff-h); font-size: 24px; font-weight: 700; margin-bottom: 18px; letter-spacing: var(--tr-title); }
@@ -2172,23 +2170,9 @@ input[type="range"]:focus-visible {
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1;
 }
 .foot-account .btn-link { font-size: 11px; flex-shrink: 0; }
-/* Les deux interrupteurs étaient deux lignes de texte parmi dix autres, à la
-   même hauteur et sans rien qui les rassemble. Réunis dans un même panneau,
-   ils redeviennent ce qu'ils sont : un réglage à deux entrées, pas deux
-   phrases de plus dans le pied de page. */
-.foot-switch {
-  display: flex; align-items: center; justify-content: space-between;
-  gap: 10px; font-size: 11.5px; color: var(--txt-3);
-  padding: 9px 11px;
-  background: oklch(1 0 0 / 0.035); border: 1px solid var(--hair);
-}
-.foot-switch:first-of-type { border-radius: var(--r-sm) var(--r-sm) 0 0; border-bottom: none; }
-/* Le pied de barre est une colonne à gouttière : sans ce rattrapage, les deux
-   panneaux resteraient écartés de la gouttière au lieu d'être jointifs. */
-.foot-switch + .foot-switch { margin-top: -10px; border-radius: 0 0 var(--r-sm) var(--r-sm); }
-.toggle-sm { width: 30px; height: 17px; }
-.toggle-sm::after { width: 12px; height: 12px; top: 2.5px; left: 2.5px; }
-.toggle-sm[aria-checked="true"]::after { left: 15.5px; }
+/* Le pied de l'espace pro ne porte plus d'interrupteurs ni de raccourcis :
+   tout cela a un écran à soi, dans Mon compte › Préférences. Ce qui reste ici
+   sert à la console d'administration, qui garde son pied minimal. */
 .foot-links { list-style: none; margin: 6px -8px 0; padding: 0; display: flex; flex-direction: column; gap: 1px; }
 .foot-links li { font-size: 10.5px; line-height: 1.45; color: var(--txt-5); padding: 0 8px; }
 .foot-dim { color: oklch(0.45 0.01 264); }
@@ -2207,6 +2191,54 @@ input[type="range"]:focus-visible {
 }
 .foot-link:hover { color: var(--txt-2); background: oklch(1 0 0 / 0.05); }
 .foot-version { font-size: 10px; color: oklch(0.4 0.01 264); margin-top: 2px; }
+
+/* ============ PRÉFÉRENCES ============ */
+/* L'identité de la session, en tête de l'écran : qui est connecté, et de quoi
+   se déconnecter. La même information que la carte de profil de la barre
+   latérale, mais ici avec la place de porter son action. */
+.pref-id { display: flex; align-items: center; gap: 14px; }
+.pref-id-main { flex: 1; min-width: 0; }
+.pref-id-main strong { display: block; font-size: 15px; font-weight: 600; }
+.pref-id-main span {
+  display: block; font-size: 13px; color: var(--txt-4); margin-top: 2px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+/* Une pile de lignes cliquables, à la façon d'un écran de réglages : le filet
+   les sépare, la ligne entière est la cible, et le chevron dit qu'elle
+   emmène ailleurs. Le débord négatif fait mordre le survol sur la marge de la
+   carte plutôt que de laisser une bande morte de chaque côté. */
+.pref-rows { display: flex; flex-direction: column; margin: 0 -10px; }
+.pref-row {
+  display: flex; align-items: center; gap: 14px; width: 100%;
+  padding: 14px 10px; border: none; border-radius: var(--r-sm);
+  background: none; font-family: inherit; text-align: left;
+  color: var(--txt); cursor: pointer;
+  transition: background var(--t-fast) var(--ease-soft), transform var(--t-fast) var(--ease);
+}
+.pref-row + .pref-row { box-shadow: inset 0 1px 0 var(--hair); }
+.pref-row:hover { background: oklch(1 0 0 / 0.05); }
+.pref-row:active { transform: scale(0.99); }
+.pref-row-main { flex: 1; min-width: 0; }
+.pref-row-main strong { display: block; font-size: 14px; font-weight: 500; }
+.pref-row-main span { display: block; font-size: 12px; color: var(--txt-4); margin-top: 2px; line-height: 1.5; }
+.pref-row-value {
+  font-size: 12px; color: var(--txt-3); white-space: nowrap; flex-shrink: 0;
+  padding: 4px 10px; border-radius: var(--pill);
+  background: oklch(1 0 0 / 0.05); border: 1px solid var(--hair);
+}
+.pref-row-go { color: var(--txt-5); font-size: 17px; flex-shrink: 0; }
+.pref-row:hover .pref-row-go { color: var(--txt-3); }
+
+@media (max-width: 560px) {
+  /* Le libellé d'état passe sous son intitulé plutôt que de comprimer les
+     deux : « Résumé quotidien par email » ne doit pas tomber à trois lignes
+     pour laisser tenir « Ctrl K ». */
+  .pref-row { flex-wrap: wrap; row-gap: 6px; }
+  .pref-row-main { flex: 1 0 calc(100% - 30px); }
+  .pref-row-value { margin-left: 0; }
+  .pref-row-go { margin-left: auto; }
+}
 
 /* ============ PALETTE DE COMMANDES ============ */
 .palette-overlay {
@@ -2313,7 +2345,6 @@ input[type="range"]:focus-visible {
   border: 1px solid oklch(0.72 0.19 296 / 0.28);
   border-radius: var(--r); padding: 22px 24px; margin-bottom: 24px;
   box-shadow: var(--sh-2), var(--hi);
-  backdrop-filter: var(--mat); -webkit-backdrop-filter: var(--mat);
 }
 .setup-head {
   display: flex; align-items: flex-start; justify-content: space-between;
@@ -3564,33 +3595,6 @@ input[type="range"]:focus-visible {
       <span class="profile-chevron" aria-hidden="true">›</span>
     </button>
 
-    <div class="sidebar-foot">
-      <p class="foot-account">
-        <span id="foot-email">—</span>
-        <button type="button" class="btn-link" id="foot-logout">Déconnexion</button>
-      </p>
-
-      <div class="foot-switch">
-        <span id="lbl-foot-transfer">Transfert auto des urgences</span>
-        <button type="button" class="toggle toggle-sm" role="switch" id="foot-transfer"
-                aria-labelledby="lbl-foot-transfer"></button>
-      </div>
-      <div class="foot-switch">
-        <span id="lbl-foot-digest">Résumé quotidien par email</span>
-        <button type="button" class="toggle toggle-sm" role="switch" id="foot-digest"
-                aria-labelledby="lbl-foot-digest"></button>
-      </div>
-
-      <ul class="foot-links">
-        <li><span class="foot-dim">Stockage :</span> <span id="foot-storage">navigateur</span></li>
-        <li><button type="button" class="foot-link" id="foot-palette">⌘K — Palette de commandes</button></li>
-        <li><a class="foot-link" href="#" data-goto="landing">← Retour au site public</a></li>
-        <li id="foot-admin-item" hidden><a class="foot-link" href="#" data-goto="admin">Console d'administration →</a></li>
-        <li><button type="button" class="foot-link" id="foot-invite">Inviter un collaborateur (lecture seule)</button></li>
-        <li><button type="button" class="foot-link" id="foot-voice">Voix : <span id="foot-voice-name">par défaut</span> (modifier)</button></li>
-      </ul>
-      <p class="foot-version">Ally — v0.7</p>
-    </div>
   </aside>
 
   <main class="main">
@@ -7542,6 +7546,33 @@ window.ALLY_PLAN_BY_ID = function (id) {
     return libres;
   }
 
+  /* L'heure de fermeture d'un jour donné, ou null s'il est fermé. */
+  function fermetureDe(isoDate) {
+    var p = String(isoDate).split('-');
+    var cles = ['dim', 'lun', 'mar', 'mer', 'jeu', 'ven', 'sam'];
+    var jour = new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2])).getDay();
+    var plage = window.ALLY_STORE.state.hours.filter(function (h) {
+      return h.id === cles[jour] && h.on;
+    })[0];
+    return plage ? plage.to : null;
+  }
+
+  /* Pourquoi ce jour n'a-t-il rien à offrir ? « Rien de libre » est vrai dans
+     quatre situations très différentes — fermé, bloqué, déjà fini, complet —
+     et la seule réponse utile est celle qui dit laquelle. */
+  function pourquoiRien(isoDate) {
+    var A = window.ALLY_AGENDA;
+    if (!fermetureDe(isoDate)) return 'ferme';
+    var bloque = (window.ALLY_STORE.data().blocked || []).some(function (b) {
+      return b.date === isoDate;
+    });
+    if (bloque) return 'bloque';
+    if (isoDate === A.TODAY && enMinutes(heureCourante()) >= enMinutes(fermetureDe(isoDate))) {
+      return 'fini';
+    }
+    return 'complet';
+  }
+
   /* Le jour, dit comme on le dit. « auj » et « dem » sont des abréviations de
      tableau : à l'oral comme à l'écrit, on dit « aujourd'hui » et « demain ». */
   function quandDit(isoDate) {
@@ -8143,11 +8174,42 @@ window.ALLY_PLAN_BY_ID = function (id) {
         }
 
         if (!trouves.length) {
-          return {
+          /* « Rien de libre dans vos horaires sur la période demandée » était
+             exact et inutilisable. Demandé un vendredi à 22 h, il laissait
+             croire que la semaine entière était pleine, alors que la journée
+             était simplement finie et que lundi 9 h était libre.
+
+             On dit donc laquelle des quatre raisons s'applique — et surtout on
+             ne s'arrête pas au constat : la question « suis-je libre ? »
+             attend un créneau, pas un refus. */
+          var raison = pourquoiRien(depart);
+          var suite = null;
+          for (var av = 1; av <= 14 && !suite; av++) {
+            var apres = decale(depart, av);
+            var dispo = creneauxLibres(apres, duree);
+            if (dispo.length) suite = { date: apres, heures: dispo };
+          }
+
+          var constat = {
+            ferme: 'Vous êtes fermé ' + quandDit(depart) + '.',
+            bloque: 'Vous avez bloqué la journée ' + quandDit(depart) + '.',
+            fini: 'Votre journée est terminée — fermeture à ' + fermetureDe(depart) + '.',
+            complet: 'Rien de libre ' + quandDit(depart) + ' : la journée est complète.'
+          }[raison];
+
+          var reponse = {
             kind: 'answer',
-            reply: 'Rien de libre dans vos horaires sur la période demandée.',
-            detail: 'Vos horaires sont réglés dans Ally → Disponibilités.'
+            reply: constat + (suite
+              ? ' Le prochain créneau de ' + duree + ' minutes est ' +
+                A5.shortLabel(suite.date) + ' à ' + suite.heures[0] + '.'
+              : ' Et rien non plus dans les quinze jours qui suivent.'),
+            detail: 'Calculé sur vos horaires, réglés dans Ally → Disponibilités'
           };
+          if (suite) {
+            reponse.follow = ['Crée un rendez-vous ' + A5.shortLabel(suite.date) +
+              ' à ' + suite.heures[0]];
+          }
+          return reponse;
         }
 
         var dit = trouves.map(function (j) {
@@ -11989,6 +12051,7 @@ window.ALLY_PLAN_BY_ID = function (id) {
   ];
 
   var ACCOUNT_SECTIONS = [
+    { id: 'prefs',  label: 'Préférences' },
     { id: 'plan',   label: 'Abonnement' },
     { id: 'links',  label: 'Connexions' },
     { id: 'privacy', label: 'Sécurité' },
@@ -11996,7 +12059,10 @@ window.ALLY_PLAN_BY_ID = function (id) {
     { id: 'help',   label: 'Support' }
   ];
 
-  var ui = { tab: 'today', account: 'plan', filter: 'all', expanded: null };
+  /* Mon compte s'ouvre sur les préférences et non sur la facturation : c'est
+     là que vivent désormais les réglages du quotidien, et personne n'ouvre son
+     compte pour regarder ce qu'il paie. */
+  var ui = { tab: 'today', account: 'prefs', filter: 'all', expanded: null };
 
   var el = {
     shell: document.getElementById('shell'),
@@ -12267,25 +12333,21 @@ window.ALLY_PLAN_BY_ID = function (id) {
     el.fab.hidden = !S.voiceEnabled || !store.can('voiceCommand');
     document.title = 'Espace pro — ' + name() + ' — Ally';
 
-    document.getElementById('foot-email').textContent = S.identity.email || store.fullName();
+  }
 
-    /* Le raccourci vers la console n'apparaît que pour le rôle admin. */
-    var adminItem = document.getElementById('foot-admin-item');
-    if (adminItem) {
-      adminItem.hidden = !(window.ALLY_ACCOUNTS && window.ALLY_ACCOUNTS.isAdmin());
-    }
-    document.getElementById('foot-transfer').setAttribute('aria-checked', String(!!S.rules.transfer));
-    document.getElementById('foot-digest').setAttribute('aria-checked', String(S.notif.email));
-    /* Dire où vivent réellement les données. Tant qu'aucune API ne répond,
-       tout est dans le navigateur, et le prétendre autrement serait mentir. */
+  /* Où vivent réellement les données. Tant qu'aucune API ne répond, tout est
+     dans le navigateur, et le prétendre autrement serait mentir. */
+  function ouSontLesDonnees() {
     var api = window.ALLY_API;
-    document.getElementById('foot-storage').textContent =
-      (api && api.online())
-        ? (api.cabinetId() ? 'serveur Ally (ligne connectée)' : 'serveur Ally détecté')
-        : (S.subscription ? 'navigateur (compte actif)' : 'navigateur (démonstration)');
+    if (api && api.online()) {
+      return api.cabinetId() ? 'serveur Ally (ligne connectée)' : 'serveur Ally détecté';
+    }
+    return S.subscription ? 'navigateur (compte actif)' : 'navigateur (démonstration)';
+  }
+
+  function voixCourante() {
     var v = window.ALLY_VOICE.resolveVoice(S.voice.uri);
-    document.getElementById('foot-voice-name').textContent =
-      v ? v.name.replace(/\s*\(.*\)\s*/, '') : 'par défaut';
+    return v ? v.name.replace(/\s*\(.*\)\s*/, '') : 'par défaut';
   }
 
   function renderNav() {
@@ -12383,19 +12445,10 @@ window.ALLY_PLAN_BY_ID = function (id) {
     el.searchToggle.setAttribute('aria-expanded', String(open));
     if (open) el.search.focus();
   });
-  /* Bloc utilitaire du pied de barre latérale. */
-  document.getElementById('foot-transfer').addEventListener('click', function () {
-    S.rules.transfer = !S.rules.transfer; store.save(); renderChrome();
-    flash(S.rules.transfer ? 'Urgences transférées sur votre portable' : 'Transfert des urgences désactivé');
-  });
-  document.getElementById('foot-digest').addEventListener('click', function () {
-    S.notif.email = !S.notif.email; store.save(); renderChrome();
-    flash(S.notif.email ? 'Résumé quotidien activé' : 'Résumé quotidien désactivé');
-  });
-  document.getElementById('foot-logout').addEventListener('click', function () {
-    /* Se déconnecter doit fermer la session partout où elle est ouverte : dans
-       le navigateur, et sur le serveur quand il en tient une. Attendre sa
-       réponse évite de laisser un cookie valide derrière soi. */
+  /* Se déconnecter doit fermer la session partout où elle est ouverte : dans
+     le navigateur, et sur le serveur quand il en tient une. Attendre sa
+     réponse évite de laisser un cookie valide derrière soi. */
+  function seDeconnecter() {
     var done = window.ALLY_GATE
       ? window.ALLY_GATE.logout()
       : Promise.resolve(window.ALLY_ACCOUNTS && window.ALLY_ACCOUNTS.logout());
@@ -12404,7 +12457,7 @@ window.ALLY_PLAN_BY_ID = function (id) {
       store.reload();
       window.ALLY_GOTO('login.html');
     });
-  });
+  }
 
   /* Présence : c'est ce battement qui alimente le « en ligne » de la console
      d'administration. Sans lui, un professionnel actif y paraîtrait absent. */
@@ -12412,18 +12465,6 @@ window.ALLY_PLAN_BY_ID = function (id) {
     window.ALLY_ACCOUNTS.touch();
     window.setInterval(function () { window.ALLY_ACCOUNTS.touch(); }, 60000);
   }
-  document.getElementById('foot-palette').addEventListener('click', function () {
-    window.ALLY_PALETTE.open();
-  });
-  document.getElementById('foot-invite').addEventListener('click', function () {
-    flash('Invitation en lecture seule envoyée (démonstration)');
-  });
-  /* Le raccourci « Voix » mène désormais à l'onglet Ally, où le sélecteur
-     voisine avec le registre de parole et le script d'accueil. */
-  document.getElementById('foot-voice').addEventListener('click', function () {
-    setTab('ally');
-  });
-
   /* ---------- Recherche transversale ---------- */
   /* Cherche dans les appels, les emails, les rendez-vous et la base de
      connaissances, et emmène directement sur le bon onglet. */
@@ -13365,6 +13406,92 @@ window.ALLY_PLAN_BY_ID = function (id) {
       '</div></div>';
   }
 
+  /* ---- Préférences ----
+     Ce qui vivait au pied de la barre latérale : une adresse email, deux
+     interrupteurs, cinq liens soulignés et un numéro de version, empilés en
+     dix lignes de dix pixels sous la carte de profil. C'était le coin où l'on
+     rangeait ce qui n'avait pas de place ailleurs, et ça se voyait.
+
+     Ces réglages ont maintenant leur écran, avec la place de dire ce qu'ils
+     font. La barre latérale ne porte plus que la navigation et le compte —
+     ce à quoi une barre latérale sert. */
+  function accountPrefs() {
+    var admin = window.ALLY_ACCOUNTS && window.ALLY_ACCOUNTS.isAdmin();
+
+    return '<div class="stack limit-800">' +
+
+      '<div class="card">' +
+        '<p class="card-title">Session</p>' +
+        '<div class="pref-id">' +
+          '<span class="avatar avatar-sm" aria-hidden="true">' +
+            esc(((S.identity.firstName || '?')[0] + (S.identity.lastName || '?')[0]).toUpperCase()) +
+          '</span>' +
+          '<div class="pref-id-main">' +
+            '<strong>' + esc(name()) + '</strong>' +
+            '<span>' + esc(S.identity.email || store.fullName()) + '</span>' +
+          '</div>' +
+          '<button type="button" class="btn btn-ghost btn-sm" id="pref-logout">Se déconnecter</button>' +
+        '</div>' +
+      '</div>' +
+
+      '<div class="card">' +
+        '<p class="card-title">Deux réglages sous la main</p>' +
+        '<p class="note" style="margin-bottom:16px">Ceux qu\'on change le plus souvent. ' +
+          'Les autres canaux d\'alerte sont dans Notifications.</p>' +
+        switchRow('rules', 'transfer', 'Transfert automatique des urgences',
+          'Ally vous bascule l\'appel sur ' + (S.identity.phone || 'votre portable') +
+          ' quand elle juge que ça ne peut pas attendre.') +
+        switchRow('notif', 'email', 'Résumé quotidien par email',
+          'Ce qui s\'est passé pendant la journée, ' +
+          (S.summaryFreq === 'daily' ? 'chaque soir à 19 h' : 'chaque vendredi à 18 h') + '.') +
+      '</div>' +
+
+      '<div class="card">' +
+        '<p class="card-title">Aller vite</p>' +
+        '<div class="pref-rows">' +
+          prefRow('palette', 'Palette de commandes',
+            'Tout ce que fait Ally, au clavier', raccourciPalette()) +
+          prefRow('voice', 'La voix d\'Ally',
+            'Celle que vos clients entendront', voixCourante()) +
+          prefRow('invite', 'Inviter un collaborateur',
+            'Accès en lecture seule au cabinet', '') +
+          (admin ? prefRow('admin', 'Console d\'administration',
+            'Réservée à la plateforme', '') : '') +
+          prefRow('site', 'Retour au site public',
+            'La page que voient vos futurs clients', '') +
+        '</div>' +
+      '</div>' +
+
+      '<div class="card">' +
+        '<p class="card-title">Où vivent vos données</p>' +
+        '<div class="tri-row"><span>Stockage</span><span>' + esc(ouSontLesDonnees()) +
+          '</span><span></span></div>' +
+        '<div class="tri-row"><span>Version</span><span>Ally v0.7</span><span></span></div>' +
+        '<p class="note" style="margin-top:14px">Exporter ou supprimer ces données se fait ' +
+          'depuis Sécurité.</p>' +
+      '</div>' +
+
+    '</div>';
+  }
+
+  /* Une ligne de réglage : ce qu'elle fait, à quoi elle sert, son état. Le
+     chevron dit qu'elle emmène ailleurs. */
+  function prefRow(id, label, hint, valeur) {
+    return '<button type="button" class="pref-row" data-pref="' + id + '">' +
+      '<span class="pref-row-main"><strong>' + esc(label) + '</strong>' +
+        '<span>' + esc(hint) + '</span></span>' +
+      (valeur ? '<span class="pref-row-value">' + esc(valeur) + '</span>' : '') +
+      '<span class="pref-row-go" aria-hidden="true">›</span>' +
+    '</button>';
+  }
+
+  /* ⌘K sur Mac, Ctrl K ailleurs — la même règle que celle qu'applique la
+     palette elle-même, pour ne pas annoncer une touche qui ne marche pas. */
+  function raccourciPalette() {
+    var mac = /Mac|iPhone|iPad/i.test(window.navigator.platform || window.navigator.userAgent || '');
+    return mac ? '⌘ K' : 'Ctrl K';
+  }
+
   function accountAlerts() {
     return '<div class="stack limit-640">' +
       '<div class="card"><p class="card-title">Canaux d\'alerte pour les urgences</p>' +
@@ -13522,7 +13649,10 @@ window.ALLY_PLAN_BY_ID = function (id) {
       '</div></div>';
   }
 
-  var ACCOUNT_VIEWS = { plan: accountPlan, links: accountLinks, privacy: accountPrivacy, alerts: accountAlerts, help: accountHelp };
+  var ACCOUNT_VIEWS = {
+    prefs: accountPrefs, plan: accountPlan, links: accountLinks,
+    privacy: accountPrivacy, alerts: accountAlerts, help: accountHelp
+  };
 
   function viewAccount() {
     return '<div class="choice-row filters" role="group" aria-label="Sections du compte">' +
@@ -14044,6 +14174,22 @@ window.ALLY_PLAN_BY_ID = function (id) {
         ui.filter = button.getAttribute('data-filter');
         ui.expanded = null;
         renderPanel();
+      });
+    });
+
+    var deconnexion = panel.querySelector('#pref-logout');
+    if (deconnexion) deconnexion.addEventListener('click', seDeconnecter);
+
+    panel.querySelectorAll('[data-pref]').forEach(function (button) {
+      button.addEventListener('click', function () {
+        var id = button.getAttribute('data-pref');
+        if (id === 'palette') { window.ALLY_PALETTE.open(); return; }
+        /* La voix vit dans l'onglet Ally, où le sélecteur voisine avec le
+           registre de parole et le script d'accueil. */
+        if (id === 'voice') { setTab('ally'); return; }
+        if (id === 'invite') { flash('Invitation en lecture seule envoyée (démonstration)'); return; }
+        if (id === 'admin') { window.ALLY_GOTO('admin.html'); return; }
+        if (id === 'site') { window.ALLY_GOTO('index.html'); }
       });
     });
 

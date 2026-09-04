@@ -23,19 +23,42 @@ const dit = (question) => {
   return { kind: r.kind, texte: (r.reply || r.confirm || ''), r };
 };
 
-/* Le premier jour ouvert à partir d'aujourd'hui, selon les horaires du
-   cabinet. Les tests qui parlent de créneaux en ont besoin : un samedi fermé
-   n'a rien à proposer, et ce n'est pas un défaut. */
+/* Le premier jour ouvert *après* aujourd'hui, selon les horaires du cabinet.
+
+   Deux pièges, tous deux rencontrés :
+
+   Le samedi est fermé — un test qui demande « demain » un vendredi n'a rien à
+   se mettre sous la dent, et ce n'est pas un défaut du produit.
+
+   Et « aujourd'hui » ne convient pas non plus : lancé à 22 h, il ne reste pas
+   un créneau d'une journée qui ferme à 18 h 30. On part donc de demain, et le
+   test cesse de dépendre de l'heure à laquelle il tourne.
+
+   (La première version de cette aide appelait resolveDate('dans N jours') —
+   qui ne comprend que les nombres écrits en lettres et renvoyait donc
+   toujours aujourd'hui. Le calcul se fait ici en clair.) */
 const prochainJourOuvert = () => {
   const ids = ['dim', 'lun', 'mar', 'mer', 'jeu', 'ven', 'sam'];
-  for (let i = 0; i < 8; i++) {
-    const jour = A.resolveDate('dans ' + i + ' jours', A.TODAY) ||
-      new Date(Date.parse(A.TODAY + 'T00:00:00') + i * 864e5).toISOString().slice(0, 10);
-    const id = ids[new Date(jour + 'T00:00:00').getDay()];
-    const h = store.state.hours.filter((x) => x.id === id)[0];
+  const base = Date.parse(A.TODAY + 'T00:00:00');
+  for (let i = 1; i <= 8; i++) {
+    const jour = new Date(base + i * 864e5).toISOString().slice(0, 10);
+    const h = store.state.hours.filter((x) => x.id === ids[new Date(jour + 'T00:00:00').getDay()])[0];
     if (h && h.on) return jour;
   }
   throw new Error('aucun jour ouvert dans les horaires du cabinet');
+};
+
+/* Le premier jour fermé à partir de demain — pour vérifier ce qu'Ally répond
+   quand il n'y a rien à proposer. */
+const prochainJourFerme = () => {
+  const ids = ['dim', 'lun', 'mar', 'mer', 'jeu', 'ven', 'sam'];
+  const base = Date.parse(A.TODAY + 'T00:00:00');
+  for (let i = 1; i <= 8; i++) {
+    const jour = new Date(base + i * 864e5).toISOString().slice(0, 10);
+    const h = store.state.hours.filter((x) => x.id === ids[new Date(jour + 'T00:00:00').getDay()])[0];
+    if (!h || !h.on) return jour;
+  }
+  return null;
 };
 
 const comprend = (question, attendu) => {
@@ -110,13 +133,53 @@ test('un créneau proposé est réellement libre', () => {
   D.rdv = D.rdv.filter((x) => x.id !== 'test-libre');
 });
 
-test('un jour fermé ne propose aucun créneau', () => {
+test('un jour fermé le dit, et propose le suivant', () => {
+  /* « Rien de libre dans vos horaires sur la période demandée » était exact et
+     inutilisable : il laissait croire à un agenda plein là où le cabinet était
+     simplement fermé. La réponse doit nommer la raison, et surtout ne pas
+     laisser l'appelant sans date. */
+  const ferme = prochainJourFerme();
+  if (!ferme) return; /* cabinet ouvert sept jours sur sept : rien à vérifier */
+
+  const r = comprend('suis-je libre le ' + A.longLabel(ferme) + ' ?');
+  assert.ok(/ferm/i.test(r.texte), 'la raison n\'est pas dite : ' + r.texte);
+  assert.ok(/\d{2}:\d{2}/.test(r.texte),
+    'aucun créneau de repli proposé : ' + r.texte);
+});
+
+test('une journée déjà finie ne se confond pas avec un agenda plein', () => {
+  /* Interrogée après l'heure de fermeture, Ally répondait « rien de libre »
+     comme si la semaine entière était prise. */
+  const S = store.state;
+  const cles = ['dim', 'lun', 'mar', 'mer', 'jeu', 'ven', 'sam'];
+  const aujourdhui = S.hours.filter((h) => h.id === cles[new Date(A.TODAY + 'T00:00:00').getDay()])[0];
+  if (!aujourdhui || !aujourdhui.on) return; /* fermé aujourd'hui : autre cas */
+
+  const avant = aujourdhui.to;
+  aujourdhui.to = '00:30'; /* la journée est forcément derrière nous */
+  try {
+    const r = B.ask('suis-je libre aujourd\'hui ?');
+    assert.ok(/termin/i.test(r.reply), 'la fin de journée n\'est pas dite : ' + r.reply);
+    assert.ok(/\d{2}:\d{2}/.test(r.reply), 'aucun créneau de repli : ' + r.reply);
+  } finally {
+    aujourdhui.to = avant;
+  }
+});
+
+test('un cabinet fermé toute la semaine n\'invente pas de créneau', () => {
+  /* Le garde-fou : quelle que soit la qualité de la réponse de repli, Ally ne
+     doit jamais proposer une heure quand il n'y en a aucune. */
   const S = store.state;
   const avant = S.hours.map((h) => h.on);
   S.hours.forEach((h) => { h.on = false; });
-  const r = B.ask('suis-je libre demain ?');
-  assert.ok(/Rien de libre/.test(r.reply), 'réponse : ' + r.reply);
-  S.hours.forEach((h, i) => { h.on = avant[i]; });
+  try {
+    const r = B.ask('suis-je libre demain ?');
+    assert.ok(/ferm/i.test(r.reply), 'la fermeture n\'est pas dite : ' + r.reply);
+    assert.ok(!/\d{2}:\d{2}/.test(r.reply),
+      'une heure est proposée alors que tout est fermé : ' + r.reply);
+  } finally {
+    S.hours.forEach((h, i) => { h.on = avant[i]; });
+  }
 });
 
 /* ------------------------------------------------------ Recherche par nom */

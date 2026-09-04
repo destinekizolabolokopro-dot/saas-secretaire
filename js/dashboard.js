@@ -17,6 +17,7 @@
   ];
 
   var ACCOUNT_SECTIONS = [
+    { id: 'prefs',  label: 'Préférences' },
     { id: 'plan',   label: 'Abonnement' },
     { id: 'links',  label: 'Connexions' },
     { id: 'privacy', label: 'Sécurité' },
@@ -24,7 +25,10 @@
     { id: 'help',   label: 'Support' }
   ];
 
-  var ui = { tab: 'today', account: 'plan', filter: 'all', expanded: null };
+  /* Mon compte s'ouvre sur les préférences et non sur la facturation : c'est
+     là que vivent désormais les réglages du quotidien, et personne n'ouvre son
+     compte pour regarder ce qu'il paie. */
+  var ui = { tab: 'today', account: 'prefs', filter: 'all', expanded: null };
 
   var el = {
     shell: document.getElementById('shell'),
@@ -295,25 +299,21 @@
     el.fab.hidden = !S.voiceEnabled || !store.can('voiceCommand');
     document.title = 'Espace pro — ' + name() + ' — Ally';
 
-    document.getElementById('foot-email').textContent = S.identity.email || store.fullName();
+  }
 
-    /* Le raccourci vers la console n'apparaît que pour le rôle admin. */
-    var adminItem = document.getElementById('foot-admin-item');
-    if (adminItem) {
-      adminItem.hidden = !(window.ALLY_ACCOUNTS && window.ALLY_ACCOUNTS.isAdmin());
-    }
-    document.getElementById('foot-transfer').setAttribute('aria-checked', String(!!S.rules.transfer));
-    document.getElementById('foot-digest').setAttribute('aria-checked', String(S.notif.email));
-    /* Dire où vivent réellement les données. Tant qu'aucune API ne répond,
-       tout est dans le navigateur, et le prétendre autrement serait mentir. */
+  /* Où vivent réellement les données. Tant qu'aucune API ne répond, tout est
+     dans le navigateur, et le prétendre autrement serait mentir. */
+  function ouSontLesDonnees() {
     var api = window.ALLY_API;
-    document.getElementById('foot-storage').textContent =
-      (api && api.online())
-        ? (api.cabinetId() ? 'serveur Ally (ligne connectée)' : 'serveur Ally détecté')
-        : (S.subscription ? 'navigateur (compte actif)' : 'navigateur (démonstration)');
+    if (api && api.online()) {
+      return api.cabinetId() ? 'serveur Ally (ligne connectée)' : 'serveur Ally détecté';
+    }
+    return S.subscription ? 'navigateur (compte actif)' : 'navigateur (démonstration)';
+  }
+
+  function voixCourante() {
     var v = window.ALLY_VOICE.resolveVoice(S.voice.uri);
-    document.getElementById('foot-voice-name').textContent =
-      v ? v.name.replace(/\s*\(.*\)\s*/, '') : 'par défaut';
+    return v ? v.name.replace(/\s*\(.*\)\s*/, '') : 'par défaut';
   }
 
   function renderNav() {
@@ -411,19 +411,10 @@
     el.searchToggle.setAttribute('aria-expanded', String(open));
     if (open) el.search.focus();
   });
-  /* Bloc utilitaire du pied de barre latérale. */
-  document.getElementById('foot-transfer').addEventListener('click', function () {
-    S.rules.transfer = !S.rules.transfer; store.save(); renderChrome();
-    flash(S.rules.transfer ? 'Urgences transférées sur votre portable' : 'Transfert des urgences désactivé');
-  });
-  document.getElementById('foot-digest').addEventListener('click', function () {
-    S.notif.email = !S.notif.email; store.save(); renderChrome();
-    flash(S.notif.email ? 'Résumé quotidien activé' : 'Résumé quotidien désactivé');
-  });
-  document.getElementById('foot-logout').addEventListener('click', function () {
-    /* Se déconnecter doit fermer la session partout où elle est ouverte : dans
-       le navigateur, et sur le serveur quand il en tient une. Attendre sa
-       réponse évite de laisser un cookie valide derrière soi. */
+  /* Se déconnecter doit fermer la session partout où elle est ouverte : dans
+     le navigateur, et sur le serveur quand il en tient une. Attendre sa
+     réponse évite de laisser un cookie valide derrière soi. */
+  function seDeconnecter() {
     var done = window.ALLY_GATE
       ? window.ALLY_GATE.logout()
       : Promise.resolve(window.ALLY_ACCOUNTS && window.ALLY_ACCOUNTS.logout());
@@ -432,7 +423,7 @@
       store.reload();
       window.location.href = 'login.html';
     });
-  });
+  }
 
   /* Présence : c'est ce battement qui alimente le « en ligne » de la console
      d'administration. Sans lui, un professionnel actif y paraîtrait absent. */
@@ -440,18 +431,6 @@
     window.ALLY_ACCOUNTS.touch();
     window.setInterval(function () { window.ALLY_ACCOUNTS.touch(); }, 60000);
   }
-  document.getElementById('foot-palette').addEventListener('click', function () {
-    window.ALLY_PALETTE.open();
-  });
-  document.getElementById('foot-invite').addEventListener('click', function () {
-    flash('Invitation en lecture seule envoyée (démonstration)');
-  });
-  /* Le raccourci « Voix » mène désormais à l'onglet Ally, où le sélecteur
-     voisine avec le registre de parole et le script d'accueil. */
-  document.getElementById('foot-voice').addEventListener('click', function () {
-    setTab('ally');
-  });
-
   /* ---------- Recherche transversale ---------- */
   /* Cherche dans les appels, les emails, les rendez-vous et la base de
      connaissances, et emmène directement sur le bon onglet. */
@@ -1393,6 +1372,92 @@
       '</div></div>';
   }
 
+  /* ---- Préférences ----
+     Ce qui vivait au pied de la barre latérale : une adresse email, deux
+     interrupteurs, cinq liens soulignés et un numéro de version, empilés en
+     dix lignes de dix pixels sous la carte de profil. C'était le coin où l'on
+     rangeait ce qui n'avait pas de place ailleurs, et ça se voyait.
+
+     Ces réglages ont maintenant leur écran, avec la place de dire ce qu'ils
+     font. La barre latérale ne porte plus que la navigation et le compte —
+     ce à quoi une barre latérale sert. */
+  function accountPrefs() {
+    var admin = window.ALLY_ACCOUNTS && window.ALLY_ACCOUNTS.isAdmin();
+
+    return '<div class="stack limit-800">' +
+
+      '<div class="card">' +
+        '<p class="card-title">Session</p>' +
+        '<div class="pref-id">' +
+          '<span class="avatar avatar-sm" aria-hidden="true">' +
+            esc(((S.identity.firstName || '?')[0] + (S.identity.lastName || '?')[0]).toUpperCase()) +
+          '</span>' +
+          '<div class="pref-id-main">' +
+            '<strong>' + esc(name()) + '</strong>' +
+            '<span>' + esc(S.identity.email || store.fullName()) + '</span>' +
+          '</div>' +
+          '<button type="button" class="btn btn-ghost btn-sm" id="pref-logout">Se déconnecter</button>' +
+        '</div>' +
+      '</div>' +
+
+      '<div class="card">' +
+        '<p class="card-title">Deux réglages sous la main</p>' +
+        '<p class="note" style="margin-bottom:16px">Ceux qu\'on change le plus souvent. ' +
+          'Les autres canaux d\'alerte sont dans Notifications.</p>' +
+        switchRow('rules', 'transfer', 'Transfert automatique des urgences',
+          'Ally vous bascule l\'appel sur ' + (S.identity.phone || 'votre portable') +
+          ' quand elle juge que ça ne peut pas attendre.') +
+        switchRow('notif', 'email', 'Résumé quotidien par email',
+          'Ce qui s\'est passé pendant la journée, ' +
+          (S.summaryFreq === 'daily' ? 'chaque soir à 19 h' : 'chaque vendredi à 18 h') + '.') +
+      '</div>' +
+
+      '<div class="card">' +
+        '<p class="card-title">Aller vite</p>' +
+        '<div class="pref-rows">' +
+          prefRow('palette', 'Palette de commandes',
+            'Tout ce que fait Ally, au clavier', raccourciPalette()) +
+          prefRow('voice', 'La voix d\'Ally',
+            'Celle que vos clients entendront', voixCourante()) +
+          prefRow('invite', 'Inviter un collaborateur',
+            'Accès en lecture seule au cabinet', '') +
+          (admin ? prefRow('admin', 'Console d\'administration',
+            'Réservée à la plateforme', '') : '') +
+          prefRow('site', 'Retour au site public',
+            'La page que voient vos futurs clients', '') +
+        '</div>' +
+      '</div>' +
+
+      '<div class="card">' +
+        '<p class="card-title">Où vivent vos données</p>' +
+        '<div class="tri-row"><span>Stockage</span><span>' + esc(ouSontLesDonnees()) +
+          '</span><span></span></div>' +
+        '<div class="tri-row"><span>Version</span><span>Ally v0.7</span><span></span></div>' +
+        '<p class="note" style="margin-top:14px">Exporter ou supprimer ces données se fait ' +
+          'depuis Sécurité.</p>' +
+      '</div>' +
+
+    '</div>';
+  }
+
+  /* Une ligne de réglage : ce qu'elle fait, à quoi elle sert, son état. Le
+     chevron dit qu'elle emmène ailleurs. */
+  function prefRow(id, label, hint, valeur) {
+    return '<button type="button" class="pref-row" data-pref="' + id + '">' +
+      '<span class="pref-row-main"><strong>' + esc(label) + '</strong>' +
+        '<span>' + esc(hint) + '</span></span>' +
+      (valeur ? '<span class="pref-row-value">' + esc(valeur) + '</span>' : '') +
+      '<span class="pref-row-go" aria-hidden="true">›</span>' +
+    '</button>';
+  }
+
+  /* ⌘K sur Mac, Ctrl K ailleurs — la même règle que celle qu'applique la
+     palette elle-même, pour ne pas annoncer une touche qui ne marche pas. */
+  function raccourciPalette() {
+    var mac = /Mac|iPhone|iPad/i.test(window.navigator.platform || window.navigator.userAgent || '');
+    return mac ? '⌘ K' : 'Ctrl K';
+  }
+
   function accountAlerts() {
     return '<div class="stack limit-640">' +
       '<div class="card"><p class="card-title">Canaux d\'alerte pour les urgences</p>' +
@@ -1550,7 +1615,10 @@
       '</div></div>';
   }
 
-  var ACCOUNT_VIEWS = { plan: accountPlan, links: accountLinks, privacy: accountPrivacy, alerts: accountAlerts, help: accountHelp };
+  var ACCOUNT_VIEWS = {
+    prefs: accountPrefs, plan: accountPlan, links: accountLinks,
+    privacy: accountPrivacy, alerts: accountAlerts, help: accountHelp
+  };
 
   function viewAccount() {
     return '<div class="choice-row filters" role="group" aria-label="Sections du compte">' +
@@ -2072,6 +2140,22 @@
         ui.filter = button.getAttribute('data-filter');
         ui.expanded = null;
         renderPanel();
+      });
+    });
+
+    var deconnexion = panel.querySelector('#pref-logout');
+    if (deconnexion) deconnexion.addEventListener('click', seDeconnecter);
+
+    panel.querySelectorAll('[data-pref]').forEach(function (button) {
+      button.addEventListener('click', function () {
+        var id = button.getAttribute('data-pref');
+        if (id === 'palette') { window.ALLY_PALETTE.open(); return; }
+        /* La voix vit dans l'onglet Ally, où le sélecteur voisine avec le
+           registre de parole et le script d'accueil. */
+        if (id === 'voice') { setTab('ally'); return; }
+        if (id === 'invite') { flash('Invitation en lecture seule envoyée (démonstration)'); return; }
+        if (id === 'admin') { window.location.href = 'admin.html'; return; }
+        if (id === 'site') { window.location.href = 'index.html'; }
       });
     });
 

@@ -205,6 +205,33 @@
     return libres;
   }
 
+  /* L'heure de fermeture d'un jour donné, ou null s'il est fermé. */
+  function fermetureDe(isoDate) {
+    var p = String(isoDate).split('-');
+    var cles = ['dim', 'lun', 'mar', 'mer', 'jeu', 'ven', 'sam'];
+    var jour = new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2])).getDay();
+    var plage = window.ALLY_STORE.state.hours.filter(function (h) {
+      return h.id === cles[jour] && h.on;
+    })[0];
+    return plage ? plage.to : null;
+  }
+
+  /* Pourquoi ce jour n'a-t-il rien à offrir ? « Rien de libre » est vrai dans
+     quatre situations très différentes — fermé, bloqué, déjà fini, complet —
+     et la seule réponse utile est celle qui dit laquelle. */
+  function pourquoiRien(isoDate) {
+    var A = window.ALLY_AGENDA;
+    if (!fermetureDe(isoDate)) return 'ferme';
+    var bloque = (window.ALLY_STORE.data().blocked || []).some(function (b) {
+      return b.date === isoDate;
+    });
+    if (bloque) return 'bloque';
+    if (isoDate === A.TODAY && enMinutes(heureCourante()) >= enMinutes(fermetureDe(isoDate))) {
+      return 'fini';
+    }
+    return 'complet';
+  }
+
   /* Le jour, dit comme on le dit. « auj » et « dem » sont des abréviations de
      tableau : à l'oral comme à l'écrit, on dit « aujourd'hui » et « demain ». */
   function quandDit(isoDate) {
@@ -806,11 +833,42 @@
         }
 
         if (!trouves.length) {
-          return {
+          /* « Rien de libre dans vos horaires sur la période demandée » était
+             exact et inutilisable. Demandé un vendredi à 22 h, il laissait
+             croire que la semaine entière était pleine, alors que la journée
+             était simplement finie et que lundi 9 h était libre.
+
+             On dit donc laquelle des quatre raisons s'applique — et surtout on
+             ne s'arrête pas au constat : la question « suis-je libre ? »
+             attend un créneau, pas un refus. */
+          var raison = pourquoiRien(depart);
+          var suite = null;
+          for (var av = 1; av <= 14 && !suite; av++) {
+            var apres = decale(depart, av);
+            var dispo = creneauxLibres(apres, duree);
+            if (dispo.length) suite = { date: apres, heures: dispo };
+          }
+
+          var constat = {
+            ferme: 'Vous êtes fermé ' + quandDit(depart) + '.',
+            bloque: 'Vous avez bloqué la journée ' + quandDit(depart) + '.',
+            fini: 'Votre journée est terminée — fermeture à ' + fermetureDe(depart) + '.',
+            complet: 'Rien de libre ' + quandDit(depart) + ' : la journée est complète.'
+          }[raison];
+
+          var reponse = {
             kind: 'answer',
-            reply: 'Rien de libre dans vos horaires sur la période demandée.',
-            detail: 'Vos horaires sont réglés dans Ally → Disponibilités.'
+            reply: constat + (suite
+              ? ' Le prochain créneau de ' + duree + ' minutes est ' +
+                A5.shortLabel(suite.date) + ' à ' + suite.heures[0] + '.'
+              : ' Et rien non plus dans les quinze jours qui suivent.'),
+            detail: 'Calculé sur vos horaires, réglés dans Ally → Disponibilités'
           };
+          if (suite) {
+            reponse.follow = ['Crée un rendez-vous ' + A5.shortLabel(suite.date) +
+              ' à ' + suite.heures[0]];
+          }
+          return reponse;
         }
 
         var dit = trouves.map(function (j) {

@@ -162,7 +162,6 @@
   background: var(--card); border: 1px solid var(--bd); border-radius: var(--r);
   padding: 22px;
   box-shadow: var(--sh-1), var(--hi);
-  backdrop-filter: var(--mat); -webkit-backdrop-filter: var(--mat);
   transition: transform var(--t-med) var(--ease), box-shadow var(--t-med) var(--ease),
               border-color var(--t-med) var(--ease-soft);
 }
@@ -228,7 +227,6 @@
   border: 1px solid oklch(0.72 0.19 296 / 0.28);
   border-radius: var(--r); padding: 22px 24px; margin-bottom: 24px;
   box-shadow: var(--sh-2), var(--hi);
-  backdrop-filter: var(--mat); -webkit-backdrop-filter: var(--mat);
 }
 .todo-head { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
 .todo-count {
@@ -266,7 +264,6 @@
   background: var(--card); border: 1px solid var(--bd);
   border-radius: var(--r); overflow: hidden; margin-bottom: 30px;
   box-shadow: var(--sh-1), var(--hi);
-  backdrop-filter: var(--mat); -webkit-backdrop-filter: var(--mat);
 }
 .conv-list.flat { padding: 6px 20px; }
 .conv { border-bottom: 1px solid var(--hair); }
@@ -379,7 +376,6 @@
   background: linear-gradient(135deg, oklch(0.22 0.04 296 / 0.6), oklch(0.2 0.03 200 / 0.5));
   border: 1px solid var(--bd-2); border-radius: var(--r); padding: 24px;
   box-shadow: var(--sh-2), var(--hi);
-  backdrop-filter: var(--mat); -webkit-backdrop-filter: var(--mat);
 }
 .plan-kicker { font-size: 13px; color: oklch(0.75 0.1 296); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 6px; }
 .plan-name { font-family: var(--ff-h); font-size: 24px; font-weight: 700; margin-bottom: 18px; letter-spacing: var(--tr-title); }
@@ -927,23 +923,9 @@
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1;
 }
 .foot-account .btn-link { font-size: 11px; flex-shrink: 0; }
-/* Les deux interrupteurs étaient deux lignes de texte parmi dix autres, à la
-   même hauteur et sans rien qui les rassemble. Réunis dans un même panneau,
-   ils redeviennent ce qu'ils sont : un réglage à deux entrées, pas deux
-   phrases de plus dans le pied de page. */
-.foot-switch {
-  display: flex; align-items: center; justify-content: space-between;
-  gap: 10px; font-size: 11.5px; color: var(--txt-3);
-  padding: 9px 11px;
-  background: oklch(1 0 0 / 0.035); border: 1px solid var(--hair);
-}
-.foot-switch:first-of-type { border-radius: var(--r-sm) var(--r-sm) 0 0; border-bottom: none; }
-/* Le pied de barre est une colonne à gouttière : sans ce rattrapage, les deux
-   panneaux resteraient écartés de la gouttière au lieu d'être jointifs. */
-.foot-switch + .foot-switch { margin-top: -10px; border-radius: 0 0 var(--r-sm) var(--r-sm); }
-.toggle-sm { width: 30px; height: 17px; }
-.toggle-sm::after { width: 12px; height: 12px; top: 2.5px; left: 2.5px; }
-.toggle-sm[aria-checked="true"]::after { left: 15.5px; }
+/* Le pied de l'espace pro ne porte plus d'interrupteurs ni de raccourcis :
+   tout cela a un écran à soi, dans Mon compte › Préférences. Ce qui reste ici
+   sert à la console d'administration, qui garde son pied minimal. */
 .foot-links { list-style: none; margin: 6px -8px 0; padding: 0; display: flex; flex-direction: column; gap: 1px; }
 .foot-links li { font-size: 10.5px; line-height: 1.45; color: var(--txt-5); padding: 0 8px; }
 .foot-dim { color: oklch(0.45 0.01 264); }
@@ -962,6 +944,54 @@
 }
 .foot-link:hover { color: var(--txt-2); background: oklch(1 0 0 / 0.05); }
 .foot-version { font-size: 10px; color: oklch(0.4 0.01 264); margin-top: 2px; }
+
+/* ============ PRÉFÉRENCES ============ */
+/* L'identité de la session, en tête de l'écran : qui est connecté, et de quoi
+   se déconnecter. La même information que la carte de profil de la barre
+   latérale, mais ici avec la place de porter son action. */
+.pref-id { display: flex; align-items: center; gap: 14px; }
+.pref-id-main { flex: 1; min-width: 0; }
+.pref-id-main strong { display: block; font-size: 15px; font-weight: 600; }
+.pref-id-main span {
+  display: block; font-size: 13px; color: var(--txt-4); margin-top: 2px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+/* Une pile de lignes cliquables, à la façon d'un écran de réglages : le filet
+   les sépare, la ligne entière est la cible, et le chevron dit qu'elle
+   emmène ailleurs. Le débord négatif fait mordre le survol sur la marge de la
+   carte plutôt que de laisser une bande morte de chaque côté. */
+.pref-rows { display: flex; flex-direction: column; margin: 0 -10px; }
+.pref-row {
+  display: flex; align-items: center; gap: 14px; width: 100%;
+  padding: 14px 10px; border: none; border-radius: var(--r-sm);
+  background: none; font-family: inherit; text-align: left;
+  color: var(--txt); cursor: pointer;
+  transition: background var(--t-fast) var(--ease-soft), transform var(--t-fast) var(--ease);
+}
+.pref-row + .pref-row { box-shadow: inset 0 1px 0 var(--hair); }
+.pref-row:hover { background: oklch(1 0 0 / 0.05); }
+.pref-row:active { transform: scale(0.99); }
+.pref-row-main { flex: 1; min-width: 0; }
+.pref-row-main strong { display: block; font-size: 14px; font-weight: 500; }
+.pref-row-main span { display: block; font-size: 12px; color: var(--txt-4); margin-top: 2px; line-height: 1.5; }
+.pref-row-value {
+  font-size: 12px; color: var(--txt-3); white-space: nowrap; flex-shrink: 0;
+  padding: 4px 10px; border-radius: var(--pill);
+  background: oklch(1 0 0 / 0.05); border: 1px solid var(--hair);
+}
+.pref-row-go { color: var(--txt-5); font-size: 17px; flex-shrink: 0; }
+.pref-row:hover .pref-row-go { color: var(--txt-3); }
+
+@media (max-width: 560px) {
+  /* Le libellé d'état passe sous son intitulé plutôt que de comprimer les
+     deux : « Résumé quotidien par email » ne doit pas tomber à trois lignes
+     pour laisser tenir « Ctrl K ». */
+  .pref-row { flex-wrap: wrap; row-gap: 6px; }
+  .pref-row-main { flex: 1 0 calc(100% - 30px); }
+  .pref-row-value { margin-left: 0; }
+  .pref-row-go { margin-left: auto; }
+}
 
 /* ============ PALETTE DE COMMANDES ============ */
 .palette-overlay {
@@ -1068,7 +1098,6 @@
   border: 1px solid oklch(0.72 0.19 296 / 0.28);
   border-radius: var(--r); padding: 22px 24px; margin-bottom: 24px;
   box-shadow: var(--sh-2), var(--hi);
-  backdrop-filter: var(--mat); -webkit-backdrop-filter: var(--mat);
 }
 .setup-head {
   display: flex; align-items: flex-start; justify-content: space-between;
