@@ -629,11 +629,60 @@
     if (step === STEP_COUNT) { renderReco(); renderRecap(); }
   }
 
+  /* Un bouton qui refuse d'avancer sans rien dire est le pire des deux
+     mondes : la personne clique, rien ne bouge, et elle ne sait pas si elle a
+     mal cliqué ou mal rempli. Le focus sautait bien sur le champ fautif —
+     c'était déjà ça — mais en silence, et un lecteur d'écran n'annonce pas un
+     déplacement de focus comme une erreur.
+
+     On marque donc le champ, on écrit à côté ce qui manque, et on le dit dans
+     une région vive pour que ce soit lu à voix haute. Le message disparaît dès
+     que le champ est rempli : une erreur qui reste après correction est une
+     erreur de plus. */
+  function marquerManquant(id, message) {
+    var champ = document.getElementById(id);
+    if (!champ) return;
+
+    champ.setAttribute('aria-invalid', 'true');
+    var note = document.getElementById('err-' + id);
+    if (!note) {
+      note = document.createElement('p');
+      note.id = 'err-' + id;
+      note.className = 'field-error';
+      note.setAttribute('role', 'alert');
+      champ.parentNode.appendChild(note);
+    }
+    note.textContent = message;
+    /* aria-describedby relie le message au champ : un lecteur d'écran le
+       redonne à chaque fois qu'on y revient, pas seulement à l'instant. */
+    champ.setAttribute('aria-describedby', note.id);
+    champ.focus();
+  }
+
+  function effacerManquant(champ) {
+    if (!champ || champ.getAttribute('aria-invalid') !== 'true') return;
+    champ.removeAttribute('aria-invalid');
+    champ.removeAttribute('aria-describedby');
+    var note = document.getElementById('err-' + champ.id);
+    if (note) note.remove();
+  }
+
+  ['lastName', 'org'].forEach(function (id) {
+    var champ = document.getElementById(id);
+    if (champ) champ.addEventListener('input', function () { effacerManquant(champ); });
+  });
+
   el.next.addEventListener('click', function () {
     // L'étape identité exige au moins un nom et une structure.
     if (step === 2) {
-      if (!S.identity.lastName.trim()) { document.getElementById('lastName').focus(); return; }
-      if (!S.identity.org.trim()) { document.getElementById('org').focus(); return; }
+      if (!S.identity.lastName.trim()) {
+        marquerManquant('lastName', 'Ally signe vos emails avec ce nom : il lui en faut un.');
+        return;
+      }
+      if (!S.identity.org.trim()) {
+        marquerManquant('org', 'C\'est le nom qu\'Ally annonce en décrochant. Sans lui, elle ne sait pas quoi dire.');
+        return;
+      }
     }
 
     if (step === STEP_COUNT) {

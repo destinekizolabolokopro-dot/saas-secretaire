@@ -167,13 +167,24 @@
           flash('Résumé envoyé à ' + (S.identity.email || 'votre adresse')); } },
       { primary: true, label: '+ Rendez-vous', act: function () { setTab('agenda'); } }
     ],
+    /* `quand` dit à quelle condition l'action a quelque chose à faire. Sur un
+       compte neuf, « Valider les brouillons » s'affichait en bouton principal
+       alors qu'il n'y avait rien à valider, et « Export CSV » proposait un
+       fichier vide. On les grise plutôt que de les cacher : un bouton qui
+       disparaît fait sauter la barre, et l'infobulle dit pourquoi. */
     conversations: [
-      { label: '↓ Export CSV des appels', act: function () { exportCSV(); } },
+      { label: '↓ Export CSV des appels', act: function () { exportCSV(); },
+        quand: function () { return calls().length; },
+        sinon: 'Aucun appel à exporter pour l\'instant.' },
       { primary: true, label: '+ Valider les brouillons', act: function () {
-          ui.filter = 'validate'; renderPanel(); } }
+          ui.filter = 'validate'; renderPanel(); },
+        quand: function () { return drafts().length; },
+        sinon: 'Aucun brouillon n\'attend votre validation.' }
     ],
     agenda: [
-      { label: '↓ Exporter l\'agenda', act: function () { exportJSON('agenda', D().rdv); } },
+      { label: '↓ Exporter l\'agenda', act: function () { exportJSON('agenda', D().rdv); },
+        quand: function () { return D().rdv.length; },
+        sinon: 'Votre agenda est vide.' },
       { primary: true, label: '+ Rendez-vous', act: function () {
           var input = document.getElementById('cal-client'); if (input) input.focus(); } }
     ],
@@ -278,9 +289,12 @@
     var box = document.getElementById('topbar-actions');
     var list = ACTIONS[ui.tab] || [];
     box.innerHTML = list.map(function (a, i) {
+      var dispo = !a.quand || !!a.quand();
+      var attrs = ' data-act="' + i + '"' +
+        (dispo ? '' : ' disabled title="' + esc(a.sinon || '') + '"');
       return a.primary
-        ? '<button type="button" class="btn btn-primary" data-act="' + i + '">' + esc(a.label) + '</button>'
-        : '<button type="button" class="act-link" data-act="' + i + '">' + esc(a.label) + '</button>';
+        ? '<button type="button" class="btn btn-primary"' + attrs + '>' + esc(a.label) + '</button>'
+        : '<button type="button" class="act-link"' + attrs + '>' + esc(a.label) + '</button>';
     }).join('');
     box.querySelectorAll('[data-act]').forEach(function (button) {
       button.addEventListener('click', function () {
@@ -1043,18 +1057,28 @@
           : emptyState('Aucun brouillon en attente.')) + '</div>';
     }
 
+    /* Un cadre vide n'est pas une liste vide : sur un compte neuf, ces deux
+       sections se réduisaient à un filet de quatre pixels sous leur titre —
+       ni une information, ni une absence d'information, juste un trait. Dire
+       ce qui n'a pas encore eu lieu, et pourquoi, vaut mieux. */
     if (showCalls) {
       out += '<p class="section-label">Appels du jour</p>' +
-        '<div class="conv-list">' + calls().map(callItem).join('') + '</div>';
+        '<div class="conv-list">' + (calls().length
+          ? calls().map(callItem).join('')
+          : emptyState('Aucun appel aujourd\'hui. Chacun apparaîtra ici avec sa ' +
+              'transcription, son motif, et ce qu\'Ally a répondu.')) + '</div>';
     }
 
     if (showSent) {
       out += '<p class="section-label">Envoyés automatiquement par Ally</p>' +
-        '<div class="conv-list flat">' + D().sent.map(function (mail) {
-          return '<div class="row"><div><p class="row-name">' + esc(mail.subject) + '</p>' +
-            '<p class="row-meta">À : ' + esc(mail.to) + '</p></div>' +
-            '<p class="row-meta">' + esc(mail.time) + '</p></div>';
-        }).join('') + '</div>';
+        '<div class="conv-list' + (D().sent.length ? ' flat' : '') + '">' + (D().sent.length
+          ? D().sent.map(function (mail) {
+              return '<div class="row"><div><p class="row-name">' + esc(mail.subject) + '</p>' +
+                '<p class="row-meta">À : ' + esc(mail.to) + '</p></div>' +
+                '<p class="row-meta">' + esc(mail.time) + '</p></div>';
+            }).join('')
+          : emptyState('Rien n\'est encore parti sans vous. Seules les confirmations ' +
+              'et les rappels le font — le reste passe par vos brouillons.')) + '</div>';
     }
 
     return out;

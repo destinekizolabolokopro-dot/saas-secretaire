@@ -907,6 +907,11 @@
   color: var(--txt); background: oklch(1 0 0 / 0.06); border-color: var(--bd-2);
 }
 .topbar-actions .act-link:active { transform: scale(0.96); }
+/* Une action sans objet reste à sa place mais ne fait plus illusion. */
+.topbar-actions .act-link:disabled {
+  opacity: .4; cursor: not-allowed; background: none; border-color: transparent;
+  color: var(--txt-5); transform: none;
+}
 .topbar-actions .btn { font-size: 12.5px; padding: 8px 16px; }
 
 /* ============ PIED DE BARRE LATÉRALE ============ */
