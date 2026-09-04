@@ -592,3 +592,42 @@ débit, journal d'accès. Chacun a un test qui échoue si on le casse.
 
 Le découpage complet et les décisions produit arrêtées sont dans
 [`ARCHITECTURE.md`](ARCHITECTURE.md).
+
+## Avant la première mise en ligne
+
+Ce qui suit n'est pas une liste de souhaits : ce sont des points qui rendent
+une mise en ligne fautive tant qu'ils ne sont pas traités. Ils ne se voient
+pas dans l'interface, c'est bien le problème.
+
+**Retirer les accès de démonstration.** La page de connexion affiche deux
+comptes avec leur mot de passe, dont un administrateur. C'est ce qui rend la
+maquette essayable en dix secondes, et c'est une porte grande ouverte le jour
+où elle est servie sur un domaine public. Le bloc `.demo-keys` de
+`login.html`, et les comptes correspondants dans `js/accounts.js`.
+
+**Écrire les mentions légales.** Un site marchand français les doit
+(article 6-III de la LCEN) : dénomination et forme juridique, capital, adresse
+du siège, email et téléphone, RCS ou SIREN, TVA intracommunautaire, directeur
+de la publication, et l'identité de l'hébergeur. Rien de tout cela ne peut
+être inventé ici — ce sont les vôtres. Il faut aussi les conditions générales
+de vente (le service est vendu par abonnement, avec droit de rétractation) et
+une politique de confidentialité qui dise ce que fait réellement le produit :
+transcription d'appels, conservation, sous-traitants.
+
+Le pied de page ne renvoie vers aucune de ces pages **parce qu'elles n'existent
+pas** — un lien mort vaut moins qu'un lien absent. Les trois colonnes sont
+prêtes à en accueillir une quatrième.
+
+**Poser une vraie base de données.** Les données vivent dans un fichier JSON.
+Cela tient pour une démonstration et ne tient plus à deux processus : deux
+écritures simultanées se perdent. PostgreSQL, et le jour où l'on migre, passer
+scrypt à argon2id — le premier est correct, le second est ce qu'on recommande
+aujourd'hui.
+
+**Ouvrir les comptes tiers.** Retell (numéro français), Brevo (envoi d'emails),
+Scaleway ou OVH (hébergement européen), Stripe (paiement). Aucun ne peut être
+créé depuis ici, et chacun conditionne une partie du produit qui n'est
+aujourd'hui que simulée.
+
+**Compteur de débit partagé.** La limitation est en mémoire : elle protège un
+processus, pas une flotte. Redis, ou l'équivalent chez l'hébergeur retenu.

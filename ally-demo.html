@@ -1135,10 +1135,45 @@ input[type="range"]:focus-visible {
 /* ---- Footer ---- */
 .footer {
   position: relative; z-index: 1; border-top: 1px solid var(--hair);
-  padding: 32px var(--pad-x);
+  padding: 56px var(--pad-x) 32px;
+  color: var(--txt-4); font-size: 13px;
+}
+.footer-top {
+  display: grid; grid-template-columns: minmax(240px, 1fr) 2fr;
+  gap: 48px; max-width: 1200px; margin: 0 auto 44px;
+}
+.footer-brand p {
+  margin-top: 16px; max-width: 300px; font-size: 13.5px;
+  line-height: 1.6; color: var(--txt-4);
+}
+.footer-nav { display: grid; grid-template-columns: repeat(3, 1fr); gap: 32px; }
+.footer-nav h2 {
+  font-family: var(--ff-b); font-size: 11px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: .09em;
+  color: var(--txt-5); margin-bottom: 14px;
+}
+.footer-nav ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.footer-nav a {
+  color: var(--txt-3); text-decoration: none; font-size: 13.5px;
+  transition: color var(--t-fast) var(--ease-soft);
+}
+.footer-nav a:hover { color: var(--txt); }
+.footer-bottom {
+  max-width: 1200px; margin: 0 auto;
+  padding-top: 26px; border-top: 1px solid var(--hair);
   display: flex; align-items: center; justify-content: space-between;
   gap: 12px; flex-wrap: wrap;
-  color: var(--txt-4); font-size: 13px;
+  font-size: 12.5px; color: var(--txt-5);
+}
+/* La promesse du produit, répétée là où l'on finit de lire. */
+.footer-said { color: var(--txt-4); }
+
+@media (max-width: 860px) {
+  .footer-top { grid-template-columns: 1fr; gap: 36px; }
+}
+@media (max-width: 560px) {
+  .footer { padding-top: 44px; }
+  .footer-nav { grid-template-columns: 1fr 1fr; gap: 28px; }
 }
 
 @media (max-width: 900px) {
@@ -3312,9 +3347,54 @@ input[type="range"]:focus-visible {
     </section>
   </main>
 
+  <!-- Le pied de page ne portait que deux lignes. Sur les sites qu'on admire,
+       c'est un plan du site : celui qui arrive en bas n'a pas trouvé ce qu'il
+       cherchait, et remonter n'est pas une réponse. Aucun lien mort ici —
+       tout ce qui est listé existe. -->
   <footer class="footer">
-    <span>© 2026 Ally</span>
-    <span>Assistant IA pour professionnels solo</span>
+    <div class="footer-top">
+      <div class="footer-brand">
+        <a class="logo" href="#" data-goto="landing">
+          <span class="logo-mark" aria-hidden="true"></span>
+          <span class="logo-word">Ally</span>
+        </a>
+        <p>La secrétaire qui décroche pendant que vous plaidez, consultez ou
+           chiffrez un chantier.</p>
+      </div>
+
+      <nav class="footer-nav" aria-label="Pied de page">
+        <div>
+          <h2>Le produit</h2>
+          <ul>
+            <li><a href="#solution">Ce qu'elle fait</a></li>
+            <li><a href="#demo">Un appel en démonstration</a></li>
+            <li><a href="#how">La mise en service</a></li>
+            <li><a href="#focus">Pour les avocats</a></li>
+          </ul>
+        </div>
+        <div>
+          <h2>Commencer</h2>
+          <ul>
+            <li><a href="#pricing">Les formules</a></li>
+            <li><a href="#" data-goto="abonnement">Essayer 14 jours</a></li>
+            <li><a href="#" data-goto="login">Espace pro</a></li>
+          </ul>
+        </div>
+        <div>
+          <h2>Vos données</h2>
+          <ul>
+            <li><a href="#trust">Ce que nous en faisons</a></li>
+            <li><a href="#trust">Hébergement européen</a></li>
+            <li><a href="#trust">Export et suppression</a></li>
+          </ul>
+        </div>
+      </nav>
+    </div>
+
+    <div class="footer-bottom">
+      <span>© 2026 Ally — assistant IA pour professionnels solo</span>
+      <span class="footer-said">Aucun engagement pris sans votre validation.</span>
+    </div>
   </footer>
 </div>
 </div>
