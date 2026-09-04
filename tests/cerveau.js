@@ -244,6 +244,92 @@ test('poser un rendez-vous hors horaires le signale', () => {
   assert.ok(/en dehors de vos horaires/i.test(r.reply), 'aucun avertissement : ' + r.reply);
 });
 
+/* -------------------------------------------------- Ce qu'Ally sait en plus */
+
+test('une période entière se lit d\'un coup', () => {
+  /* « Mes rendez-vous de la semaine prochaine » tombait dans le repli : la
+     liste ne savait répondre que pour un jour à la fois. */
+  const r = comprend('mes rendez-vous de la semaine prochaine');
+  assert.strictEqual(r.kind, 'answer', r.texte);
+});
+
+test('le mot « mois » ne suffit pas à déclencher une liste', () => {
+  /* Sans marque de consultation, « je veux bidouiller mon agenda du 32 du
+     mois » recevait la liste complète de l'agenda au lieu du repli. */
+  const r = dit('je veux bidouiller mon agenda du 32 du mois');
+  assert.strictEqual(r.kind, 'unknown', 'une liste a été servie : ' + r.texte);
+});
+
+test('le temps gagné vient avec sa méthode', () => {
+  /* Une estimation dont on cache le calcul n'est qu'un chiffre inventé. */
+  const r = comprend('combien de temps ai-je gagné');
+  assert.ok(/min|h\b/.test(r.texte), r.texte);
+  assert.ok(/3 min|4 min/.test(r.r.detail || ''),
+    'la méthode n\'est pas donnée : ' + r.r.detail);
+});
+
+test('le jour le plus chargé se calcule sur les rendez-vous à venir', () => {
+  const r = comprend('quel jour suis-je le plus chargé');
+  assert.ok(/rendez-vous/.test(r.texte), r.texte);
+});
+
+test('« mes clients » ne prétend pas être un fichier client', () => {
+  /* Ally n'en tient pas : ce sont les personnes qui ont appelé ou qui ont un
+     rendez-vous. Le dire évite de laisser croire à un annuaire. */
+  const r = comprend('liste mes clients');
+  assert.ok(/ne tient pas de fichier/i.test(r.r.detail || ''), r.r.detail);
+});
+
+test('la phrase d\'accueil ne se change pas à la voix', () => {
+  /* Le texte dit à chaque appelant se relit avant d'être posé : Ally emmène au
+     bon endroit plutôt que de le réécrire sur commande vocale. */
+  const r = comprend('change ma phrase d\'accueil');
+  assert.strictEqual(r.kind, 'answer', 'Ally l\'a modifiée : ' + r.texte);
+  assert.ok(/onglet Ally/i.test(r.texte), r.texte);
+});
+
+/* ---------------------------------------------------- Forfait et fermeture */
+
+test('« combien il me reste d\'appels » parle du forfait', () => {
+  /* Le mot « appels » est le même que dans « qui a appelé ? », la question ne
+     l'est pas : celle-ci porte sur le forfait, et recevait la liste des appels
+     du jour. */
+  const r = comprend('combien il me reste d\'appels');
+  assert.ok(/reste/i.test(r.texte) && /\d+ sur \d+|sur \d+/.test(r.texte),
+    'ce n\'est pas une réponse de forfait : ' + r.texte);
+});
+
+test('« qui a appelé » parle toujours des appels', () => {
+  const r = comprend('qui a appele aujourd\'hui');
+  assert.ok(!/formule|forfait/i.test(r.texte), r.texte);
+});
+
+test('« ferme le cabinet lundi » est un ordre, pas une question', () => {
+  /* Le mot « ferme » suffisait à déclencher l'intention qui récite les
+     horaires : Ally répondait « vous êtes ouvert lundi 9h-18h30 » à quelqu'un
+     qui venait de lui demander de fermer. */
+  const r = B.ask('ferme le cabinet lundi');
+  assert.strictEqual(r.kind, 'action', 'répondu au lieu d\'agir : ' + r.reply);
+  assert.ok(/fermé|ferme/i.test(r.reply + (r.confirm || '')), r.reply);
+});
+
+test('fermer un jour déjà pris demande confirmation', () => {
+  /* Fermer une journée qui porte des rendez-vous n'est pas anodin : ils ne
+     disparaissent pas, et le professionnel doit le savoir avant de dire oui. */
+  const D = store.data();
+  const jour = D.rdv.filter((r) => r.date >= A.TODAY)[0];
+  if (!jour) return;
+  const r = B.ask('ferme le cabinet le ' + A.longLabel(jour.date));
+  assert.ok(r.sensitive, 'fermé sans confirmation alors qu\'un rendez-vous existe');
+  assert.ok((r.confirm || '').includes(jour.client),
+    'le rendez-vous concerné n\'est pas nommé : ' + r.confirm);
+});
+
+test('« quels sont mes horaires » reste une question', () => {
+  const r = comprend('quels sont mes horaires');
+  assert.strictEqual(r.kind, 'answer', 'la question a fermé la journée : ' + r.texte);
+});
+
 /* ------------------------------------------- Base de connaissances honnête */
 
 test('un seul mot en commun ne fait pas une réponse', () => {

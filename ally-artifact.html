@@ -7974,7 +7974,12 @@ window.ALLY_PLAN_BY_ID = function (id) {
         };
       }
 
-      if (hasAny(t, ['qui a appele', 'appels', 'appel recu', 'appele aujourd hui'])) {
+      /* « Combien il me reste d'appels ? » recevait ici la liste des appels du
+         jour. Le mot « appels » est le même, la question ne l'est pas : celle-ci
+         porte sur le forfait, et c'est plus bas qu'on y répond. */
+      if (hasAny(t, ['qui a appele', 'appels', 'appel recu', 'appele aujourd hui'])
+          && !hasAnyLoose(t, ['reste', 'restant', 'restants', 'forfait', 'formule',
+            'quota', 'abonnement', 'consomme', 'consommation'])) {
         var names = D.calls.map(function (c) { return c.caller; });
         return {
           kind: 'answer',
@@ -8159,6 +8164,49 @@ window.ALLY_PLAN_BY_ID = function (id) {
         };
       }
 
+      /* ---------- Une période entière ----------
+         « Mes rendez-vous de la semaine prochaine » tombait dans le repli : la
+         liste par jour ne savait répondre que pour un jour. On lit la période,
+         on la parcourt. */
+      /* Le mot « mois » ne suffit pas : « je veux bidouiller mon agenda du 32 du
+         mois » le contient aussi, et mérite le repli plutôt qu'une liste. Il
+         faut en plus une marque de consultation — « mes », « quels »,
+         « combien », « montre ». */
+      if (parleDeRdv(t) && hasAnyLoose(t, ['semaine', 'mois'])
+          && hasAnyLoose(t, ['mes', 'quels', 'quelles', 'combien', 'liste',
+            'montre', 'affiche', 'donne moi', 'programme'])
+          && !modifieLAgenda(t) && !hasAny(t, CREATE_VERBS)
+          && !hasAnyLoose(t, ['libre', 'disponible', 'creneau', 'resume', 'bilan'])) {
+        var A7 = window.ALLY_AGENDA;
+        var depart7 = resolveWhen(t) || A7.TODAY;
+        var duree7 = hasAnyLoose(t, ['mois']) ? 31 : 7;
+        var parJour = [];
+
+        for (var d7 = 0; d7 < duree7; d7++) {
+          var jour7 = decale(depart7, d7);
+          var liste7 = A7.rdvOn(jour7);
+          if (liste7.length) parJour.push({ date: jour7, liste: liste7 });
+        }
+
+        var total7 = parJour.reduce(function (n, j) { return n + j.liste.length; }, 0);
+        if (!total7) {
+          return {
+            kind: 'answer',
+            reply: 'Aucun rendez-vous sur cette période.',
+            detail: 'À partir du ' + A7.longLabel(depart7)
+          };
+        }
+
+        return {
+          kind: 'answer',
+          reply: total7 + ' rendez-vous : ' + parJour.map(function (j) {
+            return A7.shortLabel(j.date) + ' — ' +
+              j.liste.map(function (r) { return r.client + ' ' + r.time; }).join(', ');
+          }).join(' ; ') + '.',
+          detail: 'Du ' + A7.longLabel(depart7) + ' sur ' + duree7 + ' jours'
+        };
+      }
+
       if ((parleDeRdv(t) || hasAnyLoose(t, ['planning']))
           && hasAny(t, ['combien', 'quoi', 'journee', 'aujourd hui', 'demain', 'programme', 'ai je'])
           && !modifieLAgenda(t) && !hasAny(t, ['bloque'])
@@ -8315,6 +8363,157 @@ window.ALLY_PLAN_BY_ID = function (id) {
             + ', emails ' + this.autonomyLabel(S.autonomy.emails).toLowerCase()
             + ', agenda ' + this.autonomyLabel(S.autonomy.agenda).toLowerCase() + '.',
           detail: p.secret ? 'Profil à secret professionnel : validation imposée sur les emails' : null
+        };
+      }
+
+      /* ---------- Temps gagné ----------
+         Le chiffre est déjà sur le tableau de bord, avec sa méthode assumée :
+         trois minutes par appel pris, quatre par email rédigé. Il n'y avait
+         aucune raison qu'Ally sache l'afficher et pas le dire. */
+      if (hasAnyLoose(t, ['temps gagne', 'gagne', 'gagner', 'economise', 'fait gagner'])
+          && hasAnyLoose(t, ['temps', 'minutes', 'heures', 'combien'])) {
+        var uG = store.usage();
+        var minutes = uG.calls.used * 3 + uG.emails.used * 4;
+        var heures = Math.floor(minutes / 60);
+        var reste = minutes % 60;
+
+        return {
+          kind: 'answer',
+          reply: minutes < 60
+            ? 'Environ ' + minutes + ' minutes ce mois-ci.'
+            : 'Environ ' + heures + ' h' + (reste ? ' ' + reste : '') + ' ce mois-ci.',
+          /* On donne la méthode avec le chiffre : une estimation dont on cache
+             le calcul n'est qu'un chiffre inventé. */
+          detail: 'Estimation : 3 min par appel pris à votre place ('
+            + uG.calls.used + '), 4 min par email rédigé (' + uG.emails.used + ')'
+        };
+      }
+
+      /* ---------- Le jour le plus chargé ---------- */
+      if (hasAnyLoose(t, ['plus charge', 'plus chargee', 'plus rempli', 'plus occupe'])
+          || (hasAnyLoose(t, ['quel jour']) && hasAnyLoose(t, ['charge', 'rempli', 'occupe']))) {
+        var A8 = window.ALLY_AGENDA;
+        var compte = {};
+        D.rdv.forEach(function (r) {
+          if (r.date >= A8.TODAY) compte[r.date] = (compte[r.date] || 0) + 1;
+        });
+        var jours = Object.keys(compte).sort(function (a, b) { return compte[b] - compte[a]; });
+
+        if (!jours.length) {
+          return { kind: 'answer', reply: 'Aucun rendez-vous à venir : tous vos jours sont libres.' };
+        }
+        return {
+          kind: 'answer',
+          reply: 'Le plus chargé : ' + A8.longLabel(jours[0]) + ', ' + compte[jours[0]]
+            + ' rendez-vous.' + (jours[1]
+              ? ' Puis ' + A8.longLabel(jours[1]) + ' avec ' + compte[jours[1]] + '.' : ''),
+          detail: 'Sur les rendez-vous à venir'
+        };
+      }
+
+      /* ---------- Les personnes qu'Ally connaît ----------
+         Pas un fichier client — Ally n'en tient pas — mais ceux qui ont appelé
+         ou qui ont un rendez-vous. Le dire ainsi évite de laisser croire à un
+         annuaire qui n'existe pas. */
+      if (hasAnyLoose(t, ['mes clients', 'mes patients', 'liste des clients',
+            'liste mes clients', 'qui sont mes clients'])) {
+        var noms = {};
+        D.rdv.forEach(function (r) { if (r.client) noms[r.client] = true; });
+        D.calls.forEach(function (c) {
+          if (c.caller && !/masque/i.test(c.caller)) noms[c.caller] = true;
+        });
+        var liste = Object.keys(noms);
+
+        if (!liste.length) {
+          return {
+            kind: 'answer',
+            reply: 'Personne encore : aucun appel reçu, aucun rendez-vous posé.'
+          };
+        }
+        return {
+          kind: 'answer',
+          reply: liste.length + ' personne' + (liste.length > 1 ? 's' : '')
+            + ' dans vos échanges récents : ' + liste.slice(0, 12).join(', ')
+            + (liste.length > 12 ? '…' : '') + '.',
+          detail: 'Ally ne tient pas de fichier client : ce sont vos appels et '
+            + 'vos rendez-vous'
+        };
+      }
+
+      /* ---------- Ce qui se règle ailleurs ----------
+         Ally ne modifie pas son propre script à la voix : le texte qu'elle dira
+         à chaque appelant se relit avant d'être posé. On emmène au bon endroit
+         plutôt que de laisser tomber dans le repli. */
+      if (hasAnyLoose(t, ['phrase d accueil', 'message d accueil', 'script d accueil',
+            'ce que tu dis', 'ta phrase'])) {
+        return {
+          kind: 'answer',
+          reply: 'Votre phrase d\'accueil se change dans l\'onglet Ally, avec le '
+            + 'bouton d\'écoute juste à côté. Aujourd\'hui elle dit : « '
+            + store.greeting() + ' »',
+          detail: 'Je ne la modifie pas à la voix : elle est dite à chaque appelant',
+          follow: ['Ouvre l\'onglet Ally']
+        };
+      }
+
+      /* ---------- Forfait ----------
+         « Combien il me reste d'appels ? » recevait la liste des appels du
+         jour — la question porte sur le forfait, pas sur la journée. C'est
+         pourtant celle qu'on pose le plus souvent en fin de mois. */
+      if (hasAnyLoose(t, ['forfait', 'formule', 'abonnement', 'quota'])
+          || (hasAnyLoose(t, ['reste', 'restant', 'restants', 'consomme', 'consommation'])
+              && hasAnyLoose(t, ['appel', 'appels', 'email', 'emails', 'mail', 'mails']))) {
+        var u = store.usage();
+        var resteAppels = Math.max(0, u.calls.limit - u.calls.used);
+        var resteMails = Math.max(0, u.emails.limit - u.emails.used);
+        var surcout = store.planData().overage;
+
+        return {
+          kind: 'answer',
+          reply: 'Formule ' + store.plan() + ' : ' + u.calls.used + ' appels sur '
+            + u.calls.limit + ', il vous en reste ' + resteAppels + '. Et '
+            + resteMails + ' email' + (resteMails > 1 ? 's' : '') + ' sur '
+            + u.emails.limit + '.',
+          /* Ce qui se passe au-delà compte autant que le compte lui-même : la
+             ligne n'est jamais coupée, les appels sont facturés au détail. */
+          detail: resteAppels === 0
+            ? 'Au-delà, Ally continue de décrocher — ' +
+              String(surcout.toFixed(2)).replace('.', ',') + ' € par appel'
+            : (u.real ? 'Compté par le serveur' : 'Compté dans ce navigateur'),
+          follow: ['Ouvre mon abonnement']
+        };
+      }
+
+      /* ---------- Fermer un jour ----------
+         « Ferme le cabinet lundi » recevait les horaires d'ouverture : le mot
+         « ferme » suffisait à déclencher l'intention qui les récite. C'est un
+         ordre, et il a le même effet que « bloque lundi ». */
+      if (hasAnyLoose(t, ['ferme', 'fermer', 'fermez'])
+          && hasAnyLoose(t, ['cabinet', 'journee', 'jour', 'lundi', 'mardi', 'mercredi',
+            'jeudi', 'vendredi', 'samedi', 'dimanche', 'demain', 'aujourd hui'])
+          && !hasAnyLoose(t, ['quand', 'quel', 'quelle', 'horaire', 'a quelle heure'])) {
+        var A6 = window.ALLY_AGENDA;
+        var jourFerme = resolveWhen(t) || A6.TODAY;
+        var moitie = findHalf(t) || 'toute la journée';
+        var dejaPris = A6.rdvOn(jourFerme);
+
+        return {
+          kind: 'action', sensitive: !!dejaPris.length,
+          confirm: dejaPris.length
+            ? 'Il y a déjà ' + dejaPris.length + ' rendez-vous ' + quandDit(jourFerme)
+              + ' (' + dejaPris.map(function (r) { return r.client; }).join(', ')
+              + '). Je ferme quand même ?'
+            : null,
+          reply: A6.longLabel(jourFerme) + ', ' + moitie + ' : c\'est fermé. '
+            + 'Ally ne proposera aucun créneau ce jour-là.'
+            + (dejaPris.length ? ' Les ' + dejaPris.length
+                + ' rendez-vous déjà pris restent à l\'agenda — à vous de les déplacer.' : ''),
+          detail: 'Visible en grisé dans le calendrier',
+          apply: function () {
+            D.blocked.push({ id: Date.now(), date: jourFerme, half: moitie });
+            A6.select(jourFerme);
+            store.log('Journée fermée', A6.longLabel(jourFerme) + ' — ' + moitie);
+          }
         };
       }
 
