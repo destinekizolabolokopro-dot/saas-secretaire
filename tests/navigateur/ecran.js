@@ -102,6 +102,57 @@ const step = async (label, fn) => {
     if (texte.trim().length < 20) throw new Error('sélecteur vide');
   });
 
+  console.log('\n== La barre de navigation ==');
+
+  const N = await mk();
+  await N.page.goto(BASE + '/index.html');
+  await N.page.waitForTimeout(600);
+
+  await step('chaque ancre dépose son titre sous la barre, pas dessous', async () => {
+    /* Une barre collante mange le haut de tout ce vers quoi on saute. Cliquer
+       « Solution » amenait bien à la bonne section, mais son intitulé se
+       retrouvait quarante pixels sous la barre : on arrivait au bon endroit
+       sans le voir, ce qui donne l'impression que le lien n'a rien fait. */
+    const hauteur = await N.page.evaluate(
+      () => document.querySelector('.nav').getBoundingClientRect().height);
+    const caches = [];
+    for (const id of ['solution', 'demo', 'how', 'focus', 'pricing', 'trust']) {
+      await N.page.evaluate(() => window.scrollTo(0, 0));
+      await N.page.waitForTimeout(150);
+      await N.page.click('.nav-links a[href="#' + id + '"]');
+      await N.page.waitForTimeout(1100);
+      const haut = await N.page.evaluate((i) => {
+        const s = document.getElementById(i);
+        const titre = s.querySelector('.kicker') || s.querySelector('h2');
+        return titre.getBoundingClientRect().top;
+      }, id);
+      if (haut < hauteur) caches.push('#' + id + ' à ' + Math.round(haut) + 'px');
+    }
+    if (caches.length) throw new Error('sous la barre de ' + Math.round(hauteur) + 'px : ' + caches.join(', '));
+  });
+
+  await step('elle tient sur une ligne à toutes les largeurs', async () => {
+    /* Entre 900 et 1200 px, les entrées ne tenaient plus et la barre montait
+       à trois rangées — cent vingt-cinq pixels empilés. Le jeton --nav-h, qui
+       sert à réserver la place des ancres, mentait alors sur sa hauteur. */
+    const fautes = [];
+    for (const largeur of [1600, 1440, 1280, 1200, 1150, 1101, 1100, 1024, 900, 560, 390]) {
+      const ctx = await navigateur.newContext({ viewport: { width: largeur, height: 800 } });
+      const page = await ctx.newPage();
+      await page.goto(BASE + '/index.html');
+      await page.waitForTimeout(300);
+      const r = await page.evaluate(() => ({
+        h: document.querySelector('.nav').getBoundingClientRect().height,
+        jeton: parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--nav-h'))
+      }));
+      if (Math.abs(r.h - r.jeton) > 4) {
+        fautes.push(largeur + 'px : barre ' + Math.round(r.h) + ', jeton ' + r.jeton);
+      }
+      await ctx.close();
+    }
+    if (fautes.length) throw new Error(fautes.join(' | '));
+  });
+
   console.log('\n== Sur un téléphone ==');
 
   await step('aucun débordement horizontal à 390 px', async () => {

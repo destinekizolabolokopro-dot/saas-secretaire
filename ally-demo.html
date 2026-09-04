@@ -648,6 +648,22 @@ input[type="range"]:focus-visible {
 
 .page { position: relative; overflow-x: hidden; min-height: 100vh; }
 
+/* Une barre collante mange le haut de tout ce vers quoi on saute : cliquer
+   « Solution » amenait bien à la bonne section, mais son intitulé — « LA
+   SOLUTION » — se retrouvait quarante pixels sous la barre, invisible. On
+   arrivait au bon endroit sans le voir, ce qui donne l'impression que le lien
+   n'a rien fait.
+
+   scroll-margin-top réserve la place. La hauteur est un jeton : elle vaut
+   84 px en grand écran, 81 en dessous, et il n'y a qu'un endroit à corriger
+   le jour où la barre change. */
+:root { --nav-h: 84px; }
+@media (max-width: 1100px) { :root { --nav-h: 81px; } }
+
+.section[id], .focus-band[id], [id].hero {
+  scroll-margin-top: calc(var(--nav-h) + 28px);
+}
+
 /* ============ NAV ============ */
 .nav {
   position: sticky; top: 0; z-index: 50;
@@ -712,7 +728,12 @@ input[type="range"]:focus-visible {
 .burger[aria-expanded="true"] span:nth-child(2) { opacity: 0; }
 .burger[aria-expanded="true"] span:nth-child(3) { transform: translateY(-6px) rotate(-45deg); }
 
-@media (max-width: 900px) {
+/* Le menu se replie à 1100 px et non à 900 : entre les deux, les six entrées
+   plus l'appel à l'action ne tenaient plus sur une ligne et la barre montait
+   à trois rangées — cent vingt-cinq pixels de haut, empilés, pour une barre
+   de navigation. Un bouton de menu à 1024 px est parfaitement normal ;
+   une barre en escalier, non. */
+@media (max-width: 1100px) {
   .burger { display: flex; }
   .nav-links, .nav-right { display: none; }
   .nav.is-open { flex-wrap: wrap; }
@@ -723,6 +744,15 @@ input[type="range"]:focus-visible {
     border-top: 1px solid var(--hair); margin-top: 18px;
   }
   .nav.is-open .nav-right { border-top: none; margin-top: 0; padding-top: 0; }
+}
+
+/* Juste au-dessus du repli, on resserre plutôt que de laisser la barre
+   frôler la rupture. */
+@media (max-width: 1280px) and (min-width: 1101px) {
+  .nav-links { gap: 2px; }
+  .nav-links a { padding: 8px 11px; font-size: 14px; }
+  .nav-right { gap: 16px; }
+  .nav-cta { padding: 10px 18px; }
 }
 
 /* ============ HERO ============ */
@@ -3039,6 +3069,7 @@ input[type="range"]:focus-visible {
 
     <div class="nav-links">
       <a href="#solution">Solution</a>
+      <a href="#demo">Démonstration</a>
       <a href="#how">Fonctionnement</a>
       <a href="#focus">Pour les avocats</a>
       <a href="#pricing">Tarifs</a>
