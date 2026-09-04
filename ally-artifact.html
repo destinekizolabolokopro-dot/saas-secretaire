@@ -618,18 +618,34 @@ input[type="range"]:focus-visible {
   backdrop-filter: var(--mat-2);
   -webkit-backdrop-filter: var(--mat-2);
   border-bottom: 1px solid var(--hair);
-  /* La barre se détache dès qu'on quitte le haut de page : au repos elle est
-     transparente et posée à plat, une fois la page défilée elle porte son
-     ombre. Piloté par le défilement, sans une ligne de JavaScript — et là où
-     le navigateur ne connaît pas encore les timelines de défilement, elle
-     garde simplement son filet, ce qu'elle avait déjà. */
-  animation: nav-lift linear both;
-  animation-timeline: scroll();
-  animation-range: 0 120px;
 }
-@keyframes nav-lift {
-  from { box-shadow: 0 0 0 transparent; }
-  to   { box-shadow: 0 1px 0 var(--hair), 0 10px 30px oklch(0.04 0.02 264 / 0.5); }
+/* La barre se détache dès qu'on quitte le haut de page : à plat au repos,
+   elle prend son ombre une fois la page défilée. Piloté par le défilement,
+   sans une ligne de JavaScript.
+
+   Deux pièges, tous deux rencontrés :
+
+   Le @supports n'est pas une précaution de style. Une animation sans
+   timeline vaut une durée de zéro seconde, et « both » la fige aussitôt sur
+   sa dernière image — sans ce garde-fou, un navigateur qui ignore les
+   timelines de défilement afficherait l'ombre en permanence, exactement le
+   contraire de ce qu'on demande. Là, il garde simplement son filet.
+
+   Et « root block » plutôt que « scroll() » tout court : le raccourci vise
+   le plus proche ancêtre défilable, et .page porte overflow-x:hidden — ce
+   qui, en CSS, rend l'axe vertical défilable lui aussi. La barre s'accrochait
+   donc à un conteneur qui ne défile jamais, et l'ombre ne venait pas. On
+   nomme le défilement du document, celui qu'on regarde vraiment. */
+@supports (animation-timeline: scroll(root block)) {
+  .nav {
+    animation: nav-lift linear both;
+    animation-timeline: scroll(root block);
+    animation-range: 0 120px;
+  }
+  @keyframes nav-lift {
+    from { box-shadow: 0 0 0 transparent; }
+    to   { box-shadow: 0 1px 0 var(--hair), 0 10px 30px oklch(0.04 0.02 264 / 0.5); }
+  }
 }
 .nav-links { display: flex; align-items: center; gap: 8px; }
 /* Les entrées prennent une pastille au survol au lieu de changer seulement de
