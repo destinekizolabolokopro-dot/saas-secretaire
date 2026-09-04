@@ -101,28 +101,36 @@
 
 /* ============ MAIN ============ */
 .main { padding: 32px 40px 80px; min-width: 0; }
+/* Le titre a le droit de garder sa largeur : serré à 300 px, la phrase du
+   jour tombait à trois lignes pour que la barre d'outils tienne à côté. On
+   lui garantit une base confortable, et c'est la barre entière qui passe à la
+   ligne quand la fenêtre ne suffit plus. */
 .topbar {
   display: flex; align-items: center; justify-content: space-between;
-  gap: 16px; margin-bottom: 32px;
+  gap: 16px 20px; flex-wrap: wrap; margin-bottom: 32px;
 }
+.topbar-tools { align-items: center; }
 .topbar h1 {
   font-size: clamp(21px, 2.5vw, 29px); font-weight: 700; margin-bottom: 5px;
   letter-spacing: var(--tr-display); line-height: 1.15;
 }
 .topbar-id { min-width: 0; }
 .topbar-sub { color: var(--txt-4); font-size: 14px; }
-.topbar-tools { display: flex; align-items: center; gap: 14px; }
+/* margin-left:auto, et pas seulement sur la barre d'actions : quand la
+   fenêtre force le repli, les outils se retrouvent seuls sur leur ligne, et
+   sans cela ils repartaient se coller à gauche, sous le titre. */
+.topbar-tools { display: flex; align-items: center; gap: 10px; flex-shrink: 0; margin-left: auto; }
 .search {
   background: oklch(1 0 0 / 0.05); border: 1px solid oklch(1 0 0 / 0.08);
   border-radius: var(--pill); padding: 10px 16px;
   color: oklch(0.9 0.006 264); font-family: inherit; font-size: 13px;
-  width: 200px; outline: none;
+  width: clamp(150px, 14vw, 200px); outline: none;
   box-shadow: inset 0 1px 2px oklch(0.05 0.02 264 / 0.25);
   transition: width var(--t-med) var(--ease), border-color var(--t-fast) var(--ease-soft),
               box-shadow var(--t-med) var(--ease), background var(--t-fast) var(--ease-soft);
 }
 .search:focus {
-  width: 240px; border-color: oklch(0.72 0.19 296 / 0.5);
+  width: 240px; max-width: 100%; border-color: oklch(0.72 0.19 296 / 0.5);
   background: oklch(1 0 0 / 0.07);
   box-shadow: 0 0 0 4px oklch(0.72 0.19 296 / 0.14);
 }
@@ -869,13 +877,30 @@
 }
 
 /* ============ BARRE D'ACTIONS ============ */
-.topbar-actions { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin-left: auto; }
+/* La barre d'actions était deux bouts de texte nu posés à côté d'un bouton
+   plein : trois hauteurs différentes sur une même ligne, et rien qui dise où
+   cliquer. Les actions secondaires deviennent des pastilles discrètes, de la
+   même hauteur que la principale — une vraie barre d'outils, où seule la
+   couleur distingue le geste qui compte. */
+/* La barre garde sa ligne tant qu'elle tient : repliée, le bouton principal
+   se retrouvait sous une action secondaire, ce qui inverse la hiérarchie que
+   la couleur venait d'établir. C'est le titre qui cède la largeur en premier
+   — il sait passer à la ligne, pas la barre. */
+.topbar-actions { display: flex; align-items: center; gap: 8px; flex-wrap: nowrap; margin-left: auto; }
+.topbar-id { flex: 1 1 420px; }
+@media (max-width: 720px) { .topbar-actions { flex-wrap: wrap; justify-content: flex-start; } }
 .topbar-actions .act-link {
-  background: none; border: none; padding: 0; cursor: pointer;
-  font-family: inherit; font-size: 12.5px; color: var(--txt-4); white-space: nowrap;
+  background: none; border: 1px solid transparent;
+  padding: 8px 14px; border-radius: var(--pill); cursor: pointer;
+  font-family: inherit; font-size: 12.5px; color: var(--txt-3); white-space: nowrap;
+  transition: color var(--t-fast) var(--ease-soft), background var(--t-fast) var(--ease-soft),
+              border-color var(--t-fast) var(--ease-soft), transform var(--t-fast) var(--ease);
 }
-.topbar-actions .act-link:hover { color: var(--txt-2); }
-.topbar-actions .btn { font-size: 12.5px; padding: 8px 15px; }
+.topbar-actions .act-link:hover {
+  color: var(--txt); background: oklch(1 0 0 / 0.06); border-color: var(--bd-2);
+}
+.topbar-actions .act-link:active { transform: scale(0.96); }
+.topbar-actions .btn { font-size: 12.5px; padding: 8px 16px; }
 
 /* ============ PIED DE BARRE LATÉRALE ============ */
 .sidebar-foot {
@@ -891,27 +916,40 @@
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1;
 }
 .foot-account .btn-link { font-size: 11px; flex-shrink: 0; }
+/* Les deux interrupteurs étaient deux lignes de texte parmi dix autres, à la
+   même hauteur et sans rien qui les rassemble. Réunis dans un même panneau,
+   ils redeviennent ce qu'ils sont : un réglage à deux entrées, pas deux
+   phrases de plus dans le pied de page. */
 .foot-switch {
   display: flex; align-items: center; justify-content: space-between;
-  gap: 10px; font-size: 11.5px; color: var(--txt-4);
+  gap: 10px; font-size: 11.5px; color: var(--txt-3);
+  padding: 9px 11px;
+  background: oklch(1 0 0 / 0.035); border: 1px solid var(--hair);
 }
+.foot-switch:first-of-type { border-radius: var(--r-sm) var(--r-sm) 0 0; border-bottom: none; }
+/* Le pied de barre est une colonne à gouttière : sans ce rattrapage, les deux
+   panneaux resteraient écartés de la gouttière au lieu d'être jointifs. */
+.foot-switch + .foot-switch { margin-top: -10px; border-radius: 0 0 var(--r-sm) var(--r-sm); }
 .toggle-sm { width: 30px; height: 17px; }
 .toggle-sm::after { width: 12px; height: 12px; top: 2.5px; left: 2.5px; }
 .toggle-sm[aria-checked="true"]::after { left: 15.5px; }
-.foot-links { list-style: none; margin: 4px 0 0; padding: 0; display: flex; flex-direction: column; gap: 5px; }
-.foot-links li { font-size: 10.5px; line-height: 1.45; color: var(--txt-5); }
+.foot-links { list-style: none; margin: 6px -8px 0; padding: 0; display: flex; flex-direction: column; gap: 1px; }
+.foot-links li { font-size: 10.5px; line-height: 1.45; color: var(--txt-5); padding: 0 8px; }
 .foot-dim { color: oklch(0.45 0.01 264); }
 /* Ces raccourcis étaient soulignés comme des liens de document : cinq traits
    bleus empilés sous la carte de profil, qui tiraient l'œil plus fort que la
    navigation elle-même. Sans soulignement, ils redeviennent ce qu'ils sont —
    du second plan qui se révèle au survol. */
 .foot-link {
-  background: none; border: none; padding: 2px 0; cursor: pointer; text-align: left;
+  display: block; width: 100%;
+  background: none; border: none; cursor: pointer; text-align: left;
   font-family: inherit; font-size: 10.5px; color: var(--txt-5);
   text-decoration: none;
-  transition: color var(--t-fast) var(--ease-soft);
+  margin: 0 -8px; padding: 5px 8px; width: calc(100% + 16px);
+  border-radius: 7px;
+  transition: color var(--t-fast) var(--ease-soft), background var(--t-fast) var(--ease-soft);
 }
-.foot-link:hover { color: var(--txt-2); }
+.foot-link:hover { color: var(--txt-2); background: oklch(1 0 0 / 0.05); }
 .foot-version { font-size: 10px; color: oklch(0.4 0.01 264); margin-top: 2px; }
 
 /* ============ PALETTE DE COMMANDES ============ */
