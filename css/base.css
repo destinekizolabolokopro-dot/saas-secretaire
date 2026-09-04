@@ -60,9 +60,23 @@ body {
 }
 
 /* Les titres se resserrent en grandissant : le crénage du corps, laissé tel
-   quel sur un 60 px, fait une ligne qui s'effiloche. */
-h1, h2, h3, h4 { font-family: var(--ff-h); margin: 0; letter-spacing: var(--tr-title); }
+   quel sur un 60 px, fait une ligne qui s'effiloche.
+
+   text-wrap: balance répartit les mots également entre les lignes d'un titre.
+   Sans lui, « Configurée pour votre métier en quelques minutes. » laissait
+   deux mots orphelins sur la seconde ligne ; le navigateur sait faire mieux
+   que la césure gloutonne, il suffit de le lui demander. */
+h1, h2, h3, h4 {
+  font-family: var(--ff-h); margin: 0;
+  letter-spacing: var(--tr-title); text-wrap: balance;
+}
 h1 { letter-spacing: var(--tr-display); }
+/* Pour un paragraphe, « pretty » suffit : il ne rééquilibre pas tout, il
+   empêche seulement le mot seul en dernière ligne. */
+p { text-wrap: pretty; }
+
+/* La sélection prend la couleur du produit plutôt que le bleu du système. */
+::selection { background: oklch(0.72 0.19 296 / 0.35); color: var(--txt); }
 
 /* Un chiffre qui change ne doit pas décaler ce qui l'entoure. */
 .stat-value, .mini-stat-value, time, .tabular { font-variant-numeric: tabular-nums; }

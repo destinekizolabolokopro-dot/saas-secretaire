@@ -169,9 +169,23 @@ body {
 }
 
 /* Les titres se resserrent en grandissant : le crénage du corps, laissé tel
-   quel sur un 60 px, fait une ligne qui s'effiloche. */
-h1, h2, h3, h4 { font-family: var(--ff-h); margin: 0; letter-spacing: var(--tr-title); }
+   quel sur un 60 px, fait une ligne qui s'effiloche.
+
+   text-wrap: balance répartit les mots également entre les lignes d'un titre.
+   Sans lui, « Configurée pour votre métier en quelques minutes. » laissait
+   deux mots orphelins sur la seconde ligne ; le navigateur sait faire mieux
+   que la césure gloutonne, il suffit de le lui demander. */
+h1, h2, h3, h4 {
+  font-family: var(--ff-h); margin: 0;
+  letter-spacing: var(--tr-title); text-wrap: balance;
+}
 h1 { letter-spacing: var(--tr-display); }
+/* Pour un paragraphe, « pretty » suffit : il ne rééquilibre pas tout, il
+   empêche seulement le mot seul en dernière ligne. */
+p { text-wrap: pretty; }
+
+/* La sélection prend la couleur du produit plutôt que le bleu du système. */
+::selection { background: oklch(0.72 0.19 296 / 0.35); color: var(--txt); }
 
 /* Un chiffre qui change ne doit pas décaler ce qui l'entoure. */
 .stat-value, .mini-stat-value, time, .tabular { font-variant-numeric: tabular-nums; }
@@ -590,6 +604,18 @@ input[type="range"] {
   backdrop-filter: var(--mat-2);
   -webkit-backdrop-filter: var(--mat-2);
   border-bottom: 1px solid var(--hair);
+  /* La barre se détache dès qu'on quitte le haut de page : au repos elle est
+     transparente et posée à plat, une fois la page défilée elle porte son
+     ombre. Piloté par le défilement, sans une ligne de JavaScript — et là où
+     le navigateur ne connaît pas encore les timelines de défilement, elle
+     garde simplement son filet, ce qu'elle avait déjà. */
+  animation: nav-lift linear both;
+  animation-timeline: scroll();
+  animation-range: 0 120px;
+}
+@keyframes nav-lift {
+  from { box-shadow: 0 0 0 transparent; }
+  to   { box-shadow: 0 1px 0 var(--hair), 0 10px 30px oklch(0.04 0.02 264 / 0.5); }
 }
 .nav-links { display: flex; align-items: center; gap: 8px; }
 /* Les entrées prennent une pastille au survol au lieu de changer seulement de
@@ -1092,7 +1118,13 @@ input[type="range"] {
 }
 .choice[aria-pressed="true"] .save-badge { background: oklch(0.12 0.02 264 / 0.2); color: inherit; }
 
-.plans { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; align-items: start; }
+/* align-items:stretch, et non start : les trois cartes n'ont pas le même
+   nombre de lignes, et avec « start » chacune s'arrêtait où finissait sa
+   liste — les trois boutons d'essai se retrouvaient à trois hauteurs
+   différentes, alors que c'est exactement la ligne que l'œil compare. Les
+   cartes prennent la hauteur de la plus longue et le margin-top:auto du
+   bouton fait le reste. */
+.plans { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; align-items: stretch; }
 .plan {
   position: relative; display: flex; flex-direction: column; gap: 10px;
   background: var(--card-glass); border: 1px solid oklch(1 0 0 / 0.09);
