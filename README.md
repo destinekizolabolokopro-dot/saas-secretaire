@@ -29,9 +29,15 @@ vrai Chromium :
 
 ```bash
 python3 -m http.server 8123
-node tests/navigateur/ecran.js     # les pages, les onglets, la voix, le mobile
-node tests/navigateur/ligne.js     # la mise en service du renvoi d'appel
+node tests/navigateur/run.js       # les quatre suites d'un coup
 ```
+
+| Suite | Ce qu'elle attrape |
+| --- | --- |
+| `ecran.js` | Une erreur au chargement, un onglet qui ne rend rien, un débordement horizontal sur téléphone |
+| `clavier.js` | Le focus : une fenêtre modale dont on sort à la tabulation sans l'avoir fermée, un focus rendu à personne |
+| `contraste.js` | Un texte sous le seuil du WCAG, une commande sans nom accessible — mesurés au canvas, pas estimés à l'œil |
+| `ligne.js` | La mise en service du renvoi d'appel |
 
 Le fichier `ally-demo.html` s'ouvre par simple double-clic : il contient tout
 (CSS, JS, polices). **Le micro n'y fonctionne pas** — la reconnaissance vocale

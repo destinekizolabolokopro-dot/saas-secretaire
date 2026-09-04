@@ -9,7 +9,7 @@
   var hooks = {};          // fournis par dashboard.js
   var items = [];
   var active = 0;
-  var lastFocus = null;
+  var relache = null;
 
   function esc(v) {
     return String(v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
@@ -112,17 +112,21 @@
     if (item && item.run) item.run();
   }
 
+  /* Le piège partagé remplace le lastFocus maison : il retient le focus dans
+     la palette, et surtout il sait où le rendre quand elle a été ouverte au
+     clavier depuis nulle part — auparavant il retombait sur le document, et
+     la tabulation suivante repartait du premier lien de la page. */
   function open() {
-    lastFocus = document.activeElement;
+    if (relache) return;
     el.overlay.hidden = false;
     el.input.value = '';
     render('');
-    el.input.focus();
+    relache = window.ALLY_FOCUS.piege(el.overlay, { premier: el.input });
   }
 
   function close() {
     el.overlay.hidden = true;
-    if (lastFocus && lastFocus.focus) lastFocus.focus();
+    if (relache) { relache(); relache = null; }
   }
 
   window.ALLY_PALETTE = {

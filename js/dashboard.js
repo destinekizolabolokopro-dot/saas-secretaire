@@ -38,6 +38,7 @@
     sub: document.getElementById('tab-sub'),
     scrim: document.getElementById('scrim'),
     menuToggle: document.getElementById('menu-toggle'),
+    sidebar: document.getElementById('sidebar'),
     sidebarClose: document.getElementById('sidebar-close'),
     searchToggle: document.getElementById('search-toggle'),
     search: document.getElementById('search'),
@@ -383,14 +384,20 @@
   }
 
   /* ---------- Tiroir mobile ---------- */
+  /* Le tiroir de téléphone est une fenêtre modale comme les autres : ouvert,
+     il recouvre la page, et le focus n'a rien à faire derrière lui. */
+  var relacheTiroir = null;
+
   function openDrawer() {
+    if (relacheTiroir) return;
     el.shell.classList.add('drawer-open');
     el.menuToggle.setAttribute('aria-expanded', 'true');
-    el.sidebarClose.focus();
+    relacheTiroir = window.ALLY_FOCUS.piege(el.sidebar, { premier: el.sidebarClose });
   }
   function closeDrawer() {
     el.shell.classList.remove('drawer-open');
     el.menuToggle.setAttribute('aria-expanded', 'false');
+    if (relacheTiroir) { relacheTiroir(); relacheTiroir = null; }
   }
 
   var mqMobile = window.matchMedia('(max-width: 900px)');
@@ -403,7 +410,8 @@
   else mqMobile.addListener(syncMobile);
 
   el.menuToggle.addEventListener('click', openDrawer);
-  el.sidebarClose.addEventListener('click', function () { closeDrawer(); el.menuToggle.focus(); });
+  /* Le piège rend lui-même le focus au bouton qui a ouvert le tiroir. */
+  el.sidebarClose.addEventListener('click', closeDrawer);
   el.scrim.addEventListener('click', closeDrawer);
   el.profileCard.addEventListener('click', function () { setTab('account'); closeDrawer(); });
   el.searchToggle.addEventListener('click', function () {
@@ -2339,7 +2347,7 @@
      choisie dans l'onglet Téléphonie. */
   var VOICE = window.ALLY_VOICE;
   var BRAIN = window.ALLY_BRAIN;
-  var session = { lastFocus: null, pending: null, timers: [] };
+  var session = { relacheVoix: null, pending: null, timers: [] };
 
   function clearTimers() { session.timers.forEach(clearTimeout); session.timers = []; }
   function later(fn, delay) { session.timers.push(setTimeout(fn, delay)); }
@@ -2467,7 +2475,7 @@
   }
 
   function openVoice() {
-    session.lastFocus = document.activeElement;
+    if (session.relacheVoix) return;
     el.overlay.hidden = false;
     el.confirm.hidden = true;
     el.voiceOk.hidden = true;
@@ -2476,6 +2484,12 @@
     document.getElementById('voice-input').value = '';
     renderSuggestions();
     startListening();
+    /* Sans piège, sept tabulations suffisaient à sortir de la fenêtre vocale
+       sans l'avoir fermée : on parcourait alors le tableau de bord derrière un
+       voile, sans voir où l'on était. */
+    session.relacheVoix = window.ALLY_FOCUS.piege(el.overlay, {
+      premier: document.getElementById('voice-input')
+    });
   }
 
   function closeVoice() {
@@ -2484,7 +2498,7 @@
     VOICE.stopSpeaking();
     session.pending = null;
     el.overlay.hidden = true;
-    if (session.lastFocus && session.lastFocus.focus) session.lastFocus.focus();
+    if (session.relacheVoix) { session.relacheVoix(); session.relacheVoix = null; }
   }
 
   el.fab.addEventListener('click', openVoice);

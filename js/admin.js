@@ -34,6 +34,7 @@
     sub: document.getElementById('adm-tab-sub'),
     actions: document.getElementById('adm-topbar-actions'),
     scrim: document.getElementById('adm-scrim'),
+    sidebar: document.getElementById('adm-sidebar'),
     menuToggle: document.getElementById('adm-menu-toggle'),
     sidebarClose: document.getElementById('adm-sidebar-close'),
     clock: document.getElementById('live-clock'),
@@ -363,12 +364,19 @@
 
     el.drawer.hidden = false;
     bindDrawer(user);
+    /* Le tiroir de fiche recouvre la console : le focus n'a rien à faire
+       derrière lui, et doit revenir au bouton « Ouvrir » à la fermeture. */
+    relacheFiche = window.ALLY_FOCUS.piege(el.drawer);
   }
 
   function closeDrawer() {
     el.drawer.hidden = true;
     ui.open = null;
+    if (relacheFiche) { relacheFiche(); relacheFiche = null; }
   }
+
+  var relacheFiche = null;
+  var relacheBarre = null;
 
   function bindDrawer(user) {
     el.drawerBody.querySelectorAll('[data-setplan]').forEach(function (chip) {
@@ -742,13 +750,15 @@
      étant remontées, un doublon openDrawer écrasait silencieusement l'autre et
      le bouton « Ouvrir » d'un compte n'ouvrait plus rien. */
   function openSidebar() {
+    if (relacheBarre) return;
     el.shell.classList.add('drawer-open');
     el.menuToggle.setAttribute('aria-expanded', 'true');
-    el.sidebarClose.focus();
+    relacheBarre = window.ALLY_FOCUS.piege(el.sidebar, { premier: el.sidebarClose });
   }
   function closeSidebar() {
     el.shell.classList.remove('drawer-open');
     el.menuToggle.setAttribute('aria-expanded', 'false');
+    if (relacheBarre) { relacheBarre(); relacheBarre = null; }
   }
 
   var mqMobile = window.matchMedia('(max-width: 900px)');
@@ -762,7 +772,8 @@
 
   el.menuToggle.addEventListener('click', openSidebar);
   el.scrim.addEventListener('click', closeSidebar);
-  el.sidebarClose.addEventListener('click', function () { closeSidebar(); el.menuToggle.focus(); });
+  /* Le piège rend lui-même le focus au bouton qui a ouvert le tiroir. */
+  el.sidebarClose.addEventListener('click', closeSidebar);
 
   document.getElementById('drawer-close').addEventListener('click', closeDrawer);
   el.drawer.addEventListener('click', function (event) {

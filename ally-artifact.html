@@ -35,11 +35,19 @@ html, body { background: oklch(0.105 0.016 264); margin: 0; }
   --card:      oklch(0.215 0.02 264 / 0.86);
   --card-glass:oklch(0.215 0.02 264 / 0.76);
 
+/* Les deux gris les plus discrets ont été remontés. Mesuré au canvas sur la
+   surface d'une carte, --txt-5 donnait 3,85:1 et --txt-4 3,78:1 — sous les
+   4,5:1 que le WCAG demande pour du texte courant, et ce sont précisément les
+   niveaux qui portent les micro-libellés de dix pixels. Il faut 0,61 de
+   clarté pour atteindre le seuil sur une carte ; on prend un peu de marge.
+
+   La hiérarchie tient toujours en cinq échelons : ils sont simplement moins
+   écartés en bas, là où l'écart ne servait qu'à rendre illisible. */
   --txt:   oklch(0.95 0.006 264);
   --txt-2: oklch(0.85 0.006 264);
-  --txt-3: oklch(0.72 0.010 264);
-  --txt-4: oklch(0.62 0.010 264);
-  --txt-5: oklch(0.55 0.010 264);
+  --txt-3: oklch(0.75 0.010 264);
+  --txt-4: oklch(0.67 0.010 264);
+  --txt-5: oklch(0.62 0.010 264);
 
   --accent:        oklch(0.72 0.19 296);
   --accent-bright: oklch(0.75 0.19 296);
@@ -1563,7 +1571,7 @@ input[type="range"]:focus-visible {
 }
 .btn-play:hover { color: var(--txt-2); }
 /* .btn-link vit dans base.css : la connexion et l'inscription s'en servent. */
-.legal { margin-top: 12px; font-size: 11px; color: oklch(0.5 0.01 264); }
+.legal { margin-top: 12px; font-size: 11px; color: var(--txt-5); }
 
 .tag {
   font-size: 11px; padding: 4px 9px; border-radius: var(--pill); white-space: nowrap;
@@ -2175,7 +2183,7 @@ input[type="range"]:focus-visible {
    sert à la console d'administration, qui garde son pied minimal. */
 .foot-links { list-style: none; margin: 6px -8px 0; padding: 0; display: flex; flex-direction: column; gap: 1px; }
 .foot-links li { font-size: 10.5px; line-height: 1.45; color: var(--txt-5); padding: 0 8px; }
-.foot-dim { color: oklch(0.45 0.01 264); }
+.foot-dim { color: var(--txt-5); }
 /* Ces raccourcis étaient soulignés comme des liens de document : cinq traits
    bleus empilés sous la carte de profil, qui tiraient l'œil plus fort que la
    navigation elle-même. Sans soulignement, ils redeviennent ce qu'ils sont —
@@ -2190,7 +2198,7 @@ input[type="range"]:focus-visible {
   transition: color var(--t-fast) var(--ease-soft), background var(--t-fast) var(--ease-soft);
 }
 .foot-link:hover { color: var(--txt-2); background: oklch(1 0 0 / 0.05); }
-.foot-version { font-size: 10px; color: oklch(0.4 0.01 264); margin-top: 2px; }
+.foot-version { font-size: 10.5px; color: var(--txt-5); margin-top: 2px; }
 
 /* ============ PRÉFÉRENCES ============ */
 /* L'identité de la session, en tête de l'écran : qui est connecté, et de quoi
@@ -10463,7 +10471,7 @@ window.ALLY_PLAN_BY_ID = function (id) {
   var hooks = {};          // fournis par dashboard.js
   var items = [];
   var active = 0;
-  var lastFocus = null;
+  var relache = null;
 
   function esc(v) {
     return String(v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
@@ -10566,17 +10574,21 @@ window.ALLY_PLAN_BY_ID = function (id) {
     if (item && item.run) item.run();
   }
 
+  /* Le piège partagé remplace le lastFocus maison : il retient le focus dans
+     la palette, et surtout il sait où le rendre quand elle a été ouverte au
+     clavier depuis nulle part — auparavant il retombait sur le document, et
+     la tabulation suivante repartait du premier lien de la page. */
   function open() {
-    lastFocus = document.activeElement;
+    if (relache) return;
     el.overlay.hidden = false;
     el.input.value = '';
     render('');
-    el.input.focus();
+    relache = window.ALLY_FOCUS.piege(el.overlay, { premier: el.input });
   }
 
   function close() {
     el.overlay.hidden = true;
-    if (lastFocus && lastFocus.focus) lastFocus.focus();
+    if (relache) { relache(); relache = null; }
   }
 
   window.ALLY_PALETTE = {
@@ -12072,6 +12084,7 @@ window.ALLY_PLAN_BY_ID = function (id) {
     sub: document.getElementById('tab-sub'),
     scrim: document.getElementById('scrim'),
     menuToggle: document.getElementById('menu-toggle'),
+    sidebar: document.getElementById('sidebar'),
     sidebarClose: document.getElementById('sidebar-close'),
     searchToggle: document.getElementById('search-toggle'),
     search: document.getElementById('search'),
@@ -12417,14 +12430,20 @@ window.ALLY_PLAN_BY_ID = function (id) {
   }
 
   /* ---------- Tiroir mobile ---------- */
+  /* Le tiroir de téléphone est une fenêtre modale comme les autres : ouvert,
+     il recouvre la page, et le focus n'a rien à faire derrière lui. */
+  var relacheTiroir = null;
+
   function openDrawer() {
+    if (relacheTiroir) return;
     el.shell.classList.add('drawer-open');
     el.menuToggle.setAttribute('aria-expanded', 'true');
-    el.sidebarClose.focus();
+    relacheTiroir = window.ALLY_FOCUS.piege(el.sidebar, { premier: el.sidebarClose });
   }
   function closeDrawer() {
     el.shell.classList.remove('drawer-open');
     el.menuToggle.setAttribute('aria-expanded', 'false');
+    if (relacheTiroir) { relacheTiroir(); relacheTiroir = null; }
   }
 
   var mqMobile = window.matchMedia('(max-width: 900px)');
@@ -12437,7 +12456,8 @@ window.ALLY_PLAN_BY_ID = function (id) {
   else mqMobile.addListener(syncMobile);
 
   el.menuToggle.addEventListener('click', openDrawer);
-  el.sidebarClose.addEventListener('click', function () { closeDrawer(); el.menuToggle.focus(); });
+  /* Le piège rend lui-même le focus au bouton qui a ouvert le tiroir. */
+  el.sidebarClose.addEventListener('click', closeDrawer);
   el.scrim.addEventListener('click', closeDrawer);
   el.profileCard.addEventListener('click', function () { setTab('account'); closeDrawer(); });
   el.searchToggle.addEventListener('click', function () {
@@ -14373,7 +14393,7 @@ window.ALLY_PLAN_BY_ID = function (id) {
      choisie dans l'onglet Téléphonie. */
   var VOICE = window.ALLY_VOICE;
   var BRAIN = window.ALLY_BRAIN;
-  var session = { lastFocus: null, pending: null, timers: [] };
+  var session = { relacheVoix: null, pending: null, timers: [] };
 
   function clearTimers() { session.timers.forEach(clearTimeout); session.timers = []; }
   function later(fn, delay) { session.timers.push(setTimeout(fn, delay)); }
@@ -14501,7 +14521,7 @@ window.ALLY_PLAN_BY_ID = function (id) {
   }
 
   function openVoice() {
-    session.lastFocus = document.activeElement;
+    if (session.relacheVoix) return;
     el.overlay.hidden = false;
     el.confirm.hidden = true;
     el.voiceOk.hidden = true;
@@ -14510,6 +14530,12 @@ window.ALLY_PLAN_BY_ID = function (id) {
     document.getElementById('voice-input').value = '';
     renderSuggestions();
     startListening();
+    /* Sans piège, sept tabulations suffisaient à sortir de la fenêtre vocale
+       sans l'avoir fermée : on parcourait alors le tableau de bord derrière un
+       voile, sans voir où l'on était. */
+    session.relacheVoix = window.ALLY_FOCUS.piege(el.overlay, {
+      premier: document.getElementById('voice-input')
+    });
   }
 
   function closeVoice() {
@@ -14518,7 +14544,7 @@ window.ALLY_PLAN_BY_ID = function (id) {
     VOICE.stopSpeaking();
     session.pending = null;
     el.overlay.hidden = true;
-    if (session.lastFocus && session.lastFocus.focus) session.lastFocus.focus();
+    if (session.relacheVoix) { session.relacheVoix(); session.relacheVoix = null; }
   }
 
   el.fab.addEventListener('click', openVoice);
@@ -14644,6 +14670,7 @@ window.ALLY_PLAN_BY_ID = function (id) {
     sub: document.getElementById('adm-tab-sub'),
     actions: document.getElementById('adm-topbar-actions'),
     scrim: document.getElementById('adm-scrim'),
+    sidebar: document.getElementById('adm-sidebar'),
     menuToggle: document.getElementById('adm-menu-toggle'),
     sidebarClose: document.getElementById('adm-sidebar-close'),
     clock: document.getElementById('live-clock'),
@@ -14973,12 +15000,19 @@ window.ALLY_PLAN_BY_ID = function (id) {
 
     el.drawer.hidden = false;
     bindDrawer(user);
+    /* Le tiroir de fiche recouvre la console : le focus n'a rien à faire
+       derrière lui, et doit revenir au bouton « Ouvrir » à la fermeture. */
+    relacheFiche = window.ALLY_FOCUS.piege(el.drawer);
   }
 
   function closeDrawer() {
     el.drawer.hidden = true;
     ui.open = null;
+    if (relacheFiche) { relacheFiche(); relacheFiche = null; }
   }
+
+  var relacheFiche = null;
+  var relacheBarre = null;
 
   function bindDrawer(user) {
     el.drawerBody.querySelectorAll('[data-setplan]').forEach(function (chip) {
@@ -15352,13 +15386,15 @@ window.ALLY_PLAN_BY_ID = function (id) {
      étant remontées, un doublon openDrawer écrasait silencieusement l'autre et
      le bouton « Ouvrir » d'un compte n'ouvrait plus rien. */
   function openSidebar() {
+    if (relacheBarre) return;
     el.shell.classList.add('drawer-open');
     el.menuToggle.setAttribute('aria-expanded', 'true');
-    el.sidebarClose.focus();
+    relacheBarre = window.ALLY_FOCUS.piege(el.sidebar, { premier: el.sidebarClose });
   }
   function closeSidebar() {
     el.shell.classList.remove('drawer-open');
     el.menuToggle.setAttribute('aria-expanded', 'false');
+    if (relacheBarre) { relacheBarre(); relacheBarre = null; }
   }
 
   var mqMobile = window.matchMedia('(max-width: 900px)');
@@ -15372,7 +15408,8 @@ window.ALLY_PLAN_BY_ID = function (id) {
 
   el.menuToggle.addEventListener('click', openSidebar);
   el.scrim.addEventListener('click', closeSidebar);
-  el.sidebarClose.addEventListener('click', function () { closeSidebar(); el.menuToggle.focus(); });
+  /* Le piège rend lui-même le focus au bouton qui a ouvert le tiroir. */
+  el.sidebarClose.addEventListener('click', closeSidebar);
 
   document.getElementById('drawer-close').addEventListener('click', closeDrawer);
   el.drawer.addEventListener('click', function (event) {

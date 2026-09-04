@@ -29,11 +29,19 @@
   --card:      oklch(0.215 0.02 264 / 0.86);
   --card-glass:oklch(0.215 0.02 264 / 0.76);
 
+/* Les deux gris les plus discrets ont été remontés. Mesuré au canvas sur la
+   surface d'une carte, --txt-5 donnait 3,85:1 et --txt-4 3,78:1 — sous les
+   4,5:1 que le WCAG demande pour du texte courant, et ce sont précisément les
+   niveaux qui portent les micro-libellés de dix pixels. Il faut 0,61 de
+   clarté pour atteindre le seuil sur une carte ; on prend un peu de marge.
+
+   La hiérarchie tient toujours en cinq échelons : ils sont simplement moins
+   écartés en bas, là où l'écart ne servait qu'à rendre illisible. */
   --txt:   oklch(0.95 0.006 264);
   --txt-2: oklch(0.85 0.006 264);
-  --txt-3: oklch(0.72 0.010 264);
-  --txt-4: oklch(0.62 0.010 264);
-  --txt-5: oklch(0.55 0.010 264);
+  --txt-3: oklch(0.75 0.010 264);
+  --txt-4: oklch(0.67 0.010 264);
+  --txt-5: oklch(0.62 0.010 264);
 
   --accent:        oklch(0.72 0.19 296);
   --accent-bright: oklch(0.75 0.19 296);
