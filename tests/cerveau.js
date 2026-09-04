@@ -182,6 +182,89 @@ test('un cabinet fermé toute la semaine n\'invente pas de créneau', () => {
   }
 });
 
+/* ------------------------------------------- Ne pas se tromper de personne */
+
+test('un nom qu\'on ne trouve pas arrête la demande', () => {
+  /* Le plus dangereux de tous les défauts trouvés : « écris un mail à
+     monsieur Petit pour reporter » déclenchait le déplacement d'un rendez-vous
+     — le mot « reporte » suffisait — et, faute d'en trouver un au nom de
+     Petit, Ally prenait le premier à venir. Elle proposait donc, avec
+     assurance, de déplacer celui de quelqu'un d'autre. */
+  const r = B.ask('deplace le rendez-vous de Kowalski a 16h');
+  assert.ok(/aucun rendez-vous à ce nom/i.test(r.reply), r.reply);
+  assert.ok(!/aubert|chevalier|meridian|petit|roussel/i.test(r.reply),
+    'un autre client est cité : ' + r.reply);
+});
+
+test('« écris un mail pour reporter » n\'est pas un déplacement', () => {
+  const r = B.ask('ecris un mail a monsieur Petit pour reporter');
+  assert.notStrictEqual(r.kind, 'unknown');
+  assert.ok(!/déplace/i.test(r.confirm || r.reply || ''),
+    'la demande a été prise pour un déplacement : ' + (r.confirm || r.reply));
+});
+
+test('le rendez-vous visé est celui qu\'on nomme', () => {
+  const D = store.data();
+  const cible = D.rdv.filter((r) => r.date >= A.TODAY)[1] || D.rdv[0];
+  const nom = cible.client.replace(/^(M\.|Mme|Dr)\s*/, '').split(' ')[0];
+  const r = B.ask('deplace le rendez-vous de ' + nom + ' a 16h');
+  assert.ok((r.confirm || '').includes(cible.client),
+    'attendu ' + cible.client + ', obtenu : ' + r.confirm);
+});
+
+test('« à 16h » dit où le rendez-vous va, pas lequel c\'est', () => {
+  /* L'heure d'arrivée était prise pour l'heure du rendez-vous : on cherchait
+     donc un rendez-vous à 16h, qui n'existait pas, et Ally répondait qu'elle
+     ne le trouvait pas — alors qu'il était à 14h. */
+  const r = B.ask('deplace le rendez-vous de 14h a 16h');
+  assert.strictEqual(r.kind, 'action', r.reply);
+  assert.ok(/16h/.test(r.confirm), 'l\'heure d\'arrivée n\'est pas reprise : ' + r.confirm);
+});
+
+test('un ordre de modification n\'est pas servi par une lecture', () => {
+  /* « Reporte mon prochain rendez-vous » était capté par l'intention qui
+     *annonce* le prochain rendez-vous : Ally répondait poliment, et ne
+     déplaçait rien. Cinq listes de verbes écrites à la main avaient divergé. */
+  const r = B.ask('reporte mon prochain rendez-vous a lundi 11h');
+  assert.strictEqual(r.kind, 'action', 'répondu au lieu d\'agir : ' + r.reply);
+});
+
+test('poser un rendez-vous un jour fermé le signale', () => {
+  const S = store.state;
+  const cles = ['dim', 'lun', 'mar', 'mer', 'jeu', 'ven', 'sam'];
+  const ferme = prochainJourFerme();
+  if (!ferme) return;
+  const jour = S.hours.filter((h) => h.id === cles[new Date(ferme + 'T00:00:00').getDay()])[0];
+  const r = B.ask('cree un rendez-vous ' + jour.label.toLowerCase() + ' a 10h avec M. Durand');
+  assert.ok(/ferm/i.test(r.reply), 'aucun avertissement : ' + r.reply);
+});
+
+test('poser un rendez-vous hors horaires le signale', () => {
+  const r = B.ask('cree un rendez-vous lundi a 23h avec M. Durand');
+  assert.ok(/en dehors de vos horaires/i.test(r.reply), 'aucun avertissement : ' + r.reply);
+});
+
+/* ------------------------------------------- Base de connaissances honnête */
+
+test('un seul mot en commun ne fait pas une réponse', () => {
+  /* « Quel est mon chiffre d'affaires ce mois-ci ? » tombait sur la fiche
+     « Domaines d'intervention » — qui contient le mot « affaires » — et Ally
+     la récitait comme si c'était la réponse. Une réponse confiante et fausse
+     est pire qu'un aveu d'incompréhension : la première s'utilise. */
+  const r = B.ask('quel est mon chiffre d\'affaires ce mois-ci');
+  assert.ok(!/droit du travail|domaines/i.test(r.reply || ''),
+    'une fiche sans rapport a été servie : ' + r.reply);
+});
+
+test('une vraie question trouve toujours sa fiche', () => {
+  /* Le garde-fou ne doit pas rendre Ally muette : les questions que la base
+     couvre vraiment doivent continuer de recevoir leur réponse. */
+  ['quels sont vos horaires', 'quels sont vos tarifs', 'tarifs'].forEach((q) => {
+    const r = B.ask(q);
+    assert.notStrictEqual(r.kind, 'unknown', '« ' + q + ' » n\'est plus comprise');
+  });
+});
+
 /* ------------------------------------------------------ Recherche par nom */
 
 test('on retrouve un rendez-vous par le nom du client', () => {

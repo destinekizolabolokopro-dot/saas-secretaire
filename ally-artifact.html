@@ -7471,6 +7471,18 @@ window.ALLY_PLAN_BY_ID = function (id) {
     'rdv', 'rdvs', 'consultation', 'creneau', 'agenda'];
   function parleDeRdv(t) { return hasAnyLoose(t, MOTS_RDV); }
 
+  /* Les verbes qui modifient l'agenda. Une seule liste, parce qu'il y en avait
+     cinq, écrites à la main à cinq endroits, et qu'elles avaient divergé :
+     « reporte » manquait dans trois d'entre elles. « Reporte mon prochain
+     rendez-vous à demain 11h » était donc capté par l'intention qui *annonce*
+     le prochain rendez-vous, et Ally répondait poliment sans rien déplacer.
+
+     La règle est simple et vaut partout : un ordre de modification ne doit
+     jamais être servi par une intention de lecture. */
+  var MODIF_VERBS = ['deplace', 'decale', 'bouge', 'reporte', 'reporter',
+    'annule', 'annuler', 'supprime', 'supprimer'];
+  function modifieLAgenda(t) { return hasAny(t, MODIF_VERBS); }
+
   /* Mots qui déclenchent un transfert pendant un appel.
      « urgent » et « urgence » sont irréductibles : un appelant qui le dit
      explicitement doit toujours être entendu. Le reste vient du questionnaire —
@@ -7515,6 +7527,33 @@ window.ALLY_PLAN_BY_ID = function (id) {
     var min = m[2] ? m[2] : '00';
     if (h > 23) return null;
     return (h < 10 ? '0' + h : h) + ':' + min;
+  }
+
+  /* « Déplace le rendez-vous de 14h à 16h » : les deux heures ne disent pas la
+     même chose. Celle qui suit « de » désigne le rendez-vous, celle qui suit
+     « à » dit où il va. Sans cette distinction, findTime prenait la première
+     venue et cherchait un rendez-vous à l'heure d'arrivée — il n'en trouvait
+     évidemment aucun. */
+  function heureApres(texte, prepositions) {
+    var m = String(texte).match(
+      new RegExp('\\b(?:' + prepositions + ')\\s*(\\d{1,2})\\s*(?:h|:)\\s*(\\d{2})?'));
+    if (!m) return null;
+    var h = parseInt(m[1], 10);
+    if (h > 23) return null;
+    return (h < 10 ? '0' + h : h) + ':' + (m[2] || '00');
+  }
+  function heureQuiIdentifie(t) { return heureApres(t, 'de|du|celui'); }
+
+  /* « à 16h » d'abord. Mais on dit aussi « reporte-le à demain 11h », où le
+     jour s'intercale entre la préposition et l'heure : le motif direct ne
+     voyait rien, et le rendez-vous changeait de jour en gardant son horaire.
+     Alors, s'il n'y a qu'une heure dans la phrase et qu'elle ne sert pas à
+     désigner le rendez-vous, c'est forcément l'heure d'arrivée. */
+  function heureDArrivee(t) {
+    var directe = heureApres(t, 'a|vers|pour');
+    if (directe) return directe;
+    if (heureQuiIdentifie(t)) return null;
+    return findTime(t);
   }
 
   var DAYS = [
@@ -7597,6 +7636,34 @@ window.ALLY_PLAN_BY_ID = function (id) {
       return h.id === cles[jour] && h.on;
     })[0];
     return plage ? plage.to : null;
+  }
+
+  /* Poser un rendez-vous un jour où le cabinet est fermé n'est pas interdit —
+     on reçoit parfois hors horaires — mais cela ne doit pas passer inaperçu.
+     Ally le signale et laisse décider ; c'est le professionnel qui sait. */
+  function avertissementJour(isoDate, heure) {
+    var fin = fermetureDe(isoDate);
+    if (!fin) return ' Attention : vous êtes fermé ce jour-là.';
+
+    var bloque = (window.ALLY_STORE.data().blocked || []).some(function (b) {
+      return b.date === isoDate;
+    });
+    if (bloque) return ' Attention : vous aviez bloqué cette journée.';
+
+    if (heure) {
+      var cles = ['dim', 'lun', 'mar', 'mer', 'jeu', 'ven', 'sam'];
+      var p = String(isoDate).split('-');
+      var jour = new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2])).getDay();
+      var plage = window.ALLY_STORE.state.hours.filter(function (h) {
+        return h.id === cles[jour] && h.on;
+      })[0];
+      if (plage && (enMinutes(heure) < enMinutes(plage.from) ||
+                    enMinutes(heure) >= enMinutes(plage.to))) {
+        return ' Attention : c\'est en dehors de vos horaires (' +
+          plage.from + ' – ' + plage.to + ').';
+      }
+    }
+    return '';
   }
 
   /* Pourquoi ce jour n'a-t-il rien à offrir ? « Rien de libre » est vrai dans
@@ -7795,24 +7862,53 @@ window.ALLY_PLAN_BY_ID = function (id) {
     return out;
   }
 
+  /* La base de connaissances répondait sur un seul mot en commun. « Quel est
+     mon chiffre d'affaires ce mois-ci ? » tombait sur la fiche « Droit du
+     travail et droit des affaires » — parce qu'elle contient « affaires » — et
+     Ally la récitait avec l'aplomb d'une bonne réponse. Une réponse
+     confiante et fausse est pire qu'un aveu d'incompréhension : la première
+     s'utilise, la seconde fait reposer la question.
+
+     Deux garde-fous, tous deux nécessaires :
+
+     Un mot en commun est une coïncidence, deux sont un sujet. On exige donc
+     que la fiche touche au moins deux mots distincts de la question — sauf
+     quand la question tient en un ou deux mots (« tarifs ? »), où un mot est
+     tout ce qu'on a.
+
+     Et l'intitulé de la fiche pèse plus que son corps : c'est lui qui dit de
+     quoi elle traite. Un mot croisé dans un paragraphe de réponse ne prouve
+     rien. */
   function faqMatch(text, faq) {
     var asked = expand(keywords(text));
     if (!asked.length) return null;
-    var best = null, bestScore = 0;
+
+    var best = null, bestScore = 0, bestTouches = 0;
 
     faq.forEach(function (item) {
-      var pool = keywords(item.q + ' ' + item.a);
+      var titre = keywords(item.q);
+      var corps = keywords(item.a);
       var score = 0;
+      var touches = 0;
+
       asked.forEach(function (word) {
-        pool.forEach(function (candidate) {
-          if (candidate === word) score += 2;
-          else if (candidate.indexOf(word) === 0 || word.indexOf(candidate) === 0) score += 1;
+        var vu = 0;
+        titre.forEach(function (candidate) {
+          if (candidate === word) vu = Math.max(vu, 6);
+          else if (candidate.indexOf(word) === 0 || word.indexOf(candidate) === 0) vu = Math.max(vu, 3);
         });
+        corps.forEach(function (candidate) {
+          if (candidate === word) vu = Math.max(vu, 2);
+          else if (candidate.indexOf(word) === 0 || word.indexOf(candidate) === 0) vu = Math.max(vu, 1);
+        });
+        if (vu) { score += vu; touches++; }
       });
-      if (score > bestScore) { bestScore = score; best = item; }
+
+      if (score > bestScore) { bestScore = score; bestTouches = touches; best = item; }
     });
 
-    return bestScore >= 2 ? best : null;
+    var assezDeMots = bestTouches >= 2 || (asked.length <= 2 && bestTouches >= 1);
+    return (bestScore >= 4 && assezDeMots) ? best : null;
   }
 
   window.ALLY_BRAIN = {
@@ -7953,7 +8049,10 @@ window.ALLY_PLAN_BY_ID = function (id) {
         };
       }
 
-      if (hasAny(t, ['envoie', 'envoyer', 'envoi']) && hasAny(t, ['mail', 'email', 'courriel', 'devis', 'compte rendu'])) {
+      /* « Écris un mail à… » est aussi courant que « envoie un mail à… », et
+         ne passait pas : la liste ne connaissait que le second. */
+      if (hasAny(t, ['envoie', 'envoyer', 'envoi', 'ecris', 'ecrire', 'redige', 'rediger'])
+          && hasAny(t, ['mail', 'email', 'courriel', 'devis', 'compte rendu'])) {
         var blocked = S.rules.draft;
         if (blocked) {
           return {
@@ -7981,7 +8080,7 @@ window.ALLY_PLAN_BY_ID = function (id) {
 
       if (hasAnyLoose(t, CREATE_VERBS)
           && (parleDeRdv(t) || hasAnyLoose(t, ['visite', 'audience']))
-          && !hasAny(t, ['deplace', 'decale', 'bouge', 'annule', 'supprime'])) {
+          && !modifieLAgenda(t)) {
 
         var nt = findTime(t);
         var nd = findDay(t);
@@ -8018,7 +8117,7 @@ window.ALLY_PLAN_BY_ID = function (id) {
         return {
           kind: 'action', sensitive: false,
           reply: 'C\'est posé : ' + client + ', ' + quandDit(iso)
-            + ' à ' + nt.replace(':', 'h') + '.',
+            + ' à ' + nt.replace(':', 'h') + '.' + avertissementJour(iso, nt),
           detail: kindLabel + ' — ajouté à votre agenda',
           apply: function () {
             /* Ligne connectée : le rendez-vous part au serveur, sinon la
@@ -8047,7 +8146,8 @@ window.ALLY_PLAN_BY_ID = function (id) {
       }
 
       /* ---------- Agenda : consultation ---------- */
-      if (hasAny(t, ['prochain rendez vous', 'prochain rdv', 'prochain rendez'])) {
+      if (hasAny(t, ['prochain rendez vous', 'prochain rdv', 'prochain rendez'])
+          && !modifieLAgenda(t)) {
         var A0 = window.ALLY_AGENDA;
         var next = D.rdv.filter(function (r) { return r.date >= A0.TODAY; })
           .sort(function (a, b) { return (a.date + a.time) < (b.date + b.time) ? -1 : 1; })[0];
@@ -8061,7 +8161,7 @@ window.ALLY_PLAN_BY_ID = function (id) {
 
       if ((parleDeRdv(t) || hasAnyLoose(t, ['planning']))
           && hasAny(t, ['combien', 'quoi', 'journee', 'aujourd hui', 'demain', 'programme', 'ai je'])
-          && !hasAny(t, ['deplace', 'decale', 'bouge', 'bloque', 'annule'])
+          && !modifieLAgenda(t) && !hasAny(t, ['bloque'])
           && !hasAny(t, CREATE_VERBS)) {
         /* « et demain ? », « mes rendez-vous lundi » : le jour demandé était
            ignoré, et Ally répondait toujours pour aujourd'hui — en ayant l'air
@@ -8086,41 +8186,81 @@ window.ALLY_PLAN_BY_ID = function (id) {
         };
       }
 
-      /* ---------- Agenda : modification ---------- */
-      if (hasAny(t, ['deplace', 'decale', 'bouge', 'reporte'])) {
+      /* ---------- Agenda : modification ----------
+         Trois défauts corrigés ici, et le premier était dangereux.
+
+         « Écris un mail à monsieur Petit pour reporter » : le mot « reporte »
+         déclenchait ce bloc, qui ne trouvait aucune heure et prenait donc le
+         premier rendez-vous à venir — celui de Mme Aubert. Ally proposait
+         alors, en toute confiance, de déplacer le rendez-vous d'une personne
+         dont il n'avait jamais été question. Un nom cité qu'on ne retrouve
+         pas doit arrêter la demande, jamais la rediriger sur quelqu'un
+         d'autre.
+
+         « Déplace le rendez-vous de Mme Aubert à 16h » : l'heure d'arrivée
+         était prise pour l'heure du rendez-vous, qu'on cherchait donc à 16h —
+         introuvable, alors qu'il existait à 14h.
+
+         Et l'heure n'était jamais changée : le rendez-vous changeait de jour
+         en gardant son horaire, pendant que la réponse annonçait le contraire. */
+      if (hasAny(t, ['deplace', 'decale', 'bouge', 'reporte'])
+          && !hasAny(t, ['mail', 'email', 'courriel', 'ecris', 'ecrire'])) {
         var A2 = window.ALLY_AGENDA;
-        var time = findTime(t);
-        var day = findDay(t);
-        var target = time
-          ? D.rdv.filter(function (r) { return r.time === time; })[0]
-          : D.rdv.filter(function (r) { return r.date >= A2.TODAY; })[0];
+        var nomVise = nomCherche(input);
+        var heureVisee = heureQuiIdentifie(t);
+        var aVenir = D.rdv.filter(function (r) { return r.date >= A2.TODAY; });
+        var target = null;
+
+        if (nomVise) {
+          target = D.rdv.filter(function (r) {
+            return norm(r.client).indexOf(nomVise) !== -1;
+          })[0];
+          if (!target) {
+            return {
+              kind: 'answer',
+              reply: 'Aucun rendez-vous à ce nom dans votre agenda. '
+                + 'Je préfère vous le dire plutôt que d\'en déplacer un autre.',
+              detail: 'Dites-moi le jour et l\'heure, je le retrouverai'
+            };
+          }
+        } else if (heureVisee) {
+          target = aVenir.filter(function (r) { return r.time === heureVisee; })[0];
+        } else {
+          target = aVenir[0];
+        }
 
         if (!target) {
           return { kind: 'answer', reply: 'Je ne trouve pas ce rendez-vous dans votre agenda.' };
         }
 
         var newDate = resolveWhen(t) || target.date;
+        var newTime = heureDArrivee(t) || target.time;
         var who = target.client;
+        var quand = A2.longLabel(newDate) + ' à ' + newTime.replace(':', 'h');
+        var alerte = avertissementJour(newDate, newTime);
 
         return {
           kind: 'action', sensitive: true,
           confirm: 'Vous voulez bien que je déplace le rendez-vous de ' + who
-            + ' au ' + A2.longLabel(newDate) + ' ?',
-          reply: 'C\'est fait, le rendez-vous de ' + who + ' passe au '
-            + A2.longLabel(newDate) + ' à ' + target.time.replace(':', 'h')
-            + '. Je préviens ' + (p.clientWord === 'patient' ? 'le patient' : 'le client') + '.',
+            + ' au ' + quand + ' ?' + alerte,
+          reply: 'C\'est fait, le rendez-vous de ' + who + ' passe au ' + quand
+            + '.' + alerte + ' Je préviens '
+            + (p.clientWord === 'patient' ? 'le patient' : 'le client') + '.',
           detail: 'Modification visible dans le calendrier',
           apply: function () {
-            var ancienne = target.date;
+            var ancienneDate = target.date;
+            var ancienneHeure = target.time;
             target.date = newDate;
+            target.time = newTime;
             A2.select(newDate);
-            store.log('Déplacement de ' + who, 'Reporté au ' + A2.longLabel(newDate));
+            store.log('Déplacement de ' + who, 'Reporté au ' + quand);
 
             if (window.ALLY_SYNC && window.ALLY_SYNC.isReal(target.id)) {
-              window.ALLY_SYNC.moveRdv(target.id, newDate, target.time)
+              window.ALLY_SYNC.moveRdv(target.id, newDate, newTime)
                 .then(function (result) {
                   if (result && !result.ok) {
-                    target.date = ancienne;
+                    target.date = ancienneDate;
+                    target.time = ancienneHeure;
                     window.ALLY_UI.toast(result.error);
                   }
                   window.ALLY_SYNC.pull(window.ALLY_DASHBOARD_REFRESH);
@@ -8270,7 +8410,7 @@ window.ALLY_PLAN_BY_ID = function (id) {
       /* ---------- Quand est mon rendez-vous avec X ? ---------- */
       if (parleDeRdv(t) && hasAnyLoose(t, ['avec', 'quand'])
           && !hasAny(t, CREATE_VERBS)
-          && !hasAny(t, ['deplace', 'decale', 'bouge', 'annule', 'libre'])) {
+          && !modifieLAgenda(t) && !hasAny(t, ['libre'])) {
         var cherche = nomCherche(input);
         if (cherche) {
           var trouve = D.rdv.filter(function (r) {
