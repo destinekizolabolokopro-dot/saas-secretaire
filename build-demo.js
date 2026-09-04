@@ -78,6 +78,7 @@ window.ALLY_GOTO = function (target) {
   if (id === 'onboarding' && window.ALLY_ONBOARDING_REFRESH) window.ALLY_ONBOARDING_REFRESH();
   if (id === 'admin' && window.ALLY_ADMIN_REFRESH) window.ALLY_ADMIN_REFRESH();
   if (id === 'abonnement' && window.ALLY_SUBSCRIBE_REFRESH) window.ALLY_SUBSCRIBE_REFRESH();
+  if (window.ALLY_GOTO_HASH) window.ALLY_GOTO_HASH(id);
 };
 document.addEventListener('click', function (event) {
   var link = event.target.closest('[data-goto]');
@@ -85,6 +86,24 @@ document.addEventListener('click', function (event) {
   event.preventDefault();
   window.ALLY_GOTO(link.getAttribute('data-goto'));
 });
+
+/* Le fichier n'a qu'une adresse : sans cela, impossible d'envoyer quelqu'un
+   directement au tableau de bord — il tombait sur la page d'accueil du
+   produit, qui reproduit celle du site qu'il venait de quitter.
+   replaceState plutôt que pushState : on garde l'adresse partageable sans
+   remplir l'historique d'un cran à chaque onglet cliqué. */
+window.ALLY_GOTO_HASH = function (id) {
+  if (window.history && window.history.replaceState) {
+    window.history.replaceState(null, '', '#' + id);
+  }
+};
+window.addEventListener('hashchange', function () {
+  window.ALLY_GOTO(String(window.location.hash || '').replace(/^#/, ''));
+});
+(function () {
+  var demande = String(window.location.hash || '').replace(/^#/, '');
+  if (demande) window.ALLY_GOTO(demande);
+})();
 /* Pas de pages ici : réinitialiser recharge le fichier. */
 window.addEventListener('load', function () {
   window.ALLY_RESTART = function () { window.location.reload(); };

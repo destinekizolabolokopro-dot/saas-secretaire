@@ -422,6 +422,21 @@
 }
 .demo-note { font-size: 12px; color: var(--txt-5); flex-basis: 100%; line-height: 1.5; }
 
+/* L'invitation à ouvrir le produit complet. Elle ne concurrence pas l'essai
+   payant : ton discret, bouton fantôme, elle se propose sans insister. */
+.demo-more {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 24px; flex-wrap: wrap;
+  margin-top: 28px; padding: 22px 26px;
+  border: 1px solid var(--bd-2); border-radius: var(--r);
+  background: oklch(1 0 0 / 0.035);
+  box-shadow: var(--hi);
+}
+.demo-more > div { flex: 1; min-width: 260px; }
+.demo-more strong { display: block; font-size: 15px; font-weight: 600; margin-bottom: 6px; }
+.demo-more p { font-size: 13.5px; line-height: 1.6; color: var(--txt-3); max-width: 560px; }
+.demo-more .btn { flex-shrink: 0; font-size: 14px; padding: 12px 24px; }
+
 @media (min-width: 1000px) {
   .demo-note { flex-basis: auto; max-width: 300px; text-align: right; }
 }

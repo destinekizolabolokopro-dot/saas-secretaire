@@ -44,6 +44,11 @@ Le fichier `ally-demo.html` s'ouvre par simple double-clic : il contient tout
 exige un contexte sécurisé, donc `https` ou `localhost`. Servi par un serveur,
 le reste du produit est identique.
 
+Il est adressable : `ally-demo.html#dashboard` ouvre directement l'espace pro,
+`#admin` la console, `#onboarding` le questionnaire. Sans cela, on tombait sur
+la page d'accueil du produit — qui reproduit celle du site dont on vient. La
+page d'accueil y renvoie depuis la section « Démonstration ».
+
 ## Écrans
 
 | Fichier | Contenu |
