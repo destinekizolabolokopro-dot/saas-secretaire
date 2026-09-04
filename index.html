@@ -123,6 +123,119 @@
       </div>
     </section>
 
+    <!-- La démonstration. Les meilleurs sites de produit montrent le produit :
+         Ally parlait du sien sans jamais le faire voir. Cet échange est celui
+         que le moteur d'intentions tient réellement — même script d'accueil,
+         mêmes créneaux, même brouillon en attente de validation. -->
+    <section class="section section-wide reveal" id="demo">
+      <p class="kicker">La démonstration</p>
+      <h2 style="max-width:700px">Un appel, du début à la fin.</h2>
+      <p class="section-lede" style="max-width:640px">
+        Vous êtes en rendez-vous, votre téléphone sonne. Voici ce que votre
+        client entend — et ce que vous retrouvez en sortant.
+      </p>
+
+      <div class="demo" data-demo>
+        <div class="demo-call">
+          <div class="demo-head">
+            <span class="demo-ring" aria-hidden="true"></span>
+            <div class="demo-head-main">
+              <strong>06 12 34 56 78</strong>
+              <span data-demo-state>Appel entrant · vous êtes en rendez-vous</span>
+            </div>
+            <span class="demo-clock" data-demo-clock>0:00</span>
+          </div>
+
+          <ol class="demo-script">
+            <li class="demo-line is-ally" data-step="1">
+              <div class="demo-in">
+              <span class="demo-who">Ally</span>
+              <p>Cabinet Berger, bonjour. Je suis Ally, l'assistante du cabinet.
+                 Maître Berger est en rendez-vous — en quoi puis-je vous aider ?</p>
+              </div>
+            </li>
+            <li class="demo-line is-caller" data-step="2">
+              <div class="demo-in">
+              <span class="demo-who">M. Vasseur</span>
+              <p>Bonjour. J'aurais besoin d'un rendez-vous, c'est pour un litige
+                 avec mon employeur.</p>
+              </div>
+            </li>
+            <li class="demo-line is-ally" data-step="3">
+              <div class="demo-in">
+              <span class="demo-who">Ally</span>
+              <p class="demo-tagged"><span class="demo-tag">Motif reconnu · droit du travail</span></p>
+              <p>Je regarde ses disponibilités… Lundi 7 à 9 h, ou mardi 8 à
+                 14 h 30 ?</p>
+              </div>
+            </li>
+            <li class="demo-line is-caller" data-step="4">
+              <div class="demo-in">
+              <span class="demo-who">M. Vasseur</span>
+              <p>Lundi 9 h, ce serait parfait.</p>
+              </div>
+            </li>
+            <li class="demo-line is-ally" data-step="5">
+              <div class="demo-in">
+              <span class="demo-who">Ally</span>
+              <p>C'est noté. Vous recevez la confirmation par email dans
+                 l'instant. Bonne journée, Monsieur Vasseur.</p>
+              </div>
+            </li>
+          </ol>
+        </div>
+
+        <div class="demo-app">
+          <p class="demo-app-title">Votre espace, pendant ce temps</p>
+
+          <article class="demo-card" data-step="3">
+            <div class="demo-in">
+            <div class="demo-card-head">
+              <span class="demo-dot demo-dot-cyan" aria-hidden="true"></span>
+              <strong>Créneau vérifié</strong>
+            </div>
+            <p>Lundi 7 septembre, 9 h : libre dans vos horaires, aucun
+               rendez-vous posé.</p>
+            </div>
+          </article>
+
+          <article class="demo-card" data-step="5">
+            <div class="demo-in">
+            <div class="demo-card-head">
+              <span class="demo-dot demo-dot-accent" aria-hidden="true"></span>
+              <strong>Rendez-vous ajouté</strong>
+            </div>
+            <p class="demo-rdv">
+              <span class="demo-rdv-day">Lun 7</span>
+              <span class="demo-rdv-time">09:00</span>
+              <span class="demo-rdv-who">M. Vasseur — Litige prud'homal</span>
+            </p>
+            </div>
+          </article>
+
+          <article class="demo-card" data-step="6">
+            <div class="demo-in">
+            <div class="demo-card-head">
+              <span class="demo-dot demo-dot-yellow" aria-hidden="true"></span>
+              <strong>Brouillon à valider</strong>
+            </div>
+            <p>« Confirmation de rendez-vous — lundi 7 septembre à 9 h »</p>
+            <p class="demo-guard">Rien n'est parti. Ally a rédigé, vous validez.</p>
+            </div>
+          </article>
+        </div>
+      </div>
+
+      <div class="demo-bar">
+        <button type="button" class="demo-replay" data-demo-replay>
+          <span aria-hidden="true">↻</span> Rejouer
+        </button>
+        <span class="demo-progress" aria-hidden="true"><i data-demo-progress></i></span>
+        <span class="demo-note">Le même moteur que dans le produit : ce sont ses
+          phrases, ses créneaux, sa règle de validation.</span>
+      </div>
+    </section>
+
     <section class="section section-narrow reveal" id="how">
       <p class="kicker">Fonctionnement</p>
       <h2 style="max-width:640px">Configurée pour votre métier en quelques minutes.</h2>
@@ -233,6 +346,7 @@
 <script src="js/profiles.js"></script>
 <script src="js/plans.js"></script>
 <script src="js/store.js"></script>
+<script src="js/demo.js"></script>
 <script src="js/landing.js"></script>
 </body>
 </html>

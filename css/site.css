@@ -240,6 +240,181 @@
 .card-glass h3 { font-size: 20px; font-weight: 600; margin-bottom: 12px; letter-spacing: var(--tr-title); }
 .card-glass p { color: var(--txt-3); font-size: 15px; line-height: 1.65; }
 
+/* ---- La démonstration ----
+   Deux colonnes : ce que le client entend, ce que le professionnel retrouve.
+   L'échange entier est dans le DOM dès le départ — un lecteur d'écran le lit
+   d'un bout à l'autre comme la conversation qu'il est, sans région vive qui
+   l'interromprait toutes les deux secondes. L'animation ne fait que dévoiler
+   ce qui est déjà écrit. */
+/* Le chapô a besoin de respirer sous son titre : les autres sections n'en ont
+   pas, celle-ci en a un. */
+#demo .section-lede { margin-top: 18px; }
+
+.demo {
+  display: grid; grid-template-columns: 1.25fr 1fr; gap: 20px;
+  margin-top: 44px; align-items: start;
+}
+.demo-call, .demo-app {
+  background: var(--card-glass); border: 1px solid oklch(1 0 0 / 0.09);
+  border-radius: var(--r-lg); padding: 24px;
+  box-shadow: var(--sh-2), var(--hi);
+}
+
+.demo-head {
+  display: flex; align-items: center; gap: 14px;
+  padding-bottom: 18px; margin-bottom: 6px;
+  border-bottom: 1px solid var(--hair);
+}
+.demo-head-main { flex: 1; min-width: 0; }
+.demo-head-main strong {
+  display: block; font-family: var(--ff-h); font-size: 17px; font-weight: 700;
+  letter-spacing: -.01em;
+}
+.demo-head-main span { display: block; font-size: 12.5px; color: var(--txt-4); margin-top: 2px; }
+.demo-clock {
+  font-family: var(--ff-h); font-size: 13px; color: var(--txt-4);
+  font-variant-numeric: tabular-nums; flex-shrink: 0;
+}
+
+/* La pastille sonne tant que l'appel n'est pas décroché, puis se fixe. */
+.demo-ring {
+  width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0;
+  background: var(--accent-bright);
+  box-shadow: 0 0 0 0 oklch(0.72 0.19 296 / 0.5);
+}
+.demo[data-demo-phase="sonne"] .demo-ring { animation: demo-ring 1.1s ease-out infinite; }
+@keyframes demo-ring {
+  0%   { box-shadow: 0 0 0 0 oklch(0.72 0.19 296 / 0.5); }
+  100% { box-shadow: 0 0 0 12px oklch(0.72 0.19 296 / 0); }
+}
+.demo[data-demo-phase="fini"] .demo-ring { background: var(--cyan); }
+
+/* Les répliques et les cartes n'occupent pas leur place avant d'exister : les
+   panneaux grandissent avec la conversation au lieu de réserver leur hauteur
+   finale et de rester vides pendant dix secondes — ce qui donnait l'air d'un
+   écran cassé plutôt que d'un appel en cours.
+
+   Une grille qui passe de 0fr à 1fr anime une hauteur sans avoir besoin de la
+   connaître, et sans le saut que produirait un display:none. Elle n'anime que
+   sa première rangée : d'où le div qui enveloppe le contenu de chacune. */
+.demo-script { list-style: none; margin: 0; padding: 0; }
+.demo-line {
+  display: grid; grid-template-rows: 0fr;
+  padding: 0; border-bottom: 0 solid var(--hair);
+  opacity: 0;
+  transition: grid-template-rows .55s var(--ease), opacity .45s var(--ease),
+              padding .55s var(--ease), border-bottom-width .55s var(--ease);
+}
+.demo-line > .demo-in { overflow: hidden; min-height: 0; }
+.demo-line.is-on {
+  grid-template-rows: 1fr; opacity: 1;
+  padding: 16px 0; border-bottom-width: 1px;
+}
+.demo-line:last-child.is-on { border-bottom-width: 0; }
+.demo-who {
+  display: block; font-size: 11px; text-transform: uppercase;
+  letter-spacing: .09em; margin-bottom: 6px;
+}
+.demo-line.is-ally .demo-who { color: oklch(0.8 0.12 296); }
+.demo-line.is-caller .demo-who { color: var(--txt-5); }
+.demo-line p { font-size: 15px; line-height: 1.6; color: var(--txt-2); }
+.demo-line.is-caller p { color: var(--txt-3); }
+.demo-tagged { margin-bottom: 8px; }
+.demo-tag {
+  display: inline-block; font-size: 11.5px; padding: 4px 10px;
+  border-radius: var(--pill);
+  background: oklch(0.72 0.19 296 / 0.16); color: oklch(0.88 0.09 296);
+  box-shadow: var(--hi);
+}
+
+.demo-app-title {
+  font-size: 11px; text-transform: uppercase; letter-spacing: .09em;
+  color: var(--txt-5); margin-bottom: 16px;
+}
+.demo-card {
+  display: grid; grid-template-rows: 0fr;
+  background: oklch(1 0 0 / 0.04); border: 1px solid transparent;
+  border-radius: var(--r-md); padding: 0 18px;
+  opacity: 0;
+  transition: grid-template-rows .55s var(--ease), opacity .45s var(--ease),
+              padding .55s var(--ease), border-color .55s var(--ease),
+              margin-top .55s var(--ease);
+}
+.demo-card > .demo-in { overflow: hidden; min-height: 0; }
+.demo-card.is-on {
+  grid-template-rows: 1fr; opacity: 1;
+  padding: 16px 18px; border-color: var(--hair);
+}
+.demo-card + .demo-card { margin-top: 0; }
+.demo-card.is-on + .demo-card.is-on { margin-top: 12px; }
+.demo-card-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.demo-card-head strong { font-size: 14px; font-weight: 600; }
+.demo-card p { font-size: 13.5px; line-height: 1.55; color: var(--txt-3); }
+.demo-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.demo-dot-accent { background: var(--accent-bright); }
+.demo-dot-cyan { background: var(--cyan); }
+.demo-dot-yellow { background: var(--yellow); }
+
+.demo-rdv { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.demo-rdv-day { font-family: var(--ff-h); font-size: 13px; color: var(--cyan); }
+.demo-rdv-time {
+  font-family: var(--ff-h); font-size: 17px; font-weight: 700; color: var(--txt);
+  font-variant-numeric: tabular-nums;
+}
+.demo-rdv-who { font-size: 13.5px; color: var(--txt-3); }
+/* La phrase qui compte : Ally n'envoie rien toute seule. */
+.demo-guard {
+  margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--hair);
+  font-size: 12.5px; color: var(--yellow) !important;
+}
+
+.demo-bar {
+  display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+  margin-top: 20px;
+}
+.demo-replay {
+  display: inline-flex; align-items: center; gap: 8px; flex-shrink: 0;
+  font-family: inherit; font-size: 13px; color: var(--txt-2);
+  background: oklch(1 0 0 / 0.05); border: 1px solid var(--bd-2);
+  border-radius: var(--pill); padding: 9px 18px; cursor: pointer;
+  box-shadow: var(--hi);
+  transition: background var(--t-fast) var(--ease-soft), transform var(--t-fast) var(--ease);
+}
+.demo-replay:hover { background: oklch(1 0 0 / 0.09); color: var(--txt); }
+.demo-replay:active { transform: scale(0.96); }
+.demo-progress {
+  flex: 1; min-width: 80px; height: 3px; border-radius: var(--pill);
+  background: oklch(1 0 0 / 0.08); overflow: hidden;
+}
+.demo-progress i {
+  display: block; height: 100%; width: 0; border-radius: var(--pill);
+  background: var(--grad);
+}
+.demo-note { font-size: 12px; color: var(--txt-5); flex-basis: 100%; line-height: 1.5; }
+
+@media (min-width: 1000px) {
+  .demo-note { flex-basis: auto; max-width: 300px; text-align: right; }
+}
+@media (max-width: 900px) {
+  .demo { grid-template-columns: 1fr; }
+}
+@media (max-width: 560px) {
+  .demo-call, .demo-app { padding: 20px 18px; }
+  .demo-line p { font-size: 14.5px; }
+}
+
+/* Sans animation, tout est montré d'emblée : la démonstration est le contenu,
+   pas le mouvement. */
+@media (prefers-reduced-motion: reduce) {
+  .demo-line, .demo-card {
+    opacity: 1 !important; grid-template-rows: 1fr !important;
+  }
+  .demo-line { padding: 16px 0 !important; border-bottom-width: 1px !important; }
+  .demo-line:last-child { border-bottom-width: 0 !important; }
+  .demo-card { padding: 16px 18px !important; border-color: var(--hair) !important; }
+  .demo-card + .demo-card { margin-top: 12px !important; }
+}
+
 /* ---- Étapes ---- */
 /* Quatre colonnes de texte nu flottaient dans le vide. Un filet au-dessus de
    chacune — comme une fiche technique — les tient sur une ligne commune et
