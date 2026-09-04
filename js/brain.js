@@ -996,9 +996,13 @@
 
         return {
           kind: 'answer',
+          /* « 12 h 58 » se lit comme une durée mais s'entend comme une heure :
+             la synthèse le prononçait « midi cinquante-huit ». On écrit donc
+             la durée en toutes lettres — plus clair à lire aussi. */
           reply: minutes < 60
             ? 'Environ ' + minutes + ' minutes ce mois-ci.'
-            : 'Environ ' + heures + ' h' + (reste ? ' ' + reste : '') + ' ce mois-ci.',
+            : 'Environ ' + heures + ' heure' + (heures > 1 ? 's' : '')
+              + (reste ? ' et ' + reste + ' minutes' : '') + ' ce mois-ci.',
           /* On donne la méthode avec le chiffre : une estimation dont on cache
              le calcul n'est qu'un chiffre inventé. */
           detail: 'Estimation : 3 min par appel pris à votre place ('

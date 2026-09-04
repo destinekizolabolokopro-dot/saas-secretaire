@@ -115,4 +115,40 @@ test('ce qu\'Ally dit, Ally peut le relire', () => {
   assert.ok(relu.includes('14h30'), 'aller-retour cassé : ' + prononce + ' → ' + relu);
 });
 
+/* ------------------------------------------------- Abréviations et ordinaux */
+
+test('« Sté » devient Société, « Stéphane » reste Stéphane', () => {
+  /* Le motif s'arrêtait sur une frontière de mot que JavaScript place entre
+     « t » et « é » — le é n'étant pas un caractère de mot à ses yeux. Il
+     attrapait donc « St » seul et laissait le « é » : « Sté Meridian » se
+     disait « Sociétéé Meridian », et un client prénommé Stéphane était
+     annoncé « Sociétééphane » à chaque appel. */
+  assert.strictEqual(S.pourLaVoix('Sté Meridian'), 'Société Meridian');
+  assert.strictEqual(S.pourLaVoix('Stéphane Dubois'), 'Stéphane Dubois');
+  /* « Ste » sans accent est « Sainte », pas « Société ». */
+  assert.ok(!/Société/.test(S.pourLaVoix('Ste Anne')));
+});
+
+test('les ordinaux gardent leur genre et leur nombre', () => {
+  /* « 1ère consultation » se disait « premier consultation » : les deux
+     formes retombaient sur le masculin singulier, alors que la forme écrite
+     porte l'accord. */
+  assert.ok(/première consultation/.test(S.pourLaVoix('1ère consultation')),
+    S.pourLaVoix('1ère consultation'));
+  assert.ok(/premier septembre/.test(S.pourLaVoix('le 1er septembre')));
+  assert.ok(/premiers dossiers/.test(S.pourLaVoix('les 1ers dossiers')));
+  assert.ok(/seconde chambre/.test(S.pourLaVoix('la 2nde chambre')));
+  assert.ok(/deuxième fois/.test(S.pourLaVoix('la 2ème fois')));
+});
+
+test('une durée ne se dit pas comme une heure', () => {
+  /* « Environ 12 h 58 ce mois-ci » — le temps gagné — se prononçait « midi
+     cinquante-huit ». Le texte lui-même a été changé : une durée s'écrit en
+     toutes lettres, ce qui est aussi plus clair à lire. */
+  const B = charger(['js/profiles.js', 'js/plans.js', 'js/accounts.js', 'js/store.js',
+    'js/speech.js', 'js/agenda.js', 'js/brain.js', 'js/converse.js']).ALLY_BRAIN;
+  const dit = S.pourLaVoix(B.ask('combien de temps ai-je gagné').reply);
+  assert.ok(!/midi|minuit/.test(dit), 'la durée est prise pour une heure : ' + dit);
+});
+
 fin();

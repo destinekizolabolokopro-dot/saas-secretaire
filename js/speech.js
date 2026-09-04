@@ -115,7 +115,16 @@
     [/\bCB\b/g, 'carte bancaire'],
     [/\bn°\s?/gi, 'numéro '],
     [/\bN°\s?/g, 'numéro '],
-    [/\bStè?\b\.?/g, 'Société'],
+    /* « Sté » et rien d'autre. Le motif précédent — \bStè?\b — se terminait
+       sur une frontière de mot que JavaScript place entre « t » et « é », le
+       é n'étant pas un caractère de mot à ses yeux. Il attrapait donc « St »
+       seul et laissait le « é » derrière : « Sté Meridian » devenait
+       « Sociétéé Meridian », et « Stéphane » — un prénom, pas une société —
+       « Sociétééphane ». La négation qui suit exige que rien de lisible ne
+       suive l'abréviation.
+
+       « Ste » sans accent reste intact : c'est « Sainte », pas « Société ». */
+    [/\bSté\.?(?![\wÀ-ÿ])/g, 'Société'],
     [/\betc\.\b/gi, 'et cetera'],
     [/\bcf\.\b/gi, 'voir'],
     [/\bmin\b/g, 'minutes'],
@@ -181,9 +190,18 @@
     });
     out = out.replace(/(\d+)\s?%/g, function (m, n) { return enLettres(n) + ' pour cent'; });
 
-    /* Ordinaux courants. */
-    out = out.replace(/\b1(?:er|ère)\b/g, 'premier');
-    out = out.replace(/\b(\d+)(?:e|ème)\b/g, function (m, n) {
+    /* Ordinaux courants. Le genre était perdu : « 1ère consultation » se
+       disait « premier consultation », les deux formes retombant sur le
+       masculin. C'est la forme écrite qui porte l'accord, il suffisait de la
+       regarder. Même chose pour « 2nde », qui n'est pas « deuxième ». */
+    var pluriel = function (mot) {
+      return function (m) { return mot + (/s$/.test(m) ? 's' : ''); };
+    };
+    out = out.replace(/\b1(?:ères?|res?)\b/g, pluriel('première'));
+    out = out.replace(/\b1ers?\b/g, pluriel('premier'));
+    out = out.replace(/\b2ndes?\b/g, pluriel('seconde'));
+    out = out.replace(/\b2nds?\b/g, pluriel('second'));
+    out = out.replace(/\b(\d+)(?:e|ème|èmes|es)\b/g, function (m, n) {
       var mots = { 2: 'deuxième', 3: 'troisième', 4: 'quatrième', 5: 'cinquième' };
       return mots[n] || enLettres(n) + 'ième';
     });
