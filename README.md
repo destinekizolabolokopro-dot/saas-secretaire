@@ -37,6 +37,7 @@ node tests/navigateur/run.js       # les quatre suites d'un coup
 | `ecran.js` | Une erreur au chargement, un onglet qui ne rend rien, un débordement horizontal sur téléphone |
 | `clavier.js` | Le focus : une fenêtre modale dont on sort à la tabulation sans l'avoir fermée, un focus rendu à personne |
 | `contraste.js` | Un texte sous le seuil du WCAG, une commande sans nom accessible — mesurés au canvas, pas estimés à l'œil |
+| `gestes.js` | Ce que les boutons font vraiment : poser et annuler un rendez-vous, fermer une journée, envoyer un email et le rattraper dans les dix secondes — vérifié dans les données écrites, pas à l'écran |
 | `stockage.js` | Un navigateur qui refuse d'enregistrer : navigation privée, quota atteint, données illisibles. Aucune page ne se brise, et le produit le dit |
 | `ligne.js` | La mise en service du renvoi d'appel |
 | `coupure.js` | Un serveur qui devient injoignable en cours de session : les réglages sont retentés, le retard est annoncé, l'avertissement se retire tout seul au retour |
