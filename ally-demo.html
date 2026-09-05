@@ -12184,6 +12184,25 @@ window.ALLY_PLAN_BY_ID = function (id) {
     box.hidden = !message;
   }
 
+  /* Quatre refus sur sept ne disaient rien : le curseur sautait sur le champ
+     fautif et c'était tout. Le geste est juste, il est muet. Même règle que
+     partout ailleurs — on marque, on écrit à côté, et la marque s'efface à la
+     première frappe. */
+  function manque(champ, message) {
+    fail(message);
+    if (champ) { champ.setAttribute('aria-invalid', 'true'); champ.focus(); }
+  }
+
+  ['sub-first', 'sub-last', 'sub-email', 'sub-pass'].forEach(function (id) {
+    var champ = document.getElementById(id);
+    if (!champ) return;
+    champ.addEventListener('input', function () {
+      if (champ.getAttribute('aria-invalid') !== 'true') return;
+      champ.removeAttribute('aria-invalid');
+      fail('');
+    });
+  });
+
   UI.revealToggle(document.getElementById('sub-pass'));
   UI.passwordMeter(document.getElementById('sub-pass'), document.getElementById('sub-meter'));
 
@@ -12218,14 +12237,37 @@ window.ALLY_PLAN_BY_ID = function (id) {
     var cgv = document.getElementById('sub-cgv');
 
     fail('');
-    if (!last.value.trim()) { last.focus(); return; }
-    if (!email.checkValidity() || !email.value) { email.focus(); return; }
-    if (pass.value.length < 8) {
-      pass.focus(); pass.setAttribute('aria-invalid', 'true');
-      fail('Le mot de passe doit faire au moins 8 caractères.');
+    [first, last, email, pass].forEach(function (c) { c.removeAttribute('aria-invalid'); });
+
+    /* Le prénom n'était pas vérifié du tout : on pouvait créer un compte sans,
+       et les initiales de l'avatar devenaient « ?B ». */
+    if (!first.value.trim()) {
+      manque(first, 'Votre prénom : Ally s\'en sert pour vous appeler par votre nom.');
       return;
     }
-    if (!cgv.checked) { cgv.focus(); fail('Vous devez accepter les conditions générales.'); return; }
+    if (!last.value.trim()) {
+      manque(last, 'Votre nom : c\'est celui qu\'Ally annonce au téléphone et qui signe vos emails.');
+      return;
+    }
+    if (!email.value.trim()) {
+      manque(email, 'Votre adresse professionnelle : elle sert d\'identifiant, et c\'est là qu\'Ally vous écrit.');
+      return;
+    }
+    if (!email.checkValidity()) {
+      manque(email, 'Cette adresse n\'a pas la forme attendue — il manque un @ ou le nom du domaine.');
+      return;
+    }
+    if (pass.value.length < 8) {
+      manque(pass, 'Le mot de passe doit faire au moins 8 caractères.');
+      return;
+    }
+    if (!cgv.checked) {
+      cgv.setAttribute('aria-invalid', 'true');
+      cgv.focus();
+      fail('Vous devez accepter les conditions générales pour créer le compte.');
+      return;
+    }
+    cgv.removeAttribute('aria-invalid');
 
     var plan = chosen();
     var button = this;
@@ -12236,7 +12278,12 @@ window.ALLY_PLAN_BY_ID = function (id) {
       password: pass.value, planId: plan.id, cycle: state.cycle
     }).then(function (result) {
       busy(button, false);
-      if (!result.ok) { fail(result.error); email.focus(); return; }
+      if (!result.ok) {
+        fail(result.error);
+        email.setAttribute('aria-invalid', 'true');
+        email.focus();
+        return;
+      }
 
       created = result.user;
       showCode(result.code);

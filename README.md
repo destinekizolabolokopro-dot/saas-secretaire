@@ -37,7 +37,7 @@ node tests/navigateur/run.js       # les quatre suites d'un coup
 | `ecran.js` | Une erreur au chargement, un onglet qui ne rend rien, un débordement horizontal sur téléphone |
 | `clavier.js` | Le focus : une fenêtre modale dont on sort à la tabulation sans l'avoir fermée, un focus rendu à personne |
 | `contraste.js` | Un texte sous le seuil du WCAG, une commande sans nom accessible — mesurés au canvas, pas estimés à l'œil |
-| `connexion.js` | Les chemins d'erreur de la connexion : chaque refus se dit, aucun ne révèle si le compte existe, et la marque s'efface dès qu'on corrige |
+| `connexion.js` | Les chemins d'erreur de la connexion et de l'inscription : chaque refus se dit, aucun ne révèle si le compte existe, et la marque s'efface dès qu'on corrige |
 | `gestes.js` | Ce que les boutons font vraiment : poser et annuler un rendez-vous, fermer une journée, envoyer un email et le rattraper dans les dix secondes — vérifié dans les données écrites, pas à l'écran |
 | `stockage.js` | Un navigateur qui refuse d'enregistrer : navigation privée, quota atteint, données illisibles. Aucune page ne se brise, et le produit le dit |
 | `ligne.js` | La mise en service du renvoi d'appel |
@@ -626,6 +626,15 @@ transcription d'appels, conservation, sous-traitants.
 Le pied de page ne renvoie vers aucune de ces pages **parce qu'elles n'existent
 pas** — un lien mort vaut moins qu'un lien absent. Les trois colonnes sont
 prêtes à en accueillir une quatrième.
+
+**Trancher sur l'énumération à l'inscription.** La connexion ne dit plus si
+un compte existe — le même refus dans les deux cas. L'inscription, elle,
+répond encore « un compte existe déjà avec cette adresse », ce qui permet la
+même découverte par l'autre porte. C'est assumé ici : le message a une vraie
+utilité, il évite à quelqu'un de recréer un compte qu'il a déjà, et le
+serveur limite le débit des inscriptions. La parade habituelle — envoyer un
+email dans les deux cas et afficher une phrase neutre — suppose un envoi
+réel, qu'on n'a pas encore. À reprendre le jour où Brevo est branché.
 
 **Poser une vraie base de données.** Les données vivent dans un fichier JSON.
 Cela tient pour une démonstration et ne tient plus à deux processus : deux

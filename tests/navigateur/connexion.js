@@ -122,6 +122,69 @@ const step = async (label, fn) => {
     if (!/admin\.html|dashboard\.html/.test(ou)) throw new Error('resté sur ' + ou);
   });
 
+  console.log('\n== L\'inscription refuse en s\'expliquant ==');
+
+  /* Une tentative d'inscription, et ce que la page en dit. */
+  const inscrire = async (v) => {
+    const ctx = await navigateur.newContext({ viewport: { width: 1200, height: 1000 } });
+    const p = await ctx.newPage();
+    const erreurs = [];
+    p.on('pageerror', (e) => erreurs.push(e.message.split('\n')[0]));
+    await p.goto(BASE + '/abonnement.html');
+    await p.waitForTimeout(700);
+    await p.locator('.plan.is-popular .btn').click();
+    await p.waitForTimeout(500);
+    if (v.first) await p.fill('#sub-first', v.first);
+    if (v.last) await p.fill('#sub-last', v.last);
+    if (v.email) await p.fill('#sub-email', v.email);
+    if (v.pass) await p.fill('#sub-pass', v.pass);
+    if (v.cgv) await p.check('#sub-cgv');
+    await p.click('#sub-submit');
+    await p.waitForTimeout(900);
+    const r = await p.evaluate(() => {
+      const e = document.getElementById('sub-error');
+      return {
+        message: e && !e.hidden ? e.textContent.trim() : '',
+        marques: document.querySelectorAll('[aria-invalid="true"]').length,
+        focus: document.activeElement ? document.activeElement.id : '',
+        avance: !!document.querySelector('[data-panel="verify"]:not([hidden])')
+      };
+    });
+    await ctx.close();
+    return { r, erreurs };
+  };
+
+  const BON = { first: 'Camille', last: 'Berger', email: 'c@cabinet-berger.fr',
+                pass: 'MotDePasseTresLong2026', cgv: true };
+
+  for (const [nom, champManquant, valeurs] of [
+    ['sans prénom', 'sub-first', { ...BON, first: '' }],
+    ['sans nom', 'sub-last', { ...BON, last: '' }],
+    ['sans adresse', 'sub-email', { ...BON, email: '' }],
+    ['adresse mal formée', 'sub-email', { ...BON, email: 'pasunemail' }],
+    ['mot de passe trop court', 'sub-pass', { ...BON, pass: 'abc' }],
+    ['conditions non acceptées', 'sub-cgv', { ...BON, cgv: false }]
+  ]) {
+    await step(nom, async () => {
+      const { r, erreurs } = await inscrire(valeurs);
+      if (erreurs.length) throw new Error(erreurs[0]);
+      if (r.avance) throw new Error('le compte a été créé malgré le champ manquant');
+      if (!r.message) throw new Error('aucun message : le focus bouge et rien ne l\'explique');
+      if (!r.marques) throw new Error('aucun champ marqué aria-invalid');
+      if (r.focus !== champManquant) {
+        throw new Error('le focus va sur « ' + r.focus + ' » au lieu de « ' + champManquant + ' »');
+      }
+    });
+  }
+
+  await step('le prénom est bien exigé', async () => {
+    /* Il n'était pas vérifié du tout : on pouvait créer un compte sans, et les
+       initiales de l'avatar devenaient « ?B ». */
+    const { r } = await inscrire({ ...BON, first: '' });
+    if (r.avance) throw new Error('compte créé sans prénom');
+    if (!/prénom/i.test(r.message)) throw new Error('le message ne parle pas du prénom : ' + r.message);
+  });
+
   console.log('\n================ RÉSULTAT ================');
   console.log(checks + ' contrôles');
   console.log(bad.length ? bad.length + ' problème(s) :\n - ' + bad.join('\n - ') : 'Aucun problème.');
