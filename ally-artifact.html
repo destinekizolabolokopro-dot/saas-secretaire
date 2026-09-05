@@ -4998,16 +4998,36 @@ window.ALLY_PLAN_BY_ID = function (id) {
     },
 
     /* ---------- Connexion ---------- */
+    /* Un seul et même refus pour une adresse inconnue et un mot de passe faux.
+       Distinguer les deux — « Aucun compte à cette adresse » d'un côté,
+       « Mot de passe incorrect » de l'autre — permet d'essayer des adresses
+       une à une jusqu'à trouver lesquelles ont un compte. Chez un avocat, ce
+       n'est pas une liste d'emails : c'est la liste de ses confrères clients
+       d'Ally, et elle se constitue sans jamais deviner un mot de passe.
+
+       Le serveur applique déjà cette règle, avec en plus une comparaison à
+       durée constante. Ce module-ci prend le relais quand aucun serveur ne
+       répond : il n'y avait aucune raison qu'il soit plus bavard.
+
+       La suspension, elle, ne se dit qu'à quelqu'un qui a donné le bon mot de
+       passe — sinon elle rétablit exactement la fuite qu'on vient de fermer. */
     login: function (email, password) {
       var user = this.byEmail(email);
-      if (!user) return { ok: false, error: 'Aucun compte à cette adresse.' };
-      if (user.status === 'suspended') {
-        return { ok: false, error: 'Ce compte est suspendu. Contactez le support.' };
+      var REFUS = { ok: false, error: 'Adresse ou mot de passe incorrect.' };
+
+      if (!user) {
+        /* On hache quand même : le temps de réponse ne doit pas trahir non
+           plus ce que le message tait. */
+        hash(String(password || ''));
+        return REFUS;
       }
       if (user.pass !== hash(password)) {
         record('login-failed', user.email, user.id);
         persist();
-        return { ok: false, error: 'Mot de passe incorrect.' };
+        return REFUS;
+      }
+      if (user.status === 'suspended') {
+        return { ok: false, error: 'Ce compte est suspendu. Contactez le support.' };
       }
       if (!user.verified) return { ok: false, error: 'unverified', user: user };
 
@@ -11750,6 +11770,31 @@ window.ALLY_PLAN_BY_ID = function (id) {
     box.hidden = !message;
   }
 
+  /* Un champ vide ou mal rempli déplaçait le focus sans rien dire. Le geste
+     est juste — on emmène là où il faut agir — mais muet : la personne clique
+     « Se connecter », le curseur saute, et rien n'explique. Un lecteur d'écran
+     n'annonce pas davantage un déplacement de focus comme une erreur.
+
+     Même règle que dans le questionnaire : on marque le champ, on écrit à
+     côté ce qui manque, et la marque s'efface à la première frappe. */
+  function manque(champ, boite, message) {
+    fail(boite, message);
+    champ.setAttribute('aria-invalid', 'true');
+    champ.focus();
+    return false;
+  }
+
+  function efface(champ, boite) {
+    if (champ.getAttribute('aria-invalid') !== 'true') return;
+    champ.removeAttribute('aria-invalid');
+    if (boite) fail(boite, '');
+  }
+
+  ['login-email', 'login-password'].forEach(function (id) {
+    var champ = document.getElementById(id);
+    if (champ) champ.addEventListener('input', function () { efface(champ, 'login-error'); });
+  });
+
   /* Un bouton qui attend le réseau doit le dire, et ne pas être cliquable deux
      fois : sans ça, deux connexions partent pour un seul clic nerveux. */
   function busy(button, on, label) {
@@ -11807,8 +11852,20 @@ window.ALLY_PLAN_BY_ID = function (id) {
 
     var email = document.getElementById('login-email');
     var password = document.getElementById('login-password');
-    if (!email.checkValidity() || !email.value) { email.focus(); return; }
-    if (!password.value) { password.focus(); return; }
+
+    if (!email.value.trim()) {
+      manque(email, 'login-error', 'Votre adresse professionnelle, pour vous reconnaître.');
+      return;
+    }
+    if (!email.checkValidity()) {
+      manque(email, 'login-error', 'Cette adresse n\'a pas la forme attendue — il manque un @ ou le nom du domaine.');
+      return;
+    }
+    if (!password.value) {
+      manque(password, 'login-error', 'Il manque votre mot de passe.');
+      return;
+    }
+    efface(email, null); efface(password, null);
 
     busy(submitButton, true, 'Connexion…');
 
@@ -11826,6 +11883,10 @@ window.ALLY_PLAN_BY_ID = function (id) {
       }
 
       fail('login-error', result.error);
+      /* Le refus porte sur le couple : on marque les deux champs, puisqu'on ne
+         dit plus — et c'est voulu — lequel des deux est en cause. */
+      email.setAttribute('aria-invalid', 'true');
+      password.setAttribute('aria-invalid', 'true');
       password.value = '';
       password.focus();
     });

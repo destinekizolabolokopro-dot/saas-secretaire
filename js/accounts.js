@@ -229,16 +229,36 @@
     },
 
     /* ---------- Connexion ---------- */
+    /* Un seul et même refus pour une adresse inconnue et un mot de passe faux.
+       Distinguer les deux — « Aucun compte à cette adresse » d'un côté,
+       « Mot de passe incorrect » de l'autre — permet d'essayer des adresses
+       une à une jusqu'à trouver lesquelles ont un compte. Chez un avocat, ce
+       n'est pas une liste d'emails : c'est la liste de ses confrères clients
+       d'Ally, et elle se constitue sans jamais deviner un mot de passe.
+
+       Le serveur applique déjà cette règle, avec en plus une comparaison à
+       durée constante. Ce module-ci prend le relais quand aucun serveur ne
+       répond : il n'y avait aucune raison qu'il soit plus bavard.
+
+       La suspension, elle, ne se dit qu'à quelqu'un qui a donné le bon mot de
+       passe — sinon elle rétablit exactement la fuite qu'on vient de fermer. */
     login: function (email, password) {
       var user = this.byEmail(email);
-      if (!user) return { ok: false, error: 'Aucun compte à cette adresse.' };
-      if (user.status === 'suspended') {
-        return { ok: false, error: 'Ce compte est suspendu. Contactez le support.' };
+      var REFUS = { ok: false, error: 'Adresse ou mot de passe incorrect.' };
+
+      if (!user) {
+        /* On hache quand même : le temps de réponse ne doit pas trahir non
+           plus ce que le message tait. */
+        hash(String(password || ''));
+        return REFUS;
       }
       if (user.pass !== hash(password)) {
         record('login-failed', user.email, user.id);
         persist();
-        return { ok: false, error: 'Mot de passe incorrect.' };
+        return REFUS;
+      }
+      if (user.status === 'suspended') {
+        return { ok: false, error: 'Ce compte est suspendu. Contactez le support.' };
       }
       if (!user.verified) return { ok: false, error: 'unverified', user: user };
 

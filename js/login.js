@@ -37,6 +37,31 @@
     box.hidden = !message;
   }
 
+  /* Un champ vide ou mal rempli déplaçait le focus sans rien dire. Le geste
+     est juste — on emmène là où il faut agir — mais muet : la personne clique
+     « Se connecter », le curseur saute, et rien n'explique. Un lecteur d'écran
+     n'annonce pas davantage un déplacement de focus comme une erreur.
+
+     Même règle que dans le questionnaire : on marque le champ, on écrit à
+     côté ce qui manque, et la marque s'efface à la première frappe. */
+  function manque(champ, boite, message) {
+    fail(boite, message);
+    champ.setAttribute('aria-invalid', 'true');
+    champ.focus();
+    return false;
+  }
+
+  function efface(champ, boite) {
+    if (champ.getAttribute('aria-invalid') !== 'true') return;
+    champ.removeAttribute('aria-invalid');
+    if (boite) fail(boite, '');
+  }
+
+  ['login-email', 'login-password'].forEach(function (id) {
+    var champ = document.getElementById(id);
+    if (champ) champ.addEventListener('input', function () { efface(champ, 'login-error'); });
+  });
+
   /* Un bouton qui attend le réseau doit le dire, et ne pas être cliquable deux
      fois : sans ça, deux connexions partent pour un seul clic nerveux. */
   function busy(button, on, label) {
@@ -94,8 +119,20 @@
 
     var email = document.getElementById('login-email');
     var password = document.getElementById('login-password');
-    if (!email.checkValidity() || !email.value) { email.focus(); return; }
-    if (!password.value) { password.focus(); return; }
+
+    if (!email.value.trim()) {
+      manque(email, 'login-error', 'Votre adresse professionnelle, pour vous reconnaître.');
+      return;
+    }
+    if (!email.checkValidity()) {
+      manque(email, 'login-error', 'Cette adresse n\'a pas la forme attendue — il manque un @ ou le nom du domaine.');
+      return;
+    }
+    if (!password.value) {
+      manque(password, 'login-error', 'Il manque votre mot de passe.');
+      return;
+    }
+    efface(email, null); efface(password, null);
 
     busy(submitButton, true, 'Connexion…');
 
@@ -113,6 +150,10 @@
       }
 
       fail('login-error', result.error);
+      /* Le refus porte sur le couple : on marque les deux champs, puisqu'on ne
+         dit plus — et c'est voulu — lequel des deux est en cause. */
+      email.setAttribute('aria-invalid', 'true');
+      password.setAttribute('aria-invalid', 'true');
       password.value = '';
       password.focus();
     });
