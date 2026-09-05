@@ -1723,6 +1723,17 @@ input[type="range"]:focus-visible {
   box-shadow: 0 6px 24px oklch(0.55 0.19 296 / 0.14), var(--hi);
 }
 .alert .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--accent-bright); animation: pulse-dot 1.4s ease-in-out infinite; flex-shrink: 0; }
+/* Une panne n'est pas une nouveauté : le jaune de l'avertissement, et une
+   pastille qui ne clignote pas — elle n'appelle pas l'action, elle constate. */
+.alert-warn {
+  background: oklch(0.3 0.10 90 / 0.14);
+  border-color: oklch(0.8 0.10 90 / 0.42);
+  box-shadow: 0 6px 24px oklch(0.5 0.10 90 / 0.10), var(--hi);
+  align-items: flex-start;
+}
+.alert-warn .dot { background: var(--yellow); animation: none; margin-top: 5px; }
+.alert-warn strong { display: block; margin-bottom: 4px; }
+.alert-warn .row-meta { line-height: 1.55; }
 
 .cols { display: grid; gap: 20px; }
 .cols-13 { grid-template-columns: 1.3fr 1fr; }
@@ -5994,10 +6005,35 @@ window.ALLY_PLAN_BY_ID = function (id) {
   }
 
   var state = defaults();
+
+  /* Le stockage local peut refuser de travailler, et pas seulement en
+     navigation privée : cookies bloqués par une politique d'entreprise,
+     quota atteint, extension trop zélée. Le produit y survivait déjà — il
+     retombe sur le compte de démonstration et tout s'affiche — mais en
+     silence, et c'est là qu'était le vrai défaut : quelqu'un pouvait régler
+     ses horaires, écrire son script d'accueil et remplir sa fiche pendant dix
+     minutes, tout perdre au rechargement, sans qu'une ligne l'ait prévenu.
+
+     On retient donc l'incident, et l'interface le dit. */
+  var panneStockage = null;
+
   try {
     var raw = window.localStorage.getItem(KEY);
     if (raw) state = merge(defaults(), JSON.parse(raw));
-  } catch (e) { /* localStorage indisponible : on reste sur le compte de démo */ }
+  } catch (e) {
+    /* Un JSON illisible n'est pas une panne de stockage : c'est un reste
+       d'une version précédente, et écrire par-dessus le réparera. On ne
+       s'alarme que si le stockage lui-même est inaccessible. */
+    panneStockage = (e instanceof SyntaxError) ? null : causeDeLaPanne(e);
+  }
+
+  /* Le nom de l'erreur dit ce qui s'est passé, et donc quoi conseiller. */
+  function causeDeLaPanne(e) {
+    var nom = (e && e.name) || '';
+    if (/Quota|NS_ERROR_DOM_QUOTA/.test(nom)) return 'quota';
+    if (/Security|NotAllowed/.test(nom)) return 'refus';
+    return 'inconnue';
+  }
 
   window.ALLY_STORE = {
     state: state,
@@ -6357,14 +6393,49 @@ window.ALLY_PLAN_BY_ID = function (id) {
 
     save: function () {
       var ok;
-      try { window.localStorage.setItem(KEY, JSON.stringify(state)); ok = true; }
-      catch (e) { ok = false; }
+      try {
+        window.localStorage.setItem(KEY, JSON.stringify(state));
+        ok = true;
+        panneStockage = null;
+      } catch (e) {
+        ok = false;
+        panneStockage = causeDeLaPanne(e);
+      }
 
       /* La configuration appartient au cabinet, pas à l'appareil : elle part
          au serveur quand il y en a un. Le module de synchronisation
          temporise — on enregistre à chaque frappe dans un champ. */
       if (window.ALLY_CONFIG_SYNC) window.ALLY_CONFIG_SYNC.touch();
       return ok;
+    },
+
+    /* La panne de stockage, s'il y en a une : 'refus', 'quota' ou 'inconnue'.
+       Null tant que tout va bien. Trente-cinq appels à save() dans le produit,
+       aucun ne regardait sa valeur de retour — l'information existait et
+       n'allait nulle part. */
+    panneStockage: function () { return panneStockage; },
+
+    /* Ce qu'il faut en dire, en français, avec le geste qui répare. */
+    motDeLaPanne: function () {
+      if (!panneStockage) return null;
+      if (panneStockage === 'quota') {
+        return {
+          quoi: 'La mémoire de ce navigateur est pleine.',
+          quoiFaire: 'Videz les données des sites que vous n\'utilisez plus, ' +
+            'ou ouvrez Ally dans un autre navigateur.'
+        };
+      }
+      if (panneStockage === 'refus') {
+        return {
+          quoi: 'Ce navigateur refuse d\'enregistrer quoi que ce soit.',
+          quoiFaire: 'C\'est le cas en navigation privée, ou quand les données ' +
+            'de site sont bloquées. Une fenêtre normale suffit à le régler.'
+        };
+      }
+      return {
+        quoi: 'Ce navigateur n\'a pas pu enregistrer vos réglages.',
+        quoiFaire: 'Essayez une fenêtre normale, ou un autre navigateur.'
+      };
     },
 
     /* Les champs qui décrivent le cabinet, par opposition à son activité.
@@ -13269,6 +13340,9 @@ window.ALLY_PLAN_BY_ID = function (id) {
     if (api && api.online()) {
       return api.cabinetId() ? 'serveur Ally (ligne connectée)' : 'serveur Ally détecté';
     }
+    /* Dire « navigateur » quand le navigateur refuse d'enregistrer serait la
+       seule ligne de cet écran à mentir. */
+    if (store.panneStockage()) return 'nulle part — ce navigateur n\'enregistre pas';
     return S.subscription ? 'navigateur (compte actif)' : 'navigateur (démonstration)';
   }
 
@@ -13711,6 +13785,28 @@ window.ALLY_PLAN_BY_ID = function (id) {
     '</section>';
   }
 
+  /* ---- Stockage en panne ----
+     Le produit survit très bien à un navigateur qui refuse d'enregistrer : il
+     retombe sur les valeurs par défaut et tout s'affiche. C'est précisément le
+     problème — on peut régler ses horaires, écrire son script d'accueil et
+     remplir sa fiche pendant dix minutes, tout perdre au rechargement, sans
+     qu'une ligne l'ait prévenu.
+
+     Une bande, en tête de page, qui ne s'excuse pas et qui dit quoi faire.
+     Pas un message éphémère : la panne dure, l'avertissement aussi. */
+  function viewStockage() {
+    var mot = store.motDeLaPanne();
+    if (!mot) return '';
+
+    return '<div class="alert alert-warn" role="status">' +
+      '<span class="dot" aria-hidden="true"></span>' +
+      '<div><strong>' + esc(mot.quoi) + '</strong>' +
+      '<p class="row-meta">Vous pouvez continuer, mais rien de ce que vous ' +
+        'réglez ici ne sera retrouvé au prochain chargement. ' + esc(mot.quoiFaire) +
+      '</p></div>' +
+    '</div>';
+  }
+
   /* ---- Forfait ----
      On ne coupe jamais la ligne : les appels continuent d'être pris et sont
      facturés au détail. Le professionnel est prévenu à 80 %, puis informé du
@@ -13773,7 +13869,7 @@ window.ALLY_PLAN_BY_ID = function (id) {
      que d'afficher les chiffres d'un autre cabinet. */
   function viewEmptyToday() {
     var status = lineStatus();
-    return viewFirstSteps() + viewQuota() + viewInsight() +
+    return viewStockage() + viewFirstSteps() + viewQuota() + viewInsight() +
       '<section class="card blank-card">' +
         '<p class="blank-kicker">Votre ligne n\'a pas encore sonné</p>' +
         '<h2 class="blank-title">Tout est prêt, ' + esc(name()) + '.</h2>' +
@@ -13849,7 +13945,7 @@ window.ALLY_PLAN_BY_ID = function (id) {
     var p = P();
     var items = todoItems();
 
-    return viewFirstSteps() + viewQuota() + viewInsight() +
+    return viewStockage() + viewFirstSteps() + viewQuota() + viewInsight() +
       '<section class="todo-card">' +
         '<div class="todo-head">' +
           '<p class="card-title" style="margin:0">Actions requises</p>' +

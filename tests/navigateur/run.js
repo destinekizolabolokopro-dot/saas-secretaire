@@ -16,6 +16,7 @@ const SUITES = [
   ['ecran.js', 'ce qui s\'affiche'],
   ['clavier.js', 'ce qui se fait sans souris'],
   ['contraste.js', 'ce qui se lit'],
+  ['stockage.js', 'ce qui arrive quand le navigateur refuse d\'enregistrer'],
   ['ligne.js', 'la ligne téléphonique']
 ];
 

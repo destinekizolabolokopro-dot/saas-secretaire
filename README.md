@@ -37,6 +37,7 @@ node tests/navigateur/run.js       # les quatre suites d'un coup
 | `ecran.js` | Une erreur au chargement, un onglet qui ne rend rien, un débordement horizontal sur téléphone |
 | `clavier.js` | Le focus : une fenêtre modale dont on sort à la tabulation sans l'avoir fermée, un focus rendu à personne |
 | `contraste.js` | Un texte sous le seuil du WCAG, une commande sans nom accessible — mesurés au canvas, pas estimés à l'œil |
+| `stockage.js` | Un navigateur qui refuse d'enregistrer : navigation privée, quota atteint, données illisibles. Aucune page ne se brise, et le produit le dit |
 | `ligne.js` | La mise en service du renvoi d'appel |
 
 Le fichier `ally-demo.html` s'ouvre par simple double-clic : il contient tout

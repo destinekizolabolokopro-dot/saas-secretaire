@@ -182,6 +182,17 @@
   box-shadow: 0 6px 24px oklch(0.55 0.19 296 / 0.14), var(--hi);
 }
 .alert .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--accent-bright); animation: pulse-dot 1.4s ease-in-out infinite; flex-shrink: 0; }
+/* Une panne n'est pas une nouveauté : le jaune de l'avertissement, et une
+   pastille qui ne clignote pas — elle n'appelle pas l'action, elle constate. */
+.alert-warn {
+  background: oklch(0.3 0.10 90 / 0.14);
+  border-color: oklch(0.8 0.10 90 / 0.42);
+  box-shadow: 0 6px 24px oklch(0.5 0.10 90 / 0.10), var(--hi);
+  align-items: flex-start;
+}
+.alert-warn .dot { background: var(--yellow); animation: none; margin-top: 5px; }
+.alert-warn strong { display: block; margin-bottom: 4px; }
+.alert-warn .row-meta { line-height: 1.55; }
 
 .cols { display: grid; gap: 20px; }
 .cols-13 { grid-template-columns: 1.3fr 1fr; }

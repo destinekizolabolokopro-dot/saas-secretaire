@@ -290,10 +290,35 @@
   }
 
   var state = defaults();
+
+  /* Le stockage local peut refuser de travailler, et pas seulement en
+     navigation privée : cookies bloqués par une politique d'entreprise,
+     quota atteint, extension trop zélée. Le produit y survivait déjà — il
+     retombe sur le compte de démonstration et tout s'affiche — mais en
+     silence, et c'est là qu'était le vrai défaut : quelqu'un pouvait régler
+     ses horaires, écrire son script d'accueil et remplir sa fiche pendant dix
+     minutes, tout perdre au rechargement, sans qu'une ligne l'ait prévenu.
+
+     On retient donc l'incident, et l'interface le dit. */
+  var panneStockage = null;
+
   try {
     var raw = window.localStorage.getItem(KEY);
     if (raw) state = merge(defaults(), JSON.parse(raw));
-  } catch (e) { /* localStorage indisponible : on reste sur le compte de démo */ }
+  } catch (e) {
+    /* Un JSON illisible n'est pas une panne de stockage : c'est un reste
+       d'une version précédente, et écrire par-dessus le réparera. On ne
+       s'alarme que si le stockage lui-même est inaccessible. */
+    panneStockage = (e instanceof SyntaxError) ? null : causeDeLaPanne(e);
+  }
+
+  /* Le nom de l'erreur dit ce qui s'est passé, et donc quoi conseiller. */
+  function causeDeLaPanne(e) {
+    var nom = (e && e.name) || '';
+    if (/Quota|NS_ERROR_DOM_QUOTA/.test(nom)) return 'quota';
+    if (/Security|NotAllowed/.test(nom)) return 'refus';
+    return 'inconnue';
+  }
 
   window.ALLY_STORE = {
     state: state,
@@ -653,14 +678,49 @@
 
     save: function () {
       var ok;
-      try { window.localStorage.setItem(KEY, JSON.stringify(state)); ok = true; }
-      catch (e) { ok = false; }
+      try {
+        window.localStorage.setItem(KEY, JSON.stringify(state));
+        ok = true;
+        panneStockage = null;
+      } catch (e) {
+        ok = false;
+        panneStockage = causeDeLaPanne(e);
+      }
 
       /* La configuration appartient au cabinet, pas à l'appareil : elle part
          au serveur quand il y en a un. Le module de synchronisation
          temporise — on enregistre à chaque frappe dans un champ. */
       if (window.ALLY_CONFIG_SYNC) window.ALLY_CONFIG_SYNC.touch();
       return ok;
+    },
+
+    /* La panne de stockage, s'il y en a une : 'refus', 'quota' ou 'inconnue'.
+       Null tant que tout va bien. Trente-cinq appels à save() dans le produit,
+       aucun ne regardait sa valeur de retour — l'information existait et
+       n'allait nulle part. */
+    panneStockage: function () { return panneStockage; },
+
+    /* Ce qu'il faut en dire, en français, avec le geste qui répare. */
+    motDeLaPanne: function () {
+      if (!panneStockage) return null;
+      if (panneStockage === 'quota') {
+        return {
+          quoi: 'La mémoire de ce navigateur est pleine.',
+          quoiFaire: 'Videz les données des sites que vous n\'utilisez plus, ' +
+            'ou ouvrez Ally dans un autre navigateur.'
+        };
+      }
+      if (panneStockage === 'refus') {
+        return {
+          quoi: 'Ce navigateur refuse d\'enregistrer quoi que ce soit.',
+          quoiFaire: 'C\'est le cas en navigation privée, ou quand les données ' +
+            'de site sont bloquées. Une fenêtre normale suffit à le régler.'
+        };
+      }
+      return {
+        quoi: 'Ce navigateur n\'a pas pu enregistrer vos réglages.',
+        quoiFaire: 'Essayez une fenêtre normale, ou un autre navigateur.'
+      };
     },
 
     /* Les champs qui décrivent le cabinet, par opposition à son activité.

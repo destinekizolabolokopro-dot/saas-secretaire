@@ -323,6 +323,9 @@
     if (api && api.online()) {
       return api.cabinetId() ? 'serveur Ally (ligne connectée)' : 'serveur Ally détecté';
     }
+    /* Dire « navigateur » quand le navigateur refuse d'enregistrer serait la
+       seule ligne de cet écran à mentir. */
+    if (store.panneStockage()) return 'nulle part — ce navigateur n\'enregistre pas';
     return S.subscription ? 'navigateur (compte actif)' : 'navigateur (démonstration)';
   }
 
@@ -765,6 +768,28 @@
     '</section>';
   }
 
+  /* ---- Stockage en panne ----
+     Le produit survit très bien à un navigateur qui refuse d'enregistrer : il
+     retombe sur les valeurs par défaut et tout s'affiche. C'est précisément le
+     problème — on peut régler ses horaires, écrire son script d'accueil et
+     remplir sa fiche pendant dix minutes, tout perdre au rechargement, sans
+     qu'une ligne l'ait prévenu.
+
+     Une bande, en tête de page, qui ne s'excuse pas et qui dit quoi faire.
+     Pas un message éphémère : la panne dure, l'avertissement aussi. */
+  function viewStockage() {
+    var mot = store.motDeLaPanne();
+    if (!mot) return '';
+
+    return '<div class="alert alert-warn" role="status">' +
+      '<span class="dot" aria-hidden="true"></span>' +
+      '<div><strong>' + esc(mot.quoi) + '</strong>' +
+      '<p class="row-meta">Vous pouvez continuer, mais rien de ce que vous ' +
+        'réglez ici ne sera retrouvé au prochain chargement. ' + esc(mot.quoiFaire) +
+      '</p></div>' +
+    '</div>';
+  }
+
   /* ---- Forfait ----
      On ne coupe jamais la ligne : les appels continuent d'être pris et sont
      facturés au détail. Le professionnel est prévenu à 80 %, puis informé du
@@ -827,7 +852,7 @@
      que d'afficher les chiffres d'un autre cabinet. */
   function viewEmptyToday() {
     var status = lineStatus();
-    return viewFirstSteps() + viewQuota() + viewInsight() +
+    return viewStockage() + viewFirstSteps() + viewQuota() + viewInsight() +
       '<section class="card blank-card">' +
         '<p class="blank-kicker">Votre ligne n\'a pas encore sonné</p>' +
         '<h2 class="blank-title">Tout est prêt, ' + esc(name()) + '.</h2>' +
@@ -903,7 +928,7 @@
     var p = P();
     var items = todoItems();
 
-    return viewFirstSteps() + viewQuota() + viewInsight() +
+    return viewStockage() + viewFirstSteps() + viewQuota() + viewInsight() +
       '<section class="todo-card">' +
         '<div class="todo-head">' +
           '<p class="card-title" style="margin:0">Actions requises</p>' +
