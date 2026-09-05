@@ -777,16 +777,45 @@
 
      Une bande, en tête de page, qui ne s'excuse pas et qui dit quoi faire.
      Pas un message éphémère : la panne dure, l'avertissement aussi. */
+  /* Rendu hors des onglets, dans son propre hôte : ces avertissements valent
+     partout, et l'ancien emplacement — dans la vue « Aujourd'hui » — les
+     rendait invisibles depuis l'écran où l'on modifie justement ses
+     réglages. */
+  function renderAvertissements() {
+    var hote = document.getElementById('avertissements');
+    if (!hote) return;
+    var html = viewStockage();
+    if (hote.innerHTML !== html) hote.innerHTML = html;
+  }
+
   function viewStockage() {
     var mot = store.motDeLaPanne();
-    if (!mot) return '';
+    if (mot) {
+      return bandeAvertissement(mot.quoi,
+        'Vous pouvez continuer, mais rien de ce que vous réglez ici ne sera ' +
+        'retrouvé au prochain chargement. ' + mot.quoiFaire);
+    }
 
+    /* La configuration appartient au cabinet : si elle n'y arrive pas, elle
+       reste sur cet appareil seul — l'associé et le téléphone du
+       professionnel ne la verront jamais. Ally retente, mais après deux
+       échecs il faut le dire. */
+    var sync = window.ALLY_CONFIG_SYNC;
+    if (sync && sync.enRetard && sync.enRetard()) {
+      return bandeAvertissement(
+        'Vos réglages ne parviennent pas au cabinet.',
+        'Ils sont bien enregistrés sur cet appareil et Ally continue d\'essayer. ' +
+        'Tant que la connexion ne revient pas, ils ne seront pas visibles depuis ' +
+        'votre téléphone ni par vos collaborateurs.');
+    }
+    return '';
+  }
+
+  function bandeAvertissement(titre, texte) {
     return '<div class="alert alert-warn" role="status">' +
       '<span class="dot" aria-hidden="true"></span>' +
-      '<div><strong>' + esc(mot.quoi) + '</strong>' +
-      '<p class="row-meta">Vous pouvez continuer, mais rien de ce que vous ' +
-        'réglez ici ne sera retrouvé au prochain chargement. ' + esc(mot.quoiFaire) +
-      '</p></div>' +
+      '<div><strong>' + esc(titre) + '</strong>' +
+      '<p class="row-meta">' + esc(texte) + '</p></div>' +
     '</div>';
   }
 
@@ -852,7 +881,7 @@
      que d'afficher les chiffres d'un autre cabinet. */
   function viewEmptyToday() {
     var status = lineStatus();
-    return viewStockage() + viewFirstSteps() + viewQuota() + viewInsight() +
+    return viewFirstSteps() + viewQuota() + viewInsight() +
       '<section class="card blank-card">' +
         '<p class="blank-kicker">Votre ligne n\'a pas encore sonné</p>' +
         '<h2 class="blank-title">Tout est prêt, ' + esc(name()) + '.</h2>' +
@@ -928,7 +957,7 @@
     var p = P();
     var items = todoItems();
 
-    return viewStockage() + viewFirstSteps() + viewQuota() + viewInsight() +
+    return viewFirstSteps() + viewQuota() + viewInsight() +
       '<section class="todo-card">' +
         '<div class="todo-head">' +
           '<p class="card-title" style="margin:0">Actions requises</p>' +
@@ -1710,6 +1739,7 @@
   }
 
   function renderPanel() {
+    renderAvertissements();
     el.panel.innerHTML = demoNotice() + VIEWS[ui.tab]();
     var panel = el.panel;
 
@@ -2611,7 +2641,15 @@
       done.then(function () {
         /* La configuration du cabinet suit l'appareil : on prend celle du
            serveur si elle est plus récente, on lui donne la nôtre sinon. */
-        if (window.ALLY_CONFIG_SYNC) window.ALLY_CONFIG_SYNC.start();
+        if (window.ALLY_CONFIG_SYNC) {
+          window.ALLY_CONFIG_SYNC.start();
+          /* On redessine quand la synchronisation prend du retard, et quand
+             elle le rattrape : l'avertissement doit disparaître de lui-même
+             au retour de la connexion, sans que personne ait à recharger. */
+          if (window.ALLY_CONFIG_SYNC.surRetard) {
+            window.ALLY_CONFIG_SYNC.surRetard(renderAvertissements);
+          }
+        }
 
         /* Et on recopie les données du serveur dans l'espace de travail, pour
            qu'Ally, le calendrier et le résumé du soir parlent de la même

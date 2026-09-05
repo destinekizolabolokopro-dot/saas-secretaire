@@ -21,8 +21,45 @@
      configuration par défaut et effaçait celle du cabinet. Un professionnel
      ouvrant Ally sur son téléphone perdait ainsi tout ce qu'il avait réglé
      depuis son ordinateur. */
-  var state = { at: 0, pushing: false, timer: null, empreinte: '', pret: false };
+  var state = {
+    at: 0, pushing: false, timer: null, empreinte: '', pret: false,
+    /* Ce qui manquait : un envoi qui échoue ne repartait jamais. La
+       configuration restait dans le seul navigateur qui l'avait saisie —
+       exactement ce que ce module existe pour empêcher — et rien ne le
+       disait. Une coupure de trois secondes suffisait. */
+    essais: 0, reprise: null, enRetard: false
+  };
   var DELAI = 1500;
+
+  /* On retente, de plus en plus espacé : une coupure passagère se rattrape
+     toute seule, une panne durable ne doit pas marteler le serveur. */
+  var REPRISES = [4000, 10000, 30000, 60000];
+
+  /* Prévenus quand l'état change — c'est le tableau de bord qui écoute, pour
+     afficher ou retirer son avertissement sans interroger en boucle. */
+  var abonnes = [];
+  function annoncer() { abonnes.forEach(function (fn) { try { fn(state.enRetard); } catch (e) {} }); }
+
+  function planifierReprise() {
+    if (state.reprise) window.clearTimeout(state.reprise);
+    var attente = REPRISES[Math.min(state.essais, REPRISES.length - 1)];
+    state.essais += 1;
+
+    /* On ne crie pas au premier échec : le temps d'une reprise, la plupart des
+       coupures sont déjà finies. Au second, c'est autre chose. */
+    if (state.essais >= 2 && !state.enRetard) { state.enRetard = true; annoncer(); }
+
+    state.reprise = window.setTimeout(function () {
+      state.reprise = null;
+      push();
+    }, attente);
+  }
+
+  function reprisesFinies() {
+    if (state.reprise) { window.clearTimeout(state.reprise); state.reprise = null; }
+    state.essais = 0;
+    if (state.enRetard) { state.enRetard = false; annoncer(); }
+  }
 
   function store() { return window.ALLY_STORE; }
 
@@ -57,12 +94,24 @@
       if (res.ok) {
         state.empreinte = actuelle;
         state.at = res.body.updatedAt || quand;
+        reprisesFinies();
         return true;
       }
       /* Le serveur détient une version plus récente : c'est elle qui vaut. */
-      if (res.status === 409) return pull(true);
+      if (res.status === 409) { reprisesFinies(); return pull(true); }
+
+      /* 401 ou 403 : la session est tombée. Retenter n'y changera rien, et
+         l'utilisateur va de toute façon être renvoyé vers la connexion. */
+      if (res.status === 401 || res.status === 403) { reprisesFinies(); return false; }
+
+      planifierReprise();
       return false;
-    }, function () { state.pushing = false; return false; });
+    }, function () {
+      /* Réseau injoignable : c'est le cas qu'on veut rattraper. */
+      state.pushing = false;
+      planifierReprise();
+      return false;
+    });
   }
 
   /* Reprend la configuration du serveur si elle est plus récente que la
@@ -95,6 +144,11 @@
     touch: touch,
     push: push,
     pull: pull,
+
+    /* Vrai quand une modification n'a pas atteint le cabinet malgré au moins
+       une reprise. C'est ce que le tableau de bord affiche. */
+    enRetard: function () { return state.enRetard; },
+    surRetard: function (fn) { abonnes.push(fn); },
     /* Au chargement : on prend celle du serveur si elle est plus récente, on
        lui donne la nôtre sinon. */
     start: function () {

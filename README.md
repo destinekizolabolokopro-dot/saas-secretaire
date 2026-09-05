@@ -39,6 +39,7 @@ node tests/navigateur/run.js       # les quatre suites d'un coup
 | `contraste.js` | Un texte sous le seuil du WCAG, une commande sans nom accessible — mesurés au canvas, pas estimés à l'œil |
 | `stockage.js` | Un navigateur qui refuse d'enregistrer : navigation privée, quota atteint, données illisibles. Aucune page ne se brise, et le produit le dit |
 | `ligne.js` | La mise en service du renvoi d'appel |
+| `coupure.js` | Un serveur qui devient injoignable en cours de session : les réglages sont retentés, le retard est annoncé, l'avertissement se retire tout seul au retour |
 
 Le fichier `ally-demo.html` s'ouvre par simple double-clic : il contient tout
 (CSS, JS, polices). **Le micro n'y fonctionne pas** — la reconnaissance vocale
