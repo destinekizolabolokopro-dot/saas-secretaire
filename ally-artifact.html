@@ -433,6 +433,44 @@ input[type="range"]:focus-visible {
 }
 .field-error::before { content: '!'; font-weight: 700; flex-shrink: 0; }
 
+/* ---- Cibles tactiles ----
+   Le WCAG 2.2 demande vingt-quatre pixels sur vingt-quatre pour tout ce qui se
+   touche. Mesurés à 320 px, plusieurs de nos boutons-liens tombaient à seize
+   ou vingt : « Mot de passe oublié », « Masquer », « Afficher », le retour au
+   site. Ce sont des liens de texte, donc leur zone de contact vaut la hauteur
+   de leur ligne — confortable à la souris, difficile au pouce.
+
+   Agrandir la zone sans agrandir le texte : un pseudo-élément déborde de la
+   boîte et attrape le doigt, sans rien déplacer autour. C'est la seule
+   solution qui ne demande pas de redessiner la mise en page. */
+.zone-tactile, .btn-link, .auth-back, .reveal-pass, .foot-link, .act-link,
+.auth-note a {
+  position: relative;
+}
+.zone-tactile::after, .btn-link::after, .auth-back::after,
+.reveal-pass::after, .foot-link::after, .auth-note a::after {
+  content: '';
+  position: absolute;
+  /* De quoi porter la boîte à vingt-quatre pixels au moins, dans les deux
+     sens, sans jamais recouvrir ce qui est à côté. */
+  inset: -6px -4px;
+}
+
+/* « Créer un compte » est un lien au milieu d'une phrase : le WCAG dispense
+   ce cas de la taille minimale, précisément parce qu'on ne peut pas grossir un
+   mot sans défaire le paragraphe. Il reste l'action secondaire la plus
+   importante de l'écran de connexion — l'exception permet de ne rien faire,
+   elle ne l'impose pas. */
+
+/* Une case à cocher se touche par son libellé — c'est le comportement natif —
+   mais elle se vise d'abord par elle-même, et seize pixels au pouce, c'est
+   petit. Dix-huit, et un libellé qui porte la hauteur minimale. */
+input[type="checkbox"] {
+  width: 18px; height: 18px; accent-color: var(--accent);
+}
+.auth-row label, .consent-inline, .switch-text { min-height: 24px; }
+.auth-row label { display: inline-flex; align-items: center; gap: 8px; }
+
 /* ---- Pills de choix ---- */
 .choice {
   font-family: inherit; font-size: 13px;
