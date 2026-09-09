@@ -20,7 +20,7 @@ python3 -m http.server 8000
 ## Vérifier
 
 ```bash
-node tests/run.js          # prononciation, moteur d'intentions, serveur
+node tests/run.js          # prononciation, moteur d'intentions, plateforme, serveur
 ```
 
 Une seconde, sans navigateur ni réseau : ces tests chargent le front dans Node
