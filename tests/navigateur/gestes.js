@@ -165,6 +165,76 @@ const step = async (label, fn) => {
     }
   });
 
+  console.log('\n== Changer de formule change la formule ==');
+
+  await step('les choix proposés sont ceux du catalogue', async () => {
+    /* Ils étaient trois noms hérités d'un prototype — « Essai gratuit », le
+       libellé du profil métier, « Cabinet illimité » — dont aucun n'existait
+       au catalogue. */
+    await p.locator('.profile-card').click();
+    await p.waitForTimeout(600);
+    await p.locator('[data-account="plan"]').click();
+    await p.waitForTimeout(600);
+    await p.locator('#plan-open').click();
+    await p.waitForTimeout(400);
+
+    const proposes = await p.evaluate(
+      () => Array.from(document.querySelectorAll('[data-plan]')).map((b) => b.getAttribute('data-plan')));
+    const catalogue = await p.evaluate(() => window.ALLY_PLANS.map((f) => f.id));
+    const inconnus = proposes.filter((id) => catalogue.indexOf(id) === -1);
+    if (inconnus.length) throw new Error('formules absentes du catalogue : ' + inconnus.join(', '));
+    if (!proposes.length) throw new Error('aucune formule proposée');
+  });
+
+  await step('en choisir une change le quota, le prix et le nom ensemble', async () => {
+    /* Le défaut : seul le libellé changeait. L'identifiant de formule ne
+       bougeait pas, donc ni le quota ni le prix — quelqu'un se croyait passé
+       en « illimité » pendant qu'Ally lui appliquait les quatre cents appels
+       de la formule d'en dessous. */
+    const lire = () => p.evaluate(() => ({
+      nom: window.ALLY_STORE.plan(),
+      id: window.ALLY_STORE.state.planId,
+      appels: window.ALLY_STORE.planData().quota.calls,
+      prix: window.ALLY_STORE.planData().price
+    }));
+
+    const avant = await lire();
+    const autre = await p.evaluate((actuel) => {
+      const f = window.ALLY_PLANS.filter((x) => x.id !== actuel)[0];
+      return { id: f.id, nom: f.name, appels: f.quota.calls, prix: f.price };
+    }, avant.id);
+
+    await p.locator('[data-plan="' + autre.id + '"]').click();
+    await p.waitForTimeout(900);
+    const apres = await lire();
+
+    if (apres.id !== autre.id) throw new Error('l\'identifiant n\'a pas suivi : ' + apres.id);
+    if (apres.nom !== autre.nom) throw new Error('le nom affiché ne suit pas : ' + apres.nom);
+    if (apres.appels !== autre.appels) {
+      throw new Error('le quota est resté à ' + apres.appels + ' au lieu de ' + autre.appels);
+    }
+    if (apres.prix !== autre.prix) {
+      throw new Error('le prix est resté à ' + apres.prix + ' au lieu de ' + autre.prix);
+    }
+  });
+
+  await step('redescendre retire vraiment les capacités', async () => {
+    /* Permanence est un standard sans IA : la commande vocale et la base de
+       connaissances doivent disparaître, pas être désactivées en silence. */
+    await p.locator('#plan-open').click().catch(() => {});
+    await p.waitForTimeout(300);
+    await p.locator('[data-plan="permanence"]').click();
+    await p.waitForTimeout(900);
+
+    const r = await p.evaluate(() => ({
+      vocal: window.ALLY_STORE.can('voiceCommand'),
+      ia: window.ALLY_STORE.can('aiCalls'),
+      fab: !document.getElementById('voice-fab').hidden
+    }));
+    if (r.vocal || r.ia) throw new Error('les capacités de la formule supérieure sont restées');
+    if (r.fab) throw new Error('le bouton « Parler à Ally » reste visible sans la capacité');
+  });
+
   console.log('\n== Ce qui est écrit reste écrit ==');
 
   await step('un rechargement retrouve tout', async () => {

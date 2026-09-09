@@ -14519,10 +14519,22 @@ window.ALLY_PLAN_BY_ID = function (id) {
           '<div class="meter-track"><div class="meter-fill cyan" style="width:' + pct(usage.emails) + '%"></div></div></div>' +
         estimate(usage) +
         '<button type="button" class="btn btn-ghost btn-md" id="plan-open">Changer de formule</button>' +
+        /* Ces trois choix étaient « Essai gratuit », le libellé du profil
+           métier, et « Cabinet illimité » — trois noms hérités d'un prototype
+           et absents du catalogue. Les choisir ne changeait que l'étiquette :
+           l'identifiant de formule ne bougeait pas, donc ni le quota, ni le
+           prix, ni les capacités. Quelqu'un se croyait passé en « illimité »
+           pendant qu'Ally lui appliquait les quatre cents appels de la
+           formule Cabinet. Une interface peut se tromper ; elle ne doit pas
+           affirmer sur le contrat quelque chose de faux.
+
+           On propose donc les formules qui existent, et les choisir les
+           applique vraiment. */
         '<div class="plan-choices" id="plan-choices" hidden>' +
-          ['Essai gratuit', p.plan, 'Cabinet illimité'].map(function (label) {
-            return '<button type="button" class="choice" data-plan="' + esc(label) + '"' +
-              ' aria-pressed="' + (store.plan() === label) + '">' + esc(label) + '</button>';
+          window.ALLY_PLANS.map(function (formule) {
+            return '<button type="button" class="choice" data-plan="' + esc(formule.id) + '"' +
+              ' aria-pressed="' + (S.planId === formule.id) + '">' + esc(formule.name) +
+              ' <span class="choice-count">' + formule.quota.calls + ' appels</span></button>';
           }).join('') +
         '</div>' +
       '</div>' +
@@ -15144,10 +15156,20 @@ window.ALLY_PLAN_BY_ID = function (id) {
     }
     panel.querySelectorAll('[data-plan]').forEach(function (button) {
       button.addEventListener('click', function () {
-        S.plan = button.getAttribute('data-plan');
+        var id = button.getAttribute('data-plan');
+        var formule = window.ALLY_PLAN_BY_ID(id);
+        if (!formule) return;
+
+        /* Les deux ensemble, toujours : l'identifiant porte le quota, le prix
+           et les capacités, le nom ne sert qu'à l'affichage. Les dissocier
+           était tout le défaut. */
+        S.planId = formule.id;
+        S.plan = formule.name;
         store.save();
-        renderChrome();
-        renderPanel();
+        store.syncAccount();
+        renderNav(); renderChrome(); renderPanel();
+        flash('Formule ' + formule.name + ' active — ' + formule.quota.calls +
+          ' appels et ' + formule.quota.emails + ' emails par mois.');
       });
     });
 
