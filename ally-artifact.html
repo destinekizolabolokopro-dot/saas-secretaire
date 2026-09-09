@@ -15221,7 +15221,7 @@ window.ALLY_PLAN_BY_ID = function (id) {
       wipeBtn.addEventListener('click', function () {
         if (wipeBtn.getAttribute('data-armed') !== '1') {
           wipeBtn.setAttribute('data-armed', '1');
-          wipeBtn.textContent = 'Confirmer la suppression définitive';
+          wipeBtn.textContent = 'Confirmer — le compte sera supprimé';
           window.setTimeout(function () {
             wipeBtn.removeAttribute('data-armed');
             wipeBtn.textContent = 'Supprimer toutes mes données';
@@ -15260,7 +15260,23 @@ window.ALLY_PLAN_BY_ID = function (id) {
           return;
         }
 
+        /* Sans serveur, l'effacement était incomplet : store.reset() vide les
+           données de travail, et c'est tout. Le compte restait dans
+           l'annuaire du navigateur avec son adresse et son mot de passe
+           haché, et l'identité — nom, cabinet — revenait au rechargement,
+           puisque c'est l'annuaire qui en fait autorité.
+
+           Le bouton dit « Supprimer toutes mes données ». Il ne peut pas en
+           laisser derrière lui : le droit à l'effacement porte sur le compte,
+           pas seulement sur son contenu. accounts.remove fait le reste — il
+           retire l'utilisateur, ferme sa session et efface sa clé de
+           stockage nominative.
+
+           Le compte de démonstration anonyme n'a rien à supprimer : il
+           repart simplement à neuf. */
+        var moi = window.ALLY_ACCOUNTS && window.ALLY_ACCOUNTS.currentId();
         store.reset();
+        if (moi) window.ALLY_ACCOUNTS.remove(moi);
         window.ALLY_RESTART();
       });
     }

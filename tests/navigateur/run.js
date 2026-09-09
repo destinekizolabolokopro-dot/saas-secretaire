@@ -19,6 +19,7 @@ const SUITES = [
   ['tactile.js', 'ce qui se touche au pouce'],
   ['connexion.js', 'ce que la page dit quand on se trompe'],
   ['gestes.js', 'ce que les boutons font vraiment'],
+  ['rgpd.js', 'le droit d\'accès et le droit à l\'effacement'],
   ['stockage.js', 'ce qui arrive quand le navigateur refuse d\'enregistrer'],
   ['ligne.js', 'la ligne téléphonique'],
   ['coupure.js', 'ce qui arrive quand le serveur tombe']

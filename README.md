@@ -40,6 +40,7 @@ node tests/navigateur/run.js       # les quatre suites d'un coup
 | `tactile.js` | À 320 et 390 px : aucun débordement, et chaque cible atteint les 24 px du WCAG 2.2 — mesurés au point touché, pas à la boîte de l'élément |
 | `connexion.js` | Les chemins d'erreur de la connexion et de l'inscription : chaque refus se dit, aucun ne révèle si le compte existe, et la marque s'efface dès qu'on corrige |
 | `gestes.js` | Ce que les boutons font vraiment : poser et annuler un rendez-vous, fermer une journée, envoyer un email et le rattraper dans les dix secondes — vérifié dans les données écrites, pas à l'écran |
+| `rgpd.js` | Le droit d'accès et le droit à l'effacement sans serveur : l'export contient ce qu'on a saisi et aucune empreinte de mot de passe ; la suppression retire le compte lui-même, pas seulement son contenu |
 | `stockage.js` | Un navigateur qui refuse d'enregistrer : navigation privée, quota atteint, données illisibles. Aucune page ne se brise, et le produit le dit |
 | `ligne.js` | La mise en service du renvoi d'appel |
 | `coupure.js` | Un serveur qui devient injoignable en cours de session : les réglages sont retentés, le retard est annoncé, l'avertissement se retire tout seul au retour |
