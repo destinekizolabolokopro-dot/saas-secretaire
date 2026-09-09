@@ -102,6 +102,60 @@ const step = async (label, fn) => {
     if (texte.trim().length < 20) throw new Error('sélecteur vide');
   });
 
+  console.log('\n== Le questionnaire ne cache pas de réponse ==');
+
+  const Q = await mk({ width: 1280, height: 1200 });
+  await Q.page.goto(BASE + '/onboarding.html');
+  await Q.page.evaluate(() => localStorage.clear());
+  await Q.page.goto(BASE + '/onboarding.html');
+  await Q.page.waitForTimeout(900);
+
+  await step('toute réponse déjà décidée est visible à l\'écran', async () => {
+    /* Le défaut : la valeur par défaut du délai de rappel valait « 24h », les
+       pastilles s'appelaient « Sous 24 h ». Aucune ne s'allumait. Le
+       professionnel voyait une question sans réponse pendant qu'Ally
+       promettait déjà ce délai à ses appelants.
+
+       La règle générale : si une valeur est posée, une pastille doit la
+       montrer. Un groupe sans rien d'allumé n'est légitime que si la donnée
+       est vide. */
+    const fautes = [];
+    for (let etape = 1; etape <= 8; etape++) {
+      if (etape === 2) {
+        await Q.page.fill('#firstName', 'Camille');
+        await Q.page.fill('#lastName', 'Berger');
+        await Q.page.fill('#org', 'Cabinet Berger');
+      }
+      const muets = await Q.page.evaluate(() => {
+        const out = [];
+        document.querySelectorAll('[id^="q-"]').forEach((groupe) => {
+          const chips = Array.from(groupe.querySelectorAll('.chip, .choice'))
+            .filter((c) => c.getBoundingClientRect().width);
+          if (!chips.length) return;
+          if (chips.some((c) => c.getAttribute('aria-pressed') === 'true')) return;
+
+          /* Rien d'allumé : la donnée correspondante doit être vide. */
+          const S = window.ALLY_STORE.state.survey;
+          const cle = groupe.id.replace(/^q-/, '');
+          const valeur = S[cle] !== undefined ? S[cle]
+            : (S.urgency && S.urgency[cle] !== undefined ? S.urgency[cle] : undefined);
+          if (valeur === undefined) return;              /* groupe hors questionnaire */
+          const vide = valeur === '' || (Array.isArray(valeur) && !valeur.length);
+          if (!vide) out.push(groupe.id + ' vaut « ' + valeur +' » sans qu\'aucune pastille ne le montre');
+        });
+        return out;
+      });
+      muets.forEach((m) => fautes.push('étape ' + etape + ' : ' + m));
+
+      if (!/onboarding/.test(Q.page.url())) break;
+      const suivant = Q.page.locator('.ob-nav .btn-primary');
+      if (!await suivant.count()) break;
+      await suivant.click();
+      await Q.page.waitForTimeout(600);
+    }
+    if (fautes.length) throw new Error(fautes.join(' | '));
+  });
+
   console.log('\n== La barre de navigation ==');
 
   const N = await mk();

@@ -5820,7 +5820,12 @@ window.ALLY_PLAN_BY_ID = function (id) {
          est reprise par l'agenda. */
       survey: {
         volume: '', clients: '', pain: [], tools: [], today: '',
-        motifs: [], rdvDuration: '45', callback: '24h', firstTime: '', notes: '',
+        /* « Sous 24 h » et non « 24h » : c'est le libellé exact de l'option, et
+           les pastilles se comparent à leur libellé. Avec l'ancienne valeur,
+           aucune pastille ne s'allumait — le professionnel voyait une question
+           sans réponse pendant que le récapitulatif annonçait « 24h », un délai
+           qu'il n'avait jamais choisi. */
+        motifs: [], rdvDuration: '45', callback: 'Sous 24 h', firstTime: '', notes: '',
         /* Définition de l'urgence, par métier. La règle « transférer les
            urgences » existait sans qu'on ait jamais dit ce qu'était une
            urgence : c'est ce que remplit cette section. */
