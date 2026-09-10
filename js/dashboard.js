@@ -1797,6 +1797,44 @@
     '</div>';
   }
 
+  /* Changer de formule, en un seul endroit.
+
+     Deux boutons le faisaient chacun de leur côté, et tous deux s'arrêtaient
+     au navigateur. Or c'est le serveur qui compte les places de
+     collaborateur : un cabinet passé à Expert lisait « 5 collaborateurs »
+     dans sa formule et s'entendait répondre, à l'invitation suivante,
+     « passez à Expert ». On prévient donc le serveur, et s'il refuse — il
+     refuse par exemple de descendre sous le nombre de personnes déjà
+     présentes — on le dit et on ne change rien. */
+  function changerDeFormule(formule, message) {
+    var api = window.ALLY_API;
+    var enLigne = api && api.online() && api.cabinetId();
+
+    function appliquer() {
+      /* Les deux ensemble, toujours : l'identifiant porte le quota, le prix
+         et les capacités, le nom ne sert qu'à l'affichage. Les dissocier
+         était tout le défaut. */
+      S.planId = formule.id;
+      S.plan = formule.name;
+      store.save();
+      store.syncAccount();
+      renderNav(); renderChrome(); renderPanel();
+      flash(message);
+    }
+
+    if (!enLigne) { appliquer(); return; }
+
+    api.setPlan(formule.id).then(function (res) {
+      if (res && res.ok === false) {
+        flash((res.body && res.body.error) || 'Le serveur a refusé ce changement de formule.');
+        return;
+      }
+      appliquer();
+    }).catch(function () {
+      flash('Serveur injoignable. La formule n\'a pas été changée.');
+    });
+  }
+
   function renderPanel() {
     renderAvertissements();
     el.panel.innerHTML = demoNotice() + VIEWS[ui.tab]();
@@ -2051,20 +2089,10 @@
     }
     panel.querySelectorAll('[data-plan]').forEach(function (button) {
       button.addEventListener('click', function () {
-        var id = button.getAttribute('data-plan');
-        var formule = window.ALLY_PLAN_BY_ID(id);
+        var formule = window.ALLY_PLAN_BY_ID(button.getAttribute('data-plan'));
         if (!formule) return;
-
-        /* Les deux ensemble, toujours : l'identifiant porte le quota, le prix
-           et les capacités, le nom ne sert qu'à l'affichage. Les dissocier
-           était tout le défaut. */
-        S.planId = formule.id;
-        S.plan = formule.name;
-        store.save();
-        store.syncAccount();
-        renderNav(); renderChrome(); renderPanel();
-        flash('Formule ' + formule.name + ' active — ' + formule.quota.calls +
-          ' appels et ' + formule.quota.emails + ' emails par mois.');
+        changerDeFormule(formule, 'Formule ' + formule.name + ' active — ' +
+          formule.quota.calls + ' appels et ' + formule.quota.emails + ' emails par mois.');
       });
     });
 
@@ -2255,13 +2283,10 @@
 
     panel.querySelectorAll('[data-upgrade]').forEach(function (button) {
       button.addEventListener('click', function () {
-        var id = button.getAttribute('data-upgrade');
-        S.planId = id;
-        S.plan = window.ALLY_PLAN_BY_ID(id).name;
-        store.save();
-        store.syncAccount();
-        renderNav(); renderPanel(); renderChrome();
-        flash('Formule ' + S.plan + ' active. Le forfait est réévalué immédiatement.');
+        var formule = window.ALLY_PLAN_BY_ID(button.getAttribute('data-upgrade'));
+        if (!formule) return;
+        changerDeFormule(formule, 'Formule ' + formule.name +
+          ' active. Le forfait est réévalué immédiatement.');
       });
     });
 

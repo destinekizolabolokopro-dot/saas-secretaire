@@ -143,6 +143,10 @@
     removeMember: function (userId) {
       return request('POST', '/cabinet/members/' + userId + '/remove', {});
     },
+    /* La formule est comptée par le serveur — c'est lui qui ouvre ou refuse
+       les places de collaborateur. La changer ici sans le lui dire faisait
+       diverger les deux moitiés du produit. */
+    setPlan: function (plan) { return request('POST', '/cabinet/plan', { plan: plan }); },
     accept: function (userId, code, password) {
       return request('POST', '/auth/accept', { userId: userId, code: code, password: password });
     },

@@ -577,13 +577,37 @@ async function newCabinet(email, org) {
     assert.ok(!auth.findUser('collegue@cabinet-a.fr'), 'le compte a été créé malgré le refus');
   });
 
-  await test('un cabinet Expert invite, et l\'invité ne peut pas encore entrer', async () => {
-    /* La formule vit sur le cabinet : on la passe à Expert comme le ferait un
-       changement d'abonnement. */
-    const cabinet = store.load().cabinets.find((c) => c.id === A.cabinetId);
-    cabinet.plan = 'expert';
-    store.save();
+  /* La formule n'avait aucun moyen de bouger : elle était fixée à
+     l'inscription, pendant que l'espace pro proposait « Changer de formule »
+     et l'écrivait dans le seul navigateur. Un cabinet passé à Expert lisait
+     donc « 5 collaborateurs » et s'entendait répondre « passez à Expert ». */
+  await test('changer de formule demande le responsable, et une formule connue', async () => {
+    const inconnue = await call('POST', '/api/cabinet/plan', {
+      cookie: A.cookie, body: { plan: 'illimite-gratuit' }
+    });
+    assert.strictEqual(inconnue.status, 400, 'une formule inventée a été acceptée');
 
+    const sansSession = await call('POST', '/api/cabinet/plan', { body: { plan: 'expert' } });
+    assert.strictEqual(sansSession.status, 401);
+  });
+
+  await test('le responsable passe son cabinet à Expert', async () => {
+    const monte = await call('POST', '/api/cabinet/plan', {
+      cookie: A.cookie, body: { plan: 'expert' }
+    });
+    assert.strictEqual(monte.status, 200);
+    assert.strictEqual(monte.body.seats, 5);
+
+    const cabinet = store.load().cabinets.find((c) => c.id === A.cabinetId);
+    assert.strictEqual(cabinet.plan, 'expert', 'la formule n\'a pas été écrite');
+
+    /* Et « Qui suis-je » le dit, puisque c'est de là que l'écran tient son
+       compte de places. */
+    const moi = await call('GET', '/api/me', { cookie: A.cookie });
+    assert.strictEqual(moi.body.seats, 5);
+  });
+
+  await test('un cabinet Expert invite, et l\'invité ne peut pas encore entrer', async () => {
     const invited = await call('POST', '/api/cabinet/invite', {
       cookie: A.cookie, body: { email: 'collegue@cabinet-a.fr' }
     });
@@ -629,6 +653,29 @@ async function newCabinet(email, org) {
       body: { userId: A.inviteId, code: A.inviteCode, password: 'AutreMotDePasse42!' }
     });
     assert.strictEqual(encore.status, 400);
+  });
+
+  /* Redescendre de formule avec deux personnes dans le cabinet mettrait la
+     seconde hors des places payées, sans dire laquelle perd son accès. */
+  await test('on ne redescend pas sous le nombre de personnes déjà présentes', async () => {
+    const famille = store.load().users.filter((u) => u.cabinetId === A.cabinetId).length;
+    assert.ok(famille > 1, 'le cabinet ne compte qu\'une personne : le contrôle ne prouve rien');
+
+    const baisse = await call('POST', '/api/cabinet/plan', {
+      cookie: A.cookie, body: { plan: 'cabinet' }
+    });
+    assert.strictEqual(baisse.status, 403);
+    assert.ok(/Retirez/.test(baisse.body.error), 'message : ' + baisse.body.error);
+
+    const cabinet = store.load().cabinets.find((c) => c.id === A.cabinetId);
+    assert.strictEqual(cabinet.plan, 'expert', 'la formule a bougé malgré le refus');
+  });
+
+  await test('un collaborateur ne change pas la formule du cabinet', async () => {
+    const essai = await call('POST', '/api/cabinet/plan', {
+      cookie: A.memberCookie, body: { plan: 'permanence' }
+    });
+    assert.strictEqual(essai.status, 403, 'un invité a pu changer la formule');
   });
 
   await test('le collaborateur ne peut ni inviter ni retirer', async () => {

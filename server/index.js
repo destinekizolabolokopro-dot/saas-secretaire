@@ -344,6 +344,16 @@ const routes = {
     });
   },
 
+  /* La formule choisie dans l'espace pro n'arrivait jamais jusqu'ici : elle
+     restait dans l'annuaire du navigateur pendant que le serveur, qui compte
+     les places, en gardait une autre. */
+  'POST /api/cabinet/plan': async (ctx) => {
+    const me = auth.findById(ctx.session.userId);
+    const result = auth.setPlan(ctx.session.cabinetId, ctx.body.plan, me);
+    if (!result.ok) return H.fail(ctx.res, result.status || 403, result.error);
+    H.json(ctx.res, 200, { ok: true, plan: result.plan, seats: result.seats });
+  },
+
   'POST /api/cabinet/members/:id/remove': async (ctx) => {
     const me = auth.findById(ctx.session.userId);
     const result = auth.removeMember(ctx.session.cabinetId, ctx.params.id, me);

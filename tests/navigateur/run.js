@@ -23,6 +23,7 @@ const SUITES = [
   ['stockage.js', 'ce qui arrive quand le navigateur refuse d\'enregistrer'],
   ['ligne.js', 'la ligne téléphonique'],
   ['notifs.js', 'ce que la cloche annonce'],
+  ['equipe.js', 'le cabinet à plusieurs'],
   ['coupure.js', 'ce qui arrive quand le serveur tombe']
 ];
 

@@ -44,7 +44,12 @@
   }
 
   function body() {
-    return list() + (state.owner ? inviteBox() : notOwner());
+    /* Le message d'erreur vit au niveau de la carte, et non dans le bloc
+       d'invitation : un retrait refusé par le serveur doit pouvoir se dire
+       même quand toutes les places sont prises et que ce bloc a disparu. */
+    return list() +
+      '<p class="auth-error" id="team-error" role="alert" data-team-error hidden></p>' +
+      (state.owner ? inviteBox() : notOwner());
   }
 
   function list() {
@@ -86,9 +91,8 @@
         : '<div class="ob-field">' +
             '<label class="ob-label" for="team-email">Inviter un collaborateur</label>' +
             '<input class="field" id="team-email" type="email" autocomplete="off"' +
-              ' placeholder="collegue@cabinet.fr">' +
+              ' aria-describedby="team-error" placeholder="collegue@cabinet.fr">' +
           '</div>' +
-          '<p class="auth-error" data-team-error hidden></p>' +
           '<div class="voice-try" style="margin-top:14px">' +
             '<button type="button" class="btn btn-primary btn-md" data-team-invite>' +
               'Envoyer l\'invitation</button>' +
@@ -127,6 +131,17 @@
       state.org = (res.body.cabinet && res.body.cabinet.org) || '';
       var after = state.members.map(function (m) { return m.id + ':' + m.verified; }).join(',');
 
+      /* Le cartouche d'invitation restait affiché après coup : on retirait la
+         personne, et l'écran continuait de proposer son lien et son code —
+         qui ne menaient plus à rien. Il ne vaut que tant que l'invitation est
+         en attente. */
+      if (state.invited) {
+        var toujours = state.members.filter(function (m) {
+          return m.id === state.invited.userId && !m.verified;
+        })[0];
+        if (!toujours) state.invited = null;
+      }
+
       var first = !state.loaded;
       state.loaded = true;
       if (rerender && (first || before !== after)) rerender();
@@ -138,48 +153,130 @@
     var host = panel.querySelector('[data-team]');
     if (!host) return;
 
+    var champ = host.querySelector('#team-email');
+    var boite = host.querySelector('[data-team-error]');
+
+    function dire(message) {
+      if (!boite) return;
+      boite.textContent = message;
+      boite.hidden = !message;
+      if (champ) champ.setAttribute('aria-invalid', message ? 'true' : 'false');
+    }
+
+    /* Une adresse est refusée par le serveur, pas par une expression
+       régulière : le seul examen qui vaille est de vérifier qu'elle a une
+       forme plausible avant de partir, et de dire pourquoi sinon. Le champ
+       se contentait de reprendre le focus, sans un mot — le responsable
+       recliquait sur « Envoyer » en se demandant ce qui n'allait pas. */
+    function plausible(valeur) {
+      var v = String(valeur || '').trim();
+      if (!v) return 'Indiquez l\'adresse email de votre collaborateur.';
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v)) {
+        return '« ' + v + ' » n\'est pas une adresse email.';
+      }
+      var deja = state.members.filter(function (m) {
+        return String(m.email || '').toLowerCase() === v.toLowerCase();
+      })[0];
+      if (deja) {
+        return deja.verified
+          ? 'Cette personne fait déjà partie du cabinet.'
+          : 'Cette personne a déjà été invitée ; elle n\'a pas encore rejoint.';
+      }
+      return null;
+    }
+
     var invite = host.querySelector('[data-team-invite]');
-    if (invite) {
-      invite.addEventListener('click', function () {
-        var field = host.querySelector('#team-email');
-        var box = host.querySelector('[data-team-error]');
-        if (!field.value || field.value.indexOf('@') < 1) { field.focus(); return; }
 
-        invite.disabled = true;
-        invite.textContent = 'Envoi…';
+    function envoyer() {
+      var valeur = champ ? champ.value.trim() : '';
+      var souci = plausible(valeur);
+      if (souci) { dire(souci); if (champ) champ.focus(); return; }
+      dire('');
 
-        api.invite(field.value).then(function (res) {
-          if (!res.ok) {
-            box.textContent = (res.body && res.body.error) || 'Invitation refusée.';
-            box.hidden = false;
-            invite.disabled = false;
-            invite.textContent = 'Envoyer l\'invitation';
-            return;
-          }
-          state.invited = {
-            userId: res.body.userId, email: res.body.email, code: res.body.devCode
-          };
-          state.loaded = false;   /* force un rendu après la relecture */
-          refresh(rerender);
-          if (rerender) rerender();
-        }).catch(function () {
-          box.textContent = 'Serveur injoignable.';
-          box.hidden = false;
+      invite.disabled = true;
+      invite.textContent = 'Envoi…';
+
+      api.invite(valeur).then(function (res) {
+        if (!res.ok) {
+          dire((res.body && res.body.error) || 'Invitation refusée.');
           invite.disabled = false;
           invite.textContent = 'Envoyer l\'invitation';
-        });
+          if (champ) champ.focus();
+          return;
+        }
+        state.invited = {
+          userId: res.body.userId, email: res.body.email, code: res.body.devCode
+        };
+        state.loaded = false;   /* force un rendu après la relecture */
+        refresh(rerender);
+        if (rerender) rerender();
+      }).catch(function () {
+        dire('Serveur injoignable. L\'invitation n\'est pas partie.');
+        invite.disabled = false;
+        invite.textContent = 'Envoyer l\'invitation';
       });
     }
 
+    if (invite) invite.addEventListener('click', envoyer);
+    /* Entrée dans un champ email doit envoyer : la carte n'est pas un
+       formulaire, il faut donc le faire à la main. */
+    if (champ) {
+      champ.addEventListener('keydown', function (event) {
+        if (event.key === 'Enter') { event.preventDefault(); envoyer(); }
+      });
+      champ.addEventListener('input', function () { dire(''); });
+    }
+
+    /* Retirer quelqu'un lui coupe l'accès au cabinet — ses appels, ses
+       emails, son agenda. C'était un clic, sans retour possible et sans que
+       rien ne prévienne. Le premier clic arme et nomme la conséquence, le
+       second exécute ; l'armement retombe seul au bout de cinq secondes pour
+       qu'un bouton oublié ne reste pas chargé. */
     host.querySelectorAll('[data-team-remove]').forEach(function (button) {
+      var libelle = button.textContent;
+      var minuteur = null;
+
+      function desarmer() {
+        window.clearTimeout(minuteur);
+        button.removeAttribute('data-armed');
+        button.textContent = libelle;
+      }
+
       button.addEventListener('click', function () {
+        if (!button.getAttribute('data-armed')) {
+          host.querySelectorAll('[data-team-remove][data-armed]').forEach(function (autre) {
+            if (autre !== button) autre.dispatchEvent(new CustomEvent('team-desarme'));
+          });
+          button.setAttribute('data-armed', '1');
+            button.textContent = 'Confirmer le retrait';
+          minuteur = window.setTimeout(desarmer, 5000);
+          return;
+        }
+
+        window.clearTimeout(minuteur);
         button.disabled = true;
-        api.removeMember(button.getAttribute('data-team-remove')).then(function () {
+        button.textContent = 'Retrait…';
+
+        api.removeMember(button.getAttribute('data-team-remove')).then(function (res) {
+          /* Un refus du serveur ressemblait à une réussite : on rafraîchissait
+             la liste et la personne y était toujours, sans un mot. */
+          if (res && res.ok === false) {
+            dire((res.body && res.body.error) || 'Le serveur a refusé ce retrait.');
+            button.disabled = false;
+            desarmer();
+            return;
+          }
           state.loaded = false;
           refresh(rerender);
           if (rerender) rerender();
-        }).catch(function () { button.disabled = false; });
+        }).catch(function () {
+          dire('Serveur injoignable. Personne n\'a été retiré.');
+          button.disabled = false;
+          desarmer();
+        });
       });
+
+      button.addEventListener('team-desarme', desarmer);
     });
 
     refresh(rerender);

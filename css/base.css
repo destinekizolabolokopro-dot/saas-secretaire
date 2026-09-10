@@ -340,6 +340,19 @@ input[type="range"]:focus-visible {
 /* Une case à cocher se touche par son libellé — c'est le comportement natif —
    mais elle se vise d'abord par elle-même, et seize pixels au pouce, c'est
    petit. Dix-huit, et un libellé qui porte la hauteur minimale. */
+/* Un bouton armé attend une confirmation. Trois endroits demandent
+   maintenant deux clics avant de détruire quelque chose — une fiche de la
+   base de connaissances, un collaborateur, un compte entier — et le seul
+   signal était le changement de libellé. La couleur le dit avant la lecture. */
+.btn[data-armed], .btn-link[data-armed] {
+  color: var(--danger);
+  border-color: oklch(0.62 0.19 25 / 0.5);
+  background: oklch(0.5 0.19 25 / 0.14);
+}
+.btn-link[data-armed] {
+  border-radius: var(--r-sm); padding: 3px 8px; text-decoration: none;
+}
+
 input[type="checkbox"] {
   width: 18px; height: 18px; accent-color: var(--accent);
 }

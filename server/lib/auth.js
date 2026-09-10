@@ -236,6 +236,53 @@ function removeMember(cabinetId, targetId, byUser) {
   return { ok: true };
 }
 
+/* La formule du cabinet, qui n'avait aucun moyen de changer.
+
+   Elle était fixée à l'inscription et plus jamais relue. Pendant ce temps,
+   l'espace pro proposait « Changer de formule » et l'écrivait dans l'annuaire
+   du navigateur. Un cabinet passé à Expert voyait donc « 5 collaborateurs »
+   dans sa formule et s'entendait répondre, au moment d'inviter quelqu'un :
+   « Votre formule ne comprend qu'un utilisateur. Passez à Expert. » Les deux
+   phrases venaient du même produit.
+
+   Le serveur reste seul juge du nombre de places : c'est lui qui compte, et
+   cette route est le seul endroit d'où la formule peut bouger. Elle ne
+   prétend pas encaisser quoi que ce soit — aucun paiement n'est branché —
+   elle enregistre la formule choisie, et refuse de descendre sous le nombre
+   de collaborateurs déjà présents. */
+function setPlan(cabinetId, plan, byUser) {
+  const db = store.load();
+  if (!isOwner(byUser)) {
+    return { ok: false, error: 'Seul le responsable du cabinet peut changer de formule.' };
+  }
+  if (!Object.prototype.hasOwnProperty.call(SEATS, plan)) {
+    return { ok: false, error: 'Formule inconnue.', status: 400 };
+  }
+
+  const cabinet = db.cabinets.find((c) => c.id === cabinetId);
+  if (!cabinet) return { ok: false, error: 'Introuvable.', status: 404 };
+
+  /* Descendre de formule avec cinq personnes dans le cabinet mettrait quatre
+     d'entre elles hors des places payées, sans dire lesquelles. On refuse, et
+     on dit combien il faut retirer d'abord. */
+  const family = db.users.filter((u) => u.cabinetId === cabinetId).length;
+  if (SEATS[plan] < family) {
+    return {
+      ok: false,
+      error: 'Cette formule ne comprend que ' + SEATS[plan] + ' utilisateur' +
+        (SEATS[plan] > 1 ? 's' : '') + ', et le cabinet en compte ' + family +
+        '. Retirez d\'abord ' + (family - SEATS[plan]) + ' collaborateur' +
+        (family - SEATS[plan] > 1 ? 's' : '') + '.'
+    };
+  }
+
+  const avant = cabinet.plan;
+  cabinet.plan = plan;
+  store.record('plan-changed', { cabinetId, de: avant, vers: plan });
+  store.save();
+  return { ok: true, plan, seats: SEATS[plan] };
+}
+
 /* Suppression d'un cabinet : tout part, d'un coup, sans corbeille. C'est ce
    qu'exige le droit à l'effacement, et c'est aussi la seule façon de tenir la
    promesse faite au client. Le journal en garde la trace — l'identifiant du
@@ -446,7 +493,7 @@ function resetPassword(userId, value, password) {
 
 module.exports = {
   signup, issueCode, verifyEmail, ensureAdmin,
-  invite, acceptInvite, removeMember, isOwner, seatsOf, SEATS,
+  invite, acceptInvite, removeMember, isOwner, seatsOf, setPlan, SEATS,
   login, logout, sessionFrom, openSession,
   requestReset, resetPassword,
   findUser, findById, pruneSessions, deleteCabinet, purgeExpired,
