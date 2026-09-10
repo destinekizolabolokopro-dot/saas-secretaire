@@ -398,6 +398,33 @@ const step = async (label, fn) => {
     window.ALLY_STORE.save();
   });
 
+  console.log('\n== Ce que le produit promet d\'envoyer ==');
+
+  /* « Résumé envoyé à votre adresse » : rien ne partait. Aucun service
+     d'envoi n'est branché, et l'affirmer donne au professionnel une confiance
+     qu'il paiera le jour où il comptera sur un résumé jamais reçu. Le produit
+     nomme ailleurs ses limites — il doit les nommer ici aussi. */
+  await step('le résumé du jour ne se dit pas envoyé', async () => {
+    await p.locator('.nav-item').nth(0).click();
+    await p.waitForTimeout(700);
+    await p.locator('.act-link, .btn', { hasText: 'résumé du jour' }).first().click();
+    await p.waitForSelector('.flash', { timeout: 5000 });
+    const dit = await p.locator('.flash').first().textContent();
+    if (/envoyé/i.test(dit)) throw new Error('affirme un envoi qui n\'a pas lieu : « ' + dit + ' »');
+    if (!/pas encore branché|prêt/i.test(dit)) throw new Error('message : « ' + dit + ' »');
+  });
+
+  await step('et les canaux d\'alerte disent lesquels fonctionnent', async () => {
+    await p.locator('#profile-card').click();
+    await p.waitForTimeout(500);
+    await p.locator('[data-account="alerts"]').click();
+    await p.waitForTimeout(600);
+    const texte = await p.locator('#tabpanel').innerText();
+    if (!/pas encore actifs/.test(texte)) {
+      throw new Error('trois interrupteurs sans effet sont présentés comme des canaux qui marchent');
+    }
+  });
+
   console.log('\n== Ce qui est écrit reste écrit ==');
 
   await step('un rechargement retrouve tout', async () => {

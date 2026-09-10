@@ -29,7 +29,7 @@ vrai Chromium :
 
 ```bash
 python3 -m http.server 8123
-node tests/navigateur/run.js       # les quatre suites d'un coup
+node tests/navigateur/run.js       # les douze suites d'un coup
 ```
 
 | Suite | Ce qu'elle attrape |
@@ -39,10 +39,12 @@ node tests/navigateur/run.js       # les quatre suites d'un coup
 | `contraste.js` | Un texte sous le seuil du WCAG, une commande sans nom accessible — mesurés au canvas, pas estimés à l'œil |
 | `tactile.js` | À 320 et 390 px : aucun débordement, et chaque cible atteint les 24 px du WCAG 2.2 — mesurés au point touché, pas à la boîte de l'élément |
 | `connexion.js` | Les chemins d'erreur de la connexion et de l'inscription : chaque refus se dit, aucun ne révèle si le compte existe, et la marque s'efface dès qu'on corrige |
-| `gestes.js` | Ce que les boutons font vraiment : poser et annuler un rendez-vous, fermer une journée, envoyer un email et le rattraper dans les dix secondes — vérifié dans les données écrites, pas à l'écran |
+| `gestes.js` | Ce que les boutons font vraiment : poser et annuler un rendez-vous, fermer une journée, envoyer un email et le rattraper dans les dix secondes, donner un ordre écrit à Ally — vérifié dans les données écrites, pas à l'écran |
 | `rgpd.js` | Le droit d'accès et le droit à l'effacement sans serveur : l'export contient ce qu'on a saisi et aucune empreinte de mot de passe ; la suppression retire le compte lui-même, pas seulement son contenu |
 | `stockage.js` | Un navigateur qui refuse d'enregistrer : navigation privée, quota atteint, données illisibles. Aucune page ne se brise, et le produit le dit |
 | `ligne.js` | La mise en service du renvoi d'appel |
+| `notifs.js` | La cloche : la pastille compte ce que le panneau contient, et ce qui s'ouvre se ferme aussi au clavier |
+| `equipe.js` | Le cabinet à plusieurs, sur un vrai serveur : la formule choisie ouvre réellement les places, inviter et retirer engagent |
 | `coupure.js` | Un serveur qui devient injoignable en cours de session : les réglages sont retentés, le retard est annoncé, l'avertissement se retire tout seul au retour |
 
 Le fichier `ally-demo.html` s'ouvre par simple double-clic : il contient tout
@@ -198,9 +200,13 @@ reçus, emails partis, et une estimation assumée du temps gagné — trois minu
 par appel pris à votre place, quatre par email rédigé. Sur un compte neuf ils
 valent zéro, ce qui est la vérité.
 
-**L'aperçu du résumé quotidien.** L'email exact qui partirait ce soir, avec les
+**L'aperçu du résumé quotidien.** L'email exact qui partira ce soir, avec les
 données et le nom du compte. Un réglage qu'on n'a jamais vu à l'œuvre ne
-s'active pas.
+s'active pas. L'écran dit aussi ce qu'il ne fait pas encore : aucun service
+d'envoi n'est branché, donc rien ne part — ni ce résumé, ni les trois canaux
+d'alerte (SMS, notification, email) dont les interrupteurs n'enregistrent
+aujourd'hui qu'une préférence. Le seul canal réellement actif est le transfert
+d'appel sur le portable, et il se pose depuis Téléphonie.
 
 ## Envoi rattrapable, forfait jamais coupé
 
@@ -415,7 +421,7 @@ l'ensemble** :
 
 ```bash
 node server/index.js       # http://localhost:8787 — API et maquette
-node server/test.js        # 73 contrôles
+node server/test.js        # 77 contrôles
 ```
 
 ### Le compte devient réel

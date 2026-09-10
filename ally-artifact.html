@@ -13545,9 +13545,14 @@ window.ALLY_PLAN_BY_ID = function (id) {
     today: [
       { label: '↓ Exporter le récapitulatif', act: function () { exportJSON('recapitulatif', {
           date: dateLabel(), actions: todoItems(), usage: store.usage() }); } },
-      { label: '✉ Envoyer le résumé du jour', act: function () {
-          store.log('Résumé du jour envoyé', S.identity.email || 'adresse professionnelle');
-          flash('Résumé envoyé à ' + (S.identity.email || 'votre adresse')); } },
+      /* « Résumé envoyé » était faux : aucun service d'envoi n'est branché,
+         et le dire donne au professionnel une confiance qu'il paiera le jour
+         où il comptera sur un résumé qui n'est jamais parti. Le produit
+         nomme ailleurs ses limites — il les nomme ici aussi. */
+      { label: '✉ Préparer le résumé du jour', act: function () {
+          store.log('Résumé du jour préparé', S.identity.email || 'adresse professionnelle');
+          flash('Résumé prêt pour ' + (S.identity.email || 'votre adresse')
+            + " — l'envoi par email n'est pas encore branché."); } },
       { primary: true, label: '+ Rendez-vous', act: function () { setTab('agenda'); } }
     ],
     /* `quand` dit à quelle condition l'action a quelque chose à faire. Sur un
@@ -14992,6 +14997,16 @@ window.ALLY_PLAN_BY_ID = function (id) {
         switchRow('notif', 'sms', 'SMS', 'Au ' + (S.identity.phone || 'numéro de transfert')) +
         switchRow('notif', 'push', 'Notification push', 'Sur cet appareil') +
         switchRow('notif', 'email', 'Email', S.identity.email || 'Adresse professionnelle') +
+        /* Trois interrupteurs qui enregistrent une préférence et rien d'autre :
+           ni SMS, ni notification système, ni email ne partent aujourd'hui. Le
+           seul canal qui fonctionne vraiment est le transfert d'appel, et il se
+           pose depuis Téléphonie. Le dire vaut mieux que de laisser quelqu'un
+           attendre un SMS un dimanche soir. */
+        '<p class="note note-sep" style="margin-top:16px">Ces trois canaux sont ' +
+          'enregistrés mais pas encore actifs : SMS, notification et email attendent ' +
+          'leurs services d\'envoi. Le canal qui fonctionne dès aujourd\'hui est le ' +
+          'transfert d\'appel sur votre portable, à poser depuis ' +
+          '<button type="button" class="btn-link" data-jump="telephony">Téléphonie</button>.</p>' +
       '</div>' +
       '<div class="card"><p class="card-title">Fréquence des résumés</p>' +
         '<div class="choice-row" role="group" aria-label="Fréquence des résumés">' +
@@ -15006,10 +15021,17 @@ window.ALLY_PLAN_BY_ID = function (id) {
         digestPreview() +
         '<div class="transcript-actions" style="margin-top:16px">' +
           '<button type="button" class="btn btn-ghost btn-sm" id="digest-send">' +
-            'Me l\'envoyer maintenant</button>' +
-          '<span class="row-meta">Envoyé à ' + esc(S.identity.email || 'votre adresse') +
+            'Me le préparer maintenant</button>' +
+          /* « Envoyé chaque soir à 19 h » décrivait un envoi qui n'a jamais
+             lieu : aucun service d'emails n'est branché. Un réglage qui
+             promet une habitude qu'il ne tient pas se découvre le jour où
+             l'on comptait dessus. */
+          '<span class="row-meta">Prévu pour ' + esc(S.identity.email || 'votre adresse') +
             (S.summaryFreq === 'daily' ? ' chaque soir à 19 h' : ' chaque vendredi à 18 h') + '</span>' +
         '</div>' +
+        '<p class="note note-sep" style="margin-top:14px">L\'envoi par email attend ' +
+          'le branchement du service d\'envoi. En attendant, le résumé se lit ici et ' +
+          's\'exporte depuis « Aujourd\'hui ».</p>' +
       '</div></div>';
   }
 
@@ -15648,8 +15670,9 @@ window.ALLY_PLAN_BY_ID = function (id) {
     var digestSend = panel.querySelector('#digest-send');
     if (digestSend) {
       digestSend.addEventListener('click', function () {
-        store.log('Résumé envoyé à la demande', S.identity.email || 'adresse professionnelle');
-        flash('Résumé envoyé à ' + (S.identity.email || 'votre adresse') + '.');
+        store.log('Résumé préparé à la demande', S.identity.email || 'adresse professionnelle');
+        flash('Résumé prêt pour ' + (S.identity.email || 'votre adresse')
+          + " — l'envoi par email n'est pas encore branché.");
       });
     }
 
