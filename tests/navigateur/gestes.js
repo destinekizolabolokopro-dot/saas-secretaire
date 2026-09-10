@@ -398,6 +398,76 @@ const step = async (label, fn) => {
     window.ALLY_STORE.save();
   });
 
+  console.log('\n== La fenêtre vocale, au clavier ==');
+
+  /* Le micro ne peut pas parler dans un navigateur sans tête, mais la fenêtre
+     accepte aussi le clavier — et c'est le même chemin ensuite. Ce qui n'était
+     pas vérifié : une confirmation donnée laissait sa ligne du journal inscrite
+     « en attente de votre confirmation » pour toujours, parce que settle()
+     était appelé sans l'ordre prononcé. L'onglet Ally montrait des actions
+     faites comme si elles attendaient encore. */
+  await step('une confirmation demandée suspend l\'action', async () => {
+    /* La section précédente a fait redescendre la formule : sans commande
+       vocale, le bouton de la fenêtre n'est pas affiché du tout. On repose une
+       formule qui la comprend, sinon ce contrôle mesurerait un bouton absent. */
+    await p.evaluate(() => {
+      window.ALLY_STORE.state.confirmLevel = 'always';
+      window.ALLY_STORE.state.rules.transfer = false;
+      window.ALLY_STORE.state.voiceEnabled = true;
+      window.ALLY_STORE.state.planId = 'expert';
+      window.ALLY_STORE.state.plan = window.ALLY_PLAN_BY_ID('expert').name;
+      window.ALLY_STORE.save();
+      window.ALLY_STORE.syncAccount();
+    });
+    await p.reload();
+    await p.waitForTimeout(1400);
+
+    if (await p.locator('#voice-fab').isHidden()) {
+      throw new Error('la commande vocale n\'est pas offerte : le contrôle ne prouverait rien');
+    }
+    await p.click('#voice-fab');
+    await p.waitForSelector('#voice-input', { state: 'visible', timeout: 8000 });
+    await p.fill('#voice-input', 'transfère les urgences sur mon portable');
+    await p.locator('#voice-form button[type=submit]').click();
+    await p.waitForTimeout(700);
+
+    if (await p.locator('#voice-confirm').isHidden()) throw new Error('aucune question posée');
+    if (await p.locator('#voice-ok').isHidden()) throw new Error('aucun bouton pour confirmer');
+    if (await p.evaluate(() => window.ALLY_STORE.state.rules.transfer)) {
+      throw new Error('exécuté sans attendre la confirmation');
+    }
+    const entree = (await donnees()).voiceLog[0];
+    if (!entree || entree.state !== 'wait') {
+      throw new Error('le journal ne dit pas que l\'ordre attend : ' + JSON.stringify(entree));
+    }
+  });
+
+  await step('la confirmation exécute, et referme sa ligne du journal', async () => {
+    await p.click('#voice-ok');
+    await p.waitForTimeout(800);
+
+    if (!await p.evaluate(() => window.ALLY_STORE.state.rules.transfer)) {
+      throw new Error('« Confirmer » n\'a rien exécuté');
+    }
+    const entree = (await donnees()).voiceLog[0];
+    if (entree.state !== 'done') {
+      throw new Error('l\'ordre reste « ' + entree.result +' » alors qu\'il est fait');
+    }
+  });
+
+  await step('Échap referme la fenêtre', async () => {
+    if (await p.locator('#voice-overlay').isHidden()) {
+      throw new Error('la fenêtre est déjà fermée : le contrôle ne prouverait rien');
+    }
+    await p.keyboard.press('Escape');
+    await p.waitForTimeout(400);
+    if (await p.locator('#voice-overlay').isVisible()) throw new Error('la fenêtre survit à Échap');
+    await p.evaluate(() => {
+      window.ALLY_STORE.state.confirmLevel = 'none';
+      window.ALLY_STORE.save();
+    });
+  });
+
   console.log('\n== Ce que le produit promet d\'envoyer ==');
 
   /* « Résumé envoyé à votre adresse » : rien ne partait. Aucun service

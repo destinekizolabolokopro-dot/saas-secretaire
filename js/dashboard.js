@@ -2671,7 +2671,7 @@
      choisie dans l'onglet Téléphonie. */
   var VOICE = window.ALLY_VOICE;
   var BRAIN = window.ALLY_BRAIN;
-  var session = { relacheVoix: null, pending: null, timers: [] };
+  var session = { relacheVoix: null, pending: null, pendingOrdre: null, timers: [] };
 
   function clearTimers() { session.timers.forEach(clearTimeout); session.timers = []; }
   function later(fn, delay) { session.timers.push(setTimeout(fn, delay)); }
@@ -2750,6 +2750,7 @@
       el.voiceOk.hidden = false;
       el.voiceOk.focus();
       session.pending = result;
+      session.pendingOrdre = text;
       VOICE.speak(question, store.voiceOptions());
       logVoice(text, 'À valider');
       return;
@@ -2758,10 +2759,22 @@
     settle(result, text);
   }
 
+  /* Reprend la ligne « en attente » du journal, si elle est toujours en tête. */
+  function marquerFait(ordre) {
+    var entree = D().voiceLog[0];
+    if (!entree || entree.order !== ordre || entree.state !== 'wait') return;
+    entree.result = 'Traité par Ally';
+    entree.state = 'done';
+    store.save();
+    if (ui.tab === 'ally') renderPanel();
+  }
+
   function settle(result, spoken) {
+    var attendait = session.pendingOrdre;
     el.confirm.hidden = true;
     el.voiceOk.hidden = true;
     session.pending = null;
+    session.pendingOrdre = null;
 
     if (result.apply) result.apply();
     el.voiceTitle.textContent = result.kind === 'action' ? 'C\'est fait' : 'Ally répond';
@@ -2779,7 +2792,13 @@
     });
     document.getElementById('voice-again').hidden = false;
 
+    /* Une confirmation donnée laissait l'ordre inscrit « en attente de votre
+       confirmation » pour toujours : settle() était appelé sans l'ordre
+       prononcé, et la ligne du journal n'était jamais reprise. L'onglet Ally
+       affichait donc, en permanence, des actions exécutées comme si elles
+       attendaient encore. */
     if (spoken) logVoice(spoken, result.kind === 'action' ? 'Exécuté' : 'Répondu');
+    else if (attendait) marquerFait(attendait);
     renderChrome();
   }
 
@@ -2820,7 +2839,11 @@
     clearTimers();
     VOICE.stopListening();
     VOICE.stopSpeaking();
+    /* Fermer la fenêtre sur une confirmation en attente vaut abandon : la
+       ligne du journal reste « en attente », ce qui est la vérité, mais
+       l'ordre ne doit plus pouvoir être clos par un settle() ultérieur. */
     session.pending = null;
+    session.pendingOrdre = null;
     el.overlay.hidden = true;
     if (session.relacheVoix) { session.relacheVoix(); session.relacheVoix = null; }
   }
