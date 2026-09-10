@@ -45,6 +45,7 @@ node tests/navigateur/run.js       # les douze suites d'un coup
 | `ligne.js` | La mise en service du renvoi d'appel |
 | `notifs.js` | La cloche : la pastille compte ce que le panneau contient, et ce qui s'ouvre se ferme aussi au clavier |
 | `equipe.js` | Le cabinet à plusieurs, sur un vrai serveur : la formule choisie ouvre réellement les places, inviter et retirer engagent |
+| `console.js` | Les deux gestes de la console qui coupent l'accès d'un client : suspendre et supprimer demandent deux clics, aucune boîte du navigateur, et l'annuaire est relu après coup |
 | `coupure.js` | Un serveur qui devient injoignable en cours de session : les réglages sont retentés, le retard est annoncé, l'avertissement se retire tout seul au retour |
 
 Le fichier `ally-demo.html` s'ouvre par simple double-clic : il contient tout

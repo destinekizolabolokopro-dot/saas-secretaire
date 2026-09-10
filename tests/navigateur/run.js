@@ -24,6 +24,7 @@ const SUITES = [
   ['ligne.js', 'la ligne téléphonique'],
   ['notifs.js', 'ce que la cloche annonce'],
   ['equipe.js', 'le cabinet à plusieurs'],
+  ['console.js', 'ce qui coupe l\'accès de quelqu\'un'],
   ['coupure.js', 'ce qui arrive quand le serveur tombe']
 ];
 

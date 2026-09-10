@@ -16762,15 +16762,75 @@ window.ALLY_PLAN_BY_ID = function (id) {
       });
     });
 
-    el.drawerBody.querySelectorAll('[data-act]').forEach(function (button) {
-      button.addEventListener('click', function () {
-        var act = button.getAttribute('data-act');
+    /* Deux temps avant ce qui coupe l'accès de quelqu'un.
 
-        if (act === 'suspend') {
+       « Suspendre » se faisait d'un clic, dans une liste, et refuse ensuite la
+       connexion au cabinet : du point de vue du client, c'est aussi brutal
+       qu'une suppression, et bien plus facile à déclencher par erreur.
+       « Supprimer » passait par window.confirm — une boîte du navigateur,
+       étrangère au produit, que certains contextes bloquent purement et
+       simplement, auquel cas le clic ne faisait rien du tout.
+
+       Le premier clic arme et nomme la conséquence, le second exécute, et
+       l'armement retombe seul au bout de cinq secondes. C'est le geste déjà
+       employé pour la base de connaissances et pour le retrait d'un
+       collaborateur. */
+    function deuxTemps(button, libelleArme, faire) {
+      var libelle = button.textContent;
+      var minuteur = null;
+
+      function desarmer() {
+        window.clearTimeout(minuteur);
+        button.removeAttribute('data-armed');
+        button.textContent = libelle;
+      }
+
+      button.addEventListener('click', function () {
+        if (!button.getAttribute('data-armed')) {
+          el.drawerBody.querySelectorAll('[data-act][data-armed]').forEach(function (autre) {
+            if (autre !== button) autre.dispatchEvent(new CustomEvent('admin-desarme'));
+          });
+          button.setAttribute('data-armed', '1');
+          button.textContent = libelleArme;
+          minuteur = window.setTimeout(desarmer, 5000);
+          return;
+        }
+        window.clearTimeout(minuteur);
+        faire();
+      });
+
+      button.addEventListener('admin-desarme', desarmer);
+    }
+
+    el.drawerBody.querySelectorAll('[data-act]').forEach(function (button) {
+      var act = button.getAttribute('data-act');
+
+      if (act === 'suspend') {
+        deuxTemps(button, 'Confirmer — ce cabinet ne pourra plus se connecter', function () {
           accounts.update(user.id, { status: 'suspended' });
           accounts.log('suspended', user.email);
           UI.toast('Compte suspendu — la connexion lui est refusée.', 'warn');
-        }
+          openDrawer(user.id);
+          renderPanel();
+          renderChrome();
+        });
+        return;
+      }
+
+      if (act === 'delete') {
+        deuxTemps(button, 'Confirmer la suppression définitive', function () {
+          /* remove() inscrit déjà « deleted » au journal : le refaire ici
+             donnerait deux lignes pour une seule suppression. */
+          accounts.remove(user.id);
+          UI.toast('Compte supprimé.', 'warn');
+          closeDrawer();
+          renderPanel();
+          renderChrome();
+        });
+        return;
+      }
+
+      button.addEventListener('click', function () {
         if (act === 'activate') {
           accounts.update(user.id, { status: user.verified ? 'active' : 'pending' });
           accounts.log('reactivated', user.email);
@@ -16781,17 +16841,6 @@ window.ALLY_PLAN_BY_ID = function (id) {
           accounts.log('verified-by-admin', user.email);
           UI.toast('Adresse validée manuellement.', 'ok');
         }
-        if (act === 'delete') {
-          if (!window.confirm('Supprimer définitivement le compte de ' + user.firstName + ' '
-              + user.lastName + ' ? Ses données de configuration seront effacées.')) return;
-          accounts.remove(user.id);
-          UI.toast('Compte supprimé.', 'warn');
-          closeDrawer();
-          renderPanel();
-          renderChrome();
-          return;
-        }
-
         openDrawer(user.id);
         renderPanel();
         renderChrome();
@@ -17097,13 +17146,39 @@ window.ALLY_PLAN_BY_ID = function (id) {
       });
     });
 
+    /* Même geste en deux temps que dans la fiche d'un compte : une boîte du
+       navigateur est étrangère au produit, et certains contextes la bloquent —
+       le clic ne faisait alors rien du tout. */
     var reseed = document.getElementById('sys-reseed');
-    if (reseed) reseed.addEventListener('click', doReseed);
+    if (reseed) armerPuisFaire(reseed, 'Confirmer — les comptes créés depuis seront perdus', doReseed);
+  }
+
+  /* Version autonome du geste en deux temps, pour les boutons qui ne vivent
+     pas dans le tiroir d'une fiche. */
+  function armerPuisFaire(button, libelleArme, faire) {
+    var libelle = button.textContent;
+    var minuteur = null;
+
+    function desarmer() {
+      window.clearTimeout(minuteur);
+      button.removeAttribute('data-armed');
+      button.textContent = libelle;
+    }
+
+    button.addEventListener('click', function () {
+      if (!button.getAttribute('data-armed')) {
+        button.setAttribute('data-armed', '1');
+        button.textContent = libelleArme;
+        minuteur = window.setTimeout(desarmer, 5000);
+        return;
+      }
+      window.clearTimeout(minuteur);
+      desarmer();
+      faire();
+    });
   }
 
   function doReseed() {
-    if (!window.confirm('Réinitialiser l\'annuaire de démonstration ? '
-        + 'Les comptes créés depuis seront perdus.')) return;
     accounts.reseed();
     accounts.open('admin');
     me = accounts.current();
