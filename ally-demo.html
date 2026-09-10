@@ -14490,6 +14490,7 @@ window.ALLY_PLAN_BY_ID = function (id) {
           '<input class="field" id="faq-q" placeholder="Question — ex. : Acceptez-vous la carte bancaire ?">' +
           '<label class="sr-only" for="faq-a">Réponse d\'Ally</label>' +
           '<textarea class="field" id="faq-a" rows="2" placeholder="Ce qu\'Ally répondra, mot pour mot"></textarea>' +
+          '<p class="field-error" id="faq-error" role="alert" hidden></p>' +
           '<div class="faq-form-actions">' +
             '<button type="submit" class="btn btn-primary btn-sm">Ajouter</button>' +
             '<button type="button" class="btn btn-ghost btn-sm" id="faq-cancel">Annuler</button>' +
@@ -15120,23 +15121,89 @@ window.ALLY_PLAN_BY_ID = function (id) {
         faqForm.hidden = true;
         faqOpen.hidden = false;
       });
+      /* Le formulaire refusait en silence : on tapait la question, on cliquait
+         « Ajouter », rien ne se passait et rien ne disait pourquoi. */
+      var faqErreur = panel.querySelector('#faq-error');
+      function direFaq(message, champ) {
+        if (faqErreur) { faqErreur.textContent = message; faqErreur.hidden = !message; }
+        if (champ) { champ.setAttribute('aria-invalid', 'true'); champ.focus(); }
+      }
+      ['faq-q', 'faq-a'].forEach(function (id) {
+        var champ = panel.querySelector('#' + id);
+        if (!champ) return;
+        champ.addEventListener('input', function () {
+          champ.removeAttribute('aria-invalid');
+          if (faqErreur) faqErreur.hidden = true;
+        });
+      });
+
       faqForm.addEventListener('submit', function (event) {
         event.preventDefault();
-        var q = document.getElementById('faq-q').value.trim();
-        var a = document.getElementById('faq-a').value.trim();
-        if (!q || !a) return;
+        var champQ = document.getElementById('faq-q');
+        var champA = document.getElementById('faq-a');
+        var q = champQ.value.trim();
+        var a = champA.value.trim();
+
+        if (!q) {
+          direFaq('La question, telle qu\'un client la pose au téléphone.', champQ);
+          return;
+        }
+        if (!a) {
+          direFaq('Ce qu\'Ally répondra, mot pour mot. C\'est cette phrase qu\'entendra votre '
+            + P().clientWord + '.', champA);
+          return;
+        }
+
+        /* Deux fiches à la même question, c'est deux réponses possibles à un
+           client, et le moteur en choisit une. Il vaut mieux modifier celle
+           qui existe que d'en poser une seconde à côté. */
+        var normalise = function (t) {
+          return t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+            .replace(/[^a-z0-9]+/g, ' ').trim();
+        };
+        var jumelle = D().faq.filter(function (f) { return normalise(f.q) === normalise(q); })[0];
+        if (jumelle) {
+          direFaq('Cette question a déjà une réponse : « ' + jumelle.a.slice(0, 60) +
+            (jumelle.a.length > 60 ? '…' : '') + ' ». Supprimez-la d\'abord si vous voulez la remplacer.',
+            champQ);
+          return;
+        }
+
         D().faq.push({ id: Date.now(), q: q, a: a });
         store.log('Ajout à la base de connaissances', q);
         store.save();
         renderPanel();
+        flash('Ally sait maintenant répondre à « ' + q + ' ».');
       });
     }
+    /* Supprimer une fiche change ce qu'Ally dit à un client, et se faisait
+       d'un clic sans confirmation ni retour en arrière. Annuler un
+       rendez-vous en demande une ; retirer une réponse au public mérite la
+       même retenue. Deux temps, et l'armement retombe seul. */
     panel.querySelectorAll('[data-faq-del]').forEach(function (button) {
+      var minuteur = null;
       button.addEventListener('click', function () {
         var id = Number(button.getAttribute('data-faq-del'));
+
+        if (button.getAttribute('data-armed') !== '1') {
+          button.setAttribute('data-armed', '1');
+          button.textContent = 'Confirmer — Ally ne saura plus répondre';
+          minuteur = window.setTimeout(function () {
+            button.removeAttribute('data-armed');
+            button.textContent = 'Supprimer';
+          }, 5000);
+          return;
+        }
+
+        if (minuteur) window.clearTimeout(minuteur);
+        var fiche = D().faq.filter(function (f) { return f.id === id; })[0];
         D().faq = D().faq.filter(function (f) { return f.id !== id; });
+        store.log('Retrait de la base de connaissances', fiche ? fiche.q : '');
         store.save();
         renderPanel();
+        flash(fiche
+          ? 'Ally ne répondra plus à « ' + fiche.q +' ».'
+          : 'Fiche retirée.');
       });
     });
 

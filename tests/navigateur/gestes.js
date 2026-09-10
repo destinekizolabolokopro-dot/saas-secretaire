@@ -165,6 +165,79 @@ const step = async (label, fn) => {
     }
   });
 
+  console.log('\n== La base de connaissances ==');
+  /* C'est elle qui parle aux clients du cabinet : une fiche fausse ou en
+     double s'entend au téléphone, pas à l'écran. */
+  await p.locator('.nav-item').nth(4).click();
+  await p.waitForTimeout(800);
+  await p.locator('#faq-open').scrollIntoViewIfNeeded();
+
+  const fiches = () => p.evaluate(() => window.ALLY_STORE.data().faq.length);
+  const messageFaq = () => p.evaluate(() => {
+    const e = document.getElementById('faq-error');
+    return e && !e.hidden ? e.textContent.trim() : '';
+  });
+
+  await step('un formulaire incomplet dit ce qui manque', async () => {
+    /* Il refusait en silence : on tapait la question, on cliquait
+       « Ajouter », rien ne se passait et rien ne disait pourquoi. */
+    const avant = await fiches();
+    await p.locator('#faq-open').click();
+    await p.waitForTimeout(300);
+    await p.locator('#faq-form button[type=submit]').click();
+    await p.waitForTimeout(400);
+    if (await fiches() !== avant) throw new Error('une fiche vide a été ajoutée');
+    if (!await messageFaq()) throw new Error('aucun message sur le champ manquant');
+
+    await p.fill('#faq-q', 'Acceptez-vous la carte bleue ?');
+    await p.locator('#faq-form button[type=submit]').click();
+    await p.waitForTimeout(400);
+    if (await fiches() !== avant) throw new Error('une fiche sans réponse a été ajoutée');
+    const dit = await messageFaq();
+    if (!/répondra|réponse/i.test(dit)) throw new Error('le message ne parle pas de la réponse : ' + dit);
+  });
+
+  await step('une fiche complète est ajoutée', async () => {
+    const avant = await fiches();
+    await p.fill('#faq-a', 'Oui, carte bleue et virement.');
+    await p.locator('#faq-form button[type=submit]').click();
+    await p.waitForTimeout(600);
+    if (await fiches() !== avant + 1) throw new Error('fiches ' + avant + ' → ' + await fiches());
+  });
+
+  await step('une question déjà connue est refusée', async () => {
+    /* Deux fiches à la même question, c'est deux réponses possibles à un
+       client, et le moteur en choisit une. La comparaison ignore la casse et
+       les accents : « acceptez vous la CARTE BLEUE » est la même question. */
+    const avant = await fiches();
+    await p.locator('#faq-open').click();
+    await p.waitForTimeout(300);
+    await p.fill('#faq-q', 'acceptez vous la CARTE BLEUE');
+    await p.fill('#faq-a', 'Une autre réponse.');
+    await p.locator('#faq-form button[type=submit]').click();
+    await p.waitForTimeout(500);
+    if (await fiches() !== avant) throw new Error('le doublon a été accepté');
+    const dit = await messageFaq();
+    if (!/déjà/i.test(dit)) throw new Error('le refus ne dit pas que la question existe : ' + dit);
+    await p.locator('#faq-cancel').click();
+    await p.waitForTimeout(300);
+  });
+
+  await step('supprimer une fiche demande confirmation', async () => {
+    /* Retirer une réponse change ce qu'Ally dit au public. Annuler un
+       rendez-vous en demande confirmation ; ceci le mérite autant. */
+    const avant = await fiches();
+    await p.locator('[data-faq-del]').first().click();
+    await p.waitForTimeout(400);
+    if (await fiches() !== avant) throw new Error('supprimée dès le premier clic');
+    const texte = await p.locator('[data-faq-del]').first().innerText();
+    if (!/confirmer/i.test(texte)) throw new Error('le bouton ne demande pas confirmation : ' + texte);
+
+    await p.locator('[data-faq-del]').first().click();
+    await p.waitForTimeout(600);
+    if (await fiches() !== avant - 1) throw new Error('fiches ' + avant + ' → ' + await fiches());
+  });
+
   console.log('\n== Changer de formule change la formule ==');
 
   await step('les choix proposés sont ceux du catalogue', async () => {
