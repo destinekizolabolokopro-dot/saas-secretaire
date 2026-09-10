@@ -57,12 +57,13 @@
         '<div class="ob-field">' +
           '<label class="ob-label" for="live-email">Email</label>' +
           '<input class="field" id="live-email" type="email" autocomplete="email"' +
-            ' placeholder="vous@cabinet.fr"></div>' +
+            ' aria-describedby="live-error" placeholder="vous@cabinet.fr"></div>' +
         '<div class="ob-field">' +
           '<label class="ob-label" for="live-pass">Mot de passe</label>' +
-          '<input class="field" id="live-pass" type="password" autocomplete="current-password"></div>' +
+          '<input class="field" id="live-pass" type="password" autocomplete="current-password"' +
+            ' aria-describedby="live-error"></div>' +
       '</div>' +
-      '<p class="auth-error" data-live-error hidden></p>' +
+      '<p class="auth-error" id="live-error" role="alert" data-live-error hidden></p>' +
       '<div class="voice-try" style="margin-top:16px">' +
         '<button type="button" class="btn btn-primary btn-md" data-live-login>Connecter la ligne</button>' +
       '</div>' +
@@ -151,17 +152,49 @@
 
     var loginBtn = host.querySelector('[data-live-login]');
     if (loginBtn) {
-      loginBtn.addEventListener('click', function () {
-        var email = host.querySelector('#live-email').value;
-        var pass = host.querySelector('#live-pass').value;
-        var box = host.querySelector('[data-live-error]');
+      var champEmail = host.querySelector('#live-email');
+      var champPass = host.querySelector('#live-pass');
+      var box = host.querySelector('[data-live-error]');
+
+      function dire(message) {
+        box.textContent = message;
+        box.hidden = !message;
+        [champEmail, champPass].forEach(function (champ) {
+          if (champ) champ.setAttribute('aria-invalid', message ? 'true' : 'false');
+        });
+      }
+
+      function connecter() {
+        var email = champEmail.value.trim();
+        var pass = champPass.value;
+
+        /* Envoyer un champ vide au serveur revenait à s'entendre répondre
+           « adresse ou mot de passe incorrect » pour un champ qu'on avait
+           simplement oublié de remplir. */
+        if (!email || !pass) {
+          dire(!email ? 'Indiquez l\'adresse du compte.' : 'Indiquez le mot de passe.');
+          (!email ? champEmail : champPass).focus();
+          return;
+        }
+
+        dire('');
+        /* Deux clics enchaînés envoyaient deux tentatives, dont la seconde
+           comptait dans la limite de connexions du serveur. */
+        loginBtn.disabled = true;
+        loginBtn.textContent = 'Connexion…';
+
+        function rendre() {
+          loginBtn.disabled = false;
+          loginBtn.textContent = 'Connecter la ligne';
+        }
 
         api.login(email, pass).then(function (res) {
           if (!res.ok) {
-            box.textContent = res.body.error === 'unverified'
+            dire(res.body.error === 'unverified'
               ? 'Ce compte n\'a pas encore vérifié son adresse.'
-              : (res.body.error || 'Connexion refusée.');
-            box.hidden = false;
+              : (res.body.error || 'Connexion refusée.'));
+            rendre();
+            champPass.focus();
             return;
           }
           api.remember(res.body);
@@ -171,9 +204,20 @@
              « serveur détecté » à « ligne connectée ». */
           if (window.ALLY_CHROME_REFRESH) window.ALLY_CHROME_REFRESH();
         }).catch(function () {
-          box.textContent = 'Serveur injoignable.';
-          box.hidden = false;
+          dire('Serveur injoignable.');
+          rendre();
         });
+      }
+
+      loginBtn.addEventListener('click', connecter);
+      /* Deux champs et un bouton, mais pas de formulaire : Entrée ne faisait
+         rien, ce qu'aucun écran de connexion ne se permet. */
+      [champEmail, champPass].forEach(function (champ) {
+        if (!champ) return;
+        champ.addEventListener('keydown', function (event) {
+          if (event.key === 'Enter') { event.preventDefault(); connecter(); }
+        });
+        champ.addEventListener('input', function () { dire(''); });
       });
     }
 

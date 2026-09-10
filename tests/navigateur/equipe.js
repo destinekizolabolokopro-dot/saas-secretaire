@@ -253,6 +253,64 @@ const post = (route, payload) =>
     if (seats !== 5) throw new Error('la formule a bougé malgré le refus');
   });
 
+  console.log('\n== Rattacher un navigateur à la ligne ==');
+
+  /* La carte « La ligne réelle » porte deux champs et un bouton, sans
+     formulaire autour : Entrée ne faisait rien, un champ vide partait quand
+     même au serveur — qui répondait « adresse ou mot de passe incorrect »
+     pour un champ simplement oublié — et deux clics enchaînés envoyaient deux
+     tentatives, dont la seconde comptait dans la limite du serveur. */
+  const vierge = await nav.newContext({ viewport: { width: 1440, height: 1100 } });
+  const q = await vierge.newPage();
+  q.on('pageerror', (e) => bad.push('ERREUR JS : ' + e.message.split('\n')[0]));
+
+  const messageLive = () => q.evaluate(() => {
+    const e = document.querySelector('[data-live-error]');
+    return e && !e.hidden ? e.textContent.trim() : '';
+  });
+
+  await q.goto(BASE + '/dashboard.html');
+  await q.waitForSelector('#tabpanel');
+  await q.click('[data-tab="telephony"]');
+  await q.waitForSelector('[data-live-login]', { timeout: 8000 });
+
+  await step('un champ vide est nommé, sans passer par le serveur', async () => {
+    await q.click('[data-live-login]');
+    await q.waitForTimeout(400);
+    const dit = await messageLive();
+    if (!/adresse/i.test(dit)) throw new Error('message : « ' + dit + ' »');
+
+    await q.fill('#live-email', 'pro@equipe.fr');
+    await q.click('[data-live-login]');
+    await q.waitForTimeout(400);
+    if (!/mot de passe/i.test(await messageLive())) {
+      throw new Error('message : « ' + await messageLive() + ' »');
+    }
+  });
+
+  await step('un mauvais mot de passe est refusé, et le dit', async () => {
+    await q.fill('#live-pass', 'PasLeBonMotDePasse42!');
+    await q.click('[data-live-login]');
+    await q.waitForFunction(() => {
+      const e = document.querySelector('[data-live-error]');
+      return e && !e.hidden && /incorrect|refus/i.test(e.textContent);
+    }, null, { timeout: 8000 });
+
+    if (await q.locator('[data-live-login]').isDisabled()) {
+      throw new Error('le bouton reste bloqué après un refus');
+    }
+  });
+
+  await step('Entrée connecte, comme le bouton', async () => {
+    await q.fill('#live-pass', 'MotDePasse42!');
+    await q.press('#live-pass', 'Enter');
+    await q.waitForFunction(
+      () => /connectée/.test(document.querySelector('[data-live]').textContent),
+      null, { timeout: 10000 });
+  });
+
+  await vierge.close();
+
   console.log('\n================ RÉSULTAT ================');
   console.log(checks + ' contrôles');
   console.log(bad.length ? bad.length + ' problème(s) :\n - ' + bad.join('\n - ') : 'Aucun problème.');

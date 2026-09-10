@@ -100,7 +100,14 @@
       '</div>';
     }).join('') + '</div>' +
     '<p class="note note-sep" style="margin-top:16px">Le corps de chaque message ' +
-      'est chiffré en base : il n\'est lisible que par votre cabinet.</p>';
+      'est chiffré en base : il n\'est lisible que par votre cabinet. ' +
+      /* « Parti » veut dire « sorti de la file », pas « reçu » : aucun service
+         d\'envoi n\'est encore branché derrière. La file, l\'attente et
+         l\'annulation à distance sont réelles ; la dernière marche ne l\'est pas
+         encore, et laisser croire l\'inverse ferait compter sur un email qui
+         n\'arrivera pas. */
+      '<strong>Parti</strong> signifie sorti de la file : la remise à ' +
+      'destination attend le branchement du service d\'envoi.</p>';
   }
 
   /* -------------------------------------------------------------- Liaison */
