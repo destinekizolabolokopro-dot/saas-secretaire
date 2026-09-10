@@ -11537,20 +11537,30 @@ window.ALLY_PLAN_BY_ID = function (id) {
       { kind: 'Aller à', label: 'Agenda',         run: function () { hooks.goTab('agenda'); } },
       { kind: 'Aller à', label: 'Téléphonie',     run: function () { hooks.goTab('telephony'); } },
       { kind: 'Aller à', label: 'Ally',           run: function () { hooks.goTab('ally'); } },
-      { kind: 'Aller à', label: 'Abonnement',     run: function () { hooks.goAccount('plan'); } },
-      { kind: 'Aller à', label: 'Connexions',     run: function () { hooks.goAccount('links'); } },
-      { kind: 'Aller à', label: 'Sécurité',       run: function () { hooks.goAccount('privacy'); } },
-
-      { kind: 'Action', label: 'Valider les brouillons en attente',
-        run: function () { hooks.goTab('conversations', 'validate'); } },
-      { kind: 'Action', label: 'Exporter mes données',  run: function () { hooks.exportData(); } },
-      { kind: 'Action', label: 'Lancer un appel de test',
-        run: function () { hooks.goTab('telephony'); } }
     ];
 
+    /* Les sections de Mon compte viennent de l'espace pro, pas d'une seconde
+       liste écrite ici : les deux avaient divergé, et la palette ignorait
+       Préférences, Notifications et Support — dont la première est justement
+       celle où vivent la déconnexion et les réglages du quotidien. */
+    (hooks.sections || []).forEach(function (section) {
+      list.push({
+        kind: 'Aller à', label: section.label,
+        run: function () { hooks.goAccount(section.id); }
+      });
+    });
+
     if (store.can('voiceCommand')) {
-      list.splice(8, 0, { kind: 'Action', label: 'Parler à Ally', run: function () { hooks.openVoice(); } });
+      list.push({ kind: 'Action', label: 'Parler à Ally', run: function () { hooks.openVoice(); } });
     }
+
+    list.push(
+      { kind: 'Action', label: 'Valider les brouillons en attente',
+        run: function () { hooks.goTab('conversations', 'validate'); } },
+      { kind: 'Action', label: 'Exporter mes données', run: function () { hooks.exportData(); } },
+      { kind: 'Action', label: 'Lancer un appel de test',
+        run: function () { hooks.goTab('telephony'); } }
+    );
 
     /* Les rendez-vous à venir deviennent des destinations. */
     var A = window.ALLY_AGENDA;
@@ -15945,6 +15955,8 @@ window.ALLY_PLAN_BY_ID = function (id) {
   window.ALLY_PALETTE.init({
     goTab: function (tab, filter) { if (filter) ui.filter = filter; setTab(tab); },
     goAccount: function (section) { ui.account = section; setTab('account'); },
+    /* Une seule liste de sections pour l'écran et pour la palette. */
+    sections: ACCOUNT_SECTIONS,
     openVoice: openVoice,
     exportData: function () { exportJSON('compte', { identite: S.identity, donnees: D() }); },
     ask: function (question) { openVoice(); window.setTimeout(function () { handle(question); }, 120); }

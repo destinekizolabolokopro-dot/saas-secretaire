@@ -90,6 +90,42 @@ const dans = (p, sel) => p.evaluate((s) => {
     }
   });
 
+  await step('elle mène partout où l\'espace pro va', async () => {
+    /* Sa liste de destinations était écrite à la main et avait divergé : trois
+       sections de Mon compte y manquaient, dont Préférences — celle où vivent
+       la déconnexion et les réglages du quotidien. Elle dérive maintenant des
+       mêmes sources que l'écran ; ce contrôle vérifie qu'elle n'en décroche
+       pas de nouveau.
+
+       Il faut d'abord passer par Mon compte : ses sections ne sont dans le
+       DOM que sur cet onglet. Sans cela, le contrôle ne compare que les cinq
+       onglets et passe même quand les sections manquent — ce qui était le cas
+       de ma première version. */
+    await p.keyboard.press('Escape');
+    await p.waitForTimeout(300);
+    await p.locator('.profile-card').click();
+    await p.waitForTimeout(700);
+    await p.keyboard.press('Control+k');
+    await p.waitForTimeout(500);
+
+    const manquants = await p.evaluate(() => {
+      const proposes = Array.from(document.querySelectorAll('.palette-item'))
+        .filter((i) => /aller à/i.test((i.querySelector('.palette-kind') || {}).textContent || ''))
+        .map((i) => (i.querySelector('.palette-label') || {}).textContent.trim());
+
+      const attendus = Array.from(document.querySelectorAll('.nav-item .nav-label'))
+        .map((n) => n.textContent.trim())
+        .concat(Array.from(document.querySelectorAll('[data-account]'))
+          .map((b) => b.textContent.trim()));
+
+      return { attendus, absents: attendus.filter((a) => proposes.indexOf(a) === -1) };
+    });
+    if (!manquants.attendus.length) throw new Error('rien à comparer : le contrôle ne vérifie rien');
+    if (manquants.absents.length) {
+      throw new Error('destinations absentes de la palette : ' + manquants.absents.join(', '));
+    }
+  });
+
   await step('Échap la ferme sans perdre le focus', async () => {
     await p.keyboard.press('Escape');
     await p.waitForTimeout(400);

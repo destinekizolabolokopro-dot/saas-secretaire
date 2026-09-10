@@ -2717,6 +2717,8 @@
   window.ALLY_PALETTE.init({
     goTab: function (tab, filter) { if (filter) ui.filter = filter; setTab(tab); },
     goAccount: function (section) { ui.account = section; setTab('account'); },
+    /* Une seule liste de sections pour l'écran et pour la palette. */
+    sections: ACCOUNT_SECTIONS,
     openVoice: openVoice,
     exportData: function () { exportJSON('compte', { identite: S.identity, donnees: D() }); },
     ask: function (question) { openVoice(); window.setTimeout(function () { handle(question); }, 120); }
