@@ -15945,36 +15945,82 @@ window.ALLY_PLAN_BY_ID = function (id) {
         bubble('out', text);
         input.value = '';
 
+        /* Une rangée de propositions sous la dernière réponse : une seule à
+           la fois, la précédente s'efface. */
+        function propositions(libelles, faire) {
+          var vieille = log.querySelector('.chat-follow');
+          if (vieille) vieille.remove();
+          if (!libelles || !libelles.length) return;
+
+          var row = document.createElement('div');
+          row.className = 'chat-follow';
+          libelles.forEach(function (libelle) {
+            var chip = document.createElement('button');
+            chip.type = 'button';
+            chip.className = 'voice-chip-sm';
+            chip.textContent = libelle;
+            chip.addEventListener('click', function () { faire(libelle, row); });
+            row.appendChild(chip);
+          });
+          log.appendChild(row);
+          log.scrollTop = log.scrollHeight;
+        }
+
+        /* Le chat annonçait l'action et ne la faisait pas.
+
+           « Annule le rendez-vous de Mme Martin » répondait « C'est annulé,
+           j'ai prévenu Mme Martin, le créneau est libéré » — et le rendez-vous
+           restait à l'agenda. Aucun appel à apply() n'existait de ce côté :
+           seule la fenêtre vocale exécutait. La carte promet pourtant « même
+           moteur que la commande vocale : elle répond pareil » ; c'était vrai
+           des mots, faux des actes. */
+        function executer(res, ordre) {
+          if (res.apply) res.apply();
+          store.log(ordre, res.kind === 'action' ? 'Traité par Ally' : 'Répondu');
+          /* Pas de renderPanel() : il reconstruirait la carte et effacerait la
+             conversation en cours. Le compte des onglets et l'en-tête, eux,
+             doivent suivre. */
+          renderNav();
+          renderChrome();
+        }
+
         var result = window.ALLY_CONVERSE.respond(text);
-        var answer = (result.kind === 'action' && result.confirm &&
-          (S.confirmLevel === 'always' || (S.confirmLevel === 'sensitive' && result.sensitive)))
-          ? result.confirm : result.reply;
+        var doitConfirmer = result.kind === 'action' && !!result.confirm &&
+          (S.confirmLevel === 'always' || (S.confirmLevel === 'sensitive' && result.sensitive));
+        var answer = doitConfirmer ? result.confirm : result.reply;
+
+        if (result.kind === 'action' && !doitConfirmer) executer(result, text);
 
         window.setTimeout(function () {
           bubble('in', answer, result.detail);
           if (S.chatSpeaks) window.ALLY_VOICE.speak(answer, store.voiceOptions());
 
-          // Les suites proposées : on clique, la conversation continue.
-          var old = log.querySelector('.chat-follow');
-          if (old) old.remove();
-          if (result.follow && result.follow.length) {
-            var row = document.createElement('div');
-            row.className = 'chat-follow';
-            result.follow.forEach(function (text) {
-              var chip = document.createElement('button');
-              chip.type = 'button';
-              chip.className = 'voice-chip-sm';
-              chip.textContent = text;
-              chip.addEventListener('click', function () {
-                input.value = text;
-                chatForm.dispatchEvent(new Event('submit', { cancelable: true }));
-              });
-              row.appendChild(chip);
+          /* Une confirmation demandée doit pouvoir être donnée. La question
+             s'affichait sans aucun moyen de répondre oui : l'ordre restait en
+             suspens pour toujours. */
+          if (doitConfirmer) {
+            propositions(['Oui, faites-le', 'Non, laissez'], function (libelle, row) {
+              row.remove();
+              if (/^Oui/.test(libelle)) {
+                executer(result, text);
+                bubble('in', result.reply, result.detail);
+                propositions(result.follow, relancer);
+              } else {
+                store.log(text, 'Abandonné avant exécution');
+                bubble('in', 'C\'est noté, je ne fais rien.');
+              }
             });
-            log.appendChild(row);
-            log.scrollTop = log.scrollHeight;
+            return;
           }
+
+          propositions(result.follow, relancer);
         }, 350);
+
+        function relancer(libelle, row) {
+          if (row) row.remove();
+          input.value = libelle;
+          chatForm.dispatchEvent(new Event('submit', { cancelable: true }));
+        }
       });
     }
   }

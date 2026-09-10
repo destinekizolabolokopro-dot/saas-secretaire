@@ -308,6 +308,96 @@ const step = async (label, fn) => {
     if (r.fab) throw new Error('le bouton « Parler à Ally » reste visible sans la capacité');
   });
 
+  console.log('\n== Écrire à Ally, et que ce soit fait ==');
+
+  /* La carte annonce « même moteur que la commande vocale : elle répond
+     pareil ». C'était vrai des mots et faux des actes : le chat écrit ne
+     rappelait jamais apply(). « Bloque mon agenda » répondait « c'est
+     bloqué » et l'agenda restait libre. Un produit qui annonce une action
+     qu'il ne fait pas est pire qu'un produit qui refuse. */
+  const ouvrirSupport = async () => {
+    await p.locator('#profile-card').click();
+    await p.waitForTimeout(500);
+    await p.locator('[data-account="help"]').click();
+    await p.waitForSelector('#chat-form');
+  };
+  const ecrire = async (phrase) => {
+    await p.fill('#chat-input', phrase);
+    await p.locator('#chat-form button[type=submit]').click();
+    await p.waitForTimeout(900);
+  };
+
+  await ouvrirSupport();
+
+  await step('un ordre écrit change vraiment les données', async () => {
+    const avant = ((await donnees()).blocked || []).length;
+    await ecrire('bloque mon agenda demain après-midi');
+    const apres = ((await donnees()).blocked || []).length;
+    if (apres !== avant + 1) {
+      throw new Error('Ally a répondu « c\'est bloqué » et rien n\'a bougé : ' + avant + ' → ' + apres);
+    }
+  });
+
+  await step('et il en reste une trace', async () => {
+    const journal = (await donnees()).voiceLog || [];
+    if (!journal.some((e) => /bloque mon agenda/i.test(e.order))) {
+      throw new Error('l\'ordre écrit n\'apparaît nulle part dans l\'historique');
+    }
+  });
+
+  /* En confirmation systématique, la question s'affichait sans aucun moyen
+     de répondre oui : l'ordre restait en suspens pour toujours. */
+  await step('en confirmation systématique, rien ne part sans un oui', async () => {
+    await p.evaluate(() => {
+      window.ALLY_STORE.state.confirmLevel = 'always';
+      window.ALLY_STORE.state.rules.transfer = false;
+      window.ALLY_STORE.save();
+    });
+    await p.reload();
+    await p.waitForTimeout(1400);
+    await ouvrirSupport();
+
+    await ecrire('transfère les urgences sur mon portable');
+
+    const pose = await p.evaluate(() => window.ALLY_STORE.state.rules.transfer);
+    if (pose) throw new Error('exécuté sans attendre la confirmation demandée');
+
+    const boutons = await p.locator('.chat-follow .voice-chip-sm').allTextContents();
+    if (!boutons.some((b) => /oui/i.test(b))) {
+      throw new Error('la question est posée sans moyen d\'y répondre : ' + JSON.stringify(boutons));
+    }
+  });
+
+  await step('et le oui exécute pour de bon', async () => {
+    await p.locator('.chat-follow .voice-chip-sm', { hasText: 'Oui' }).first().click();
+    await p.waitForTimeout(700);
+    if (!await p.evaluate(() => window.ALLY_STORE.state.rules.transfer)) {
+      throw new Error('« Oui » n\'a rien exécuté');
+    }
+  });
+
+  await step('« Non » n\'exécute rien, et le dit', async () => {
+    await p.evaluate(() => {
+      window.ALLY_STORE.state.rules.transfer = false;
+      window.ALLY_STORE.save();
+    });
+    await ecrire('transfère les urgences sur mon portable');
+    await p.locator('.chat-follow .voice-chip-sm', { hasText: 'Non' }).first().click();
+    await p.waitForTimeout(600);
+    if (await p.evaluate(() => window.ALLY_STORE.state.rules.transfer)) {
+      throw new Error('« Non » a exécuté quand même');
+    }
+    if (!/ne fais rien/i.test(await p.locator('#chat-log').innerText())) {
+      throw new Error('l\'abandon ne se dit pas');
+    }
+  });
+
+  /* On repose le réglage : la suite de la suite ne parle pas de confirmation. */
+  await p.evaluate(() => {
+    window.ALLY_STORE.state.confirmLevel = 'none';
+    window.ALLY_STORE.save();
+  });
+
   console.log('\n== Ce qui est écrit reste écrit ==');
 
   await step('un rechargement retrouve tout', async () => {
