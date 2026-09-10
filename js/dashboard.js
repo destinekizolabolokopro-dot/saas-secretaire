@@ -310,7 +310,7 @@
     el.profileOrg.textContent = S.identity.org || p.orgLabel;
     el.avatar.textContent = ((S.identity.firstName || '?')[0] + (S.identity.lastName || '?')[0]).toUpperCase();
     el.badgePlan.textContent = store.plan();
-    el.notifBadge.hidden = !urgentCall();
+    marqueNotifications();
     el.fab.hidden = !S.voiceEnabled || !store.can('voiceCommand');
     document.title = 'Espace pro — ' + name() + ' — Ally';
 
@@ -535,6 +535,8 @@
 
   /* ---------- Notifications ---------- */
   var notifPanel = document.getElementById('notif-panel');
+  var notifBtn = document.getElementById('notif-btn');
+  var notifWrap = notifBtn.parentNode;
 
   function renderNotifications() {
     var items = todoItems();
@@ -543,27 +545,54 @@
         ? items.map(function (item, index) {
             return '<button type="button" class="notif-item" data-notif="' + index + '">' +
               '<span class="todo-dot ' + item.kind + '" aria-hidden="true"></span>' +
-              '<span>' + esc(item.text) + '</span></button>';
+              '<span class="notif-text">' + esc(item.text) +
+              '<span class="notif-go">' + esc(item.action) + ' \u2192</span></span></button>';
           }).join('')
         : '<p class="notif-empty">Rien à signaler. Ally a tout traité.</p>');
 
     notifPanel.querySelectorAll('[data-notif]').forEach(function (button) {
       button.addEventListener('click', function () {
         var item = items[Number(button.getAttribute('data-notif'))];
-        notifPanel.hidden = true;
+        fermeNotifications(false);
         ui.filter = item.filter;
         setTab(item.tab);
       });
     });
   }
 
-  document.getElementById('notif-btn').addEventListener('click', function (event) {
+  /* Le panneau se fermait au clic dehors, mais rien ne le fermait au clavier :
+     Échap ne faisait rien, et le focus pouvait sortir en le laissant ouvert
+     derrière soi. Il annonce aussi son état : sans aria-expanded, la cloche
+     est un bouton qui ne dit jamais ce qu'il a ouvert. */
+  function ouvreNotifications() {
+    renderNotifications();
+    notifPanel.hidden = false;
+    notifBtn.setAttribute('aria-expanded', 'true');
+  }
+  function fermeNotifications(rendreLeFocus) {
+    if (notifPanel.hidden) return;
+    notifPanel.hidden = true;
+    notifBtn.setAttribute('aria-expanded', 'false');
+    if (rendreLeFocus) notifBtn.focus();
+  }
+
+  notifBtn.addEventListener('click', function (event) {
     event.stopPropagation();
-    if (notifPanel.hidden) { renderNotifications(); notifPanel.hidden = false; }
-    else notifPanel.hidden = true;
+    if (notifPanel.hidden) ouvreNotifications();
+    else fermeNotifications(false);
   });
   document.addEventListener('click', function (event) {
-    if (!notifPanel.hidden && !notifPanel.contains(event.target)) notifPanel.hidden = true;
+    if (!notifPanel.hidden && !notifPanel.contains(event.target)) fermeNotifications(false);
+  });
+  document.addEventListener('keydown', function (event) {
+    if (event.key === 'Escape' && !notifPanel.hidden) {
+      event.stopPropagation();
+      fermeNotifications(true);
+    }
+  });
+  /* focusout part avant que le focus n'arrive : on regarde où il atterrit. */
+  notifWrap.addEventListener('focusout', function (event) {
+    if (!event.relatedTarget || !notifWrap.contains(event.relatedTarget)) fermeNotifications(false);
   });
 
   /* ---------- Fragments ---------- */
@@ -710,6 +739,23 @@
       });
     }
     return items;
+  }
+
+  /* La pastille de la cloche ne regardait que les appels urgents, alors que le
+     panneau, lui, liste tout ce qui attend. Quatre brouillons à valider et un
+     rappel à programmer ne donnaient donc aucun signal : l'en-tête affirmait
+     qu'il n'y avait rien. Elle compte maintenant la même chose que le panneau,
+     et le dit à voix haute pour les lecteurs d'écran. */
+  function marqueNotifications() {
+    var n = todoItems().length;
+    el.notifBadge.hidden = !n;
+    el.notifBadge.textContent = n > 9 ? '9+' : String(n);
+    var bouton = document.getElementById('notif-btn');
+    if (bouton) {
+      bouton.setAttribute('aria-label', n
+        ? 'Notifications — ' + n + ' en attente'
+        : 'Notifications — rien à signaler');
+    }
   }
 
   /* ---- Premiers pas ----

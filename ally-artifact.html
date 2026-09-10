@@ -1724,9 +1724,16 @@ input[type="checkbox"] {
 .icon-btn:active { transform: scale(0.92); }
 .icon-btn .glyph-sq { width: 16px; height: 16px; border-radius: 4px; border: 2px solid var(--txt-3); }
 .icon-btn .glyph-mag { width: 13px; height: 13px; border-radius: 50%; border: 2px solid var(--txt-3); }
+/* La pastille porte un nombre : « il se passe quelque chose » ne dit pas
+   combien, et un point seul oblige à ouvrir pour le savoir. */
 .icon-btn .badge {
-  position: absolute; top: -4px; right: -4px; width: 9px; height: 9px;
-  border-radius: 50%; background: var(--accent-bright);
+  position: absolute; top: -5px; right: -5px;
+  min-width: 17px; height: 17px; padding: 0 4px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 9px; background: var(--accent-bright);
+  color: oklch(0.14 0.02 264); font-size: 10px; font-weight: 700;
+  font-variant-numeric: tabular-nums; line-height: 1;
+  box-shadow: 0 0 0 2px var(--bg);
   animation: pulse-dot 2s ease-in-out infinite;
 }
 .search-toggle { display: none; }
@@ -2298,6 +2305,10 @@ input[type="checkbox"] {
   text-align: left; color: var(--txt-2); cursor: pointer;
 }
 .notif-item:hover { background: oklch(1 0 0 / 0.06); color: var(--txt); }
+.notif-text { display: flex; flex-direction: column; gap: 3px; }
+/* Chaque ligne dit où elle mène : sans cela, un bouton qui n'est qu'une
+   phrase ne laisse pas deviner ce que le clic va faire. */
+.notif-go { color: var(--accent-bright); font-size: 12px; font-weight: 600; }
 .notif-item .todo-dot { margin-top: 5px; }
 .notif-empty { padding: 10px 4px; font-size: 13px; color: var(--txt-4); }
 
@@ -4140,7 +4151,7 @@ input[type="checkbox"] {
           <div class="search-results" id="search-results" role="listbox" hidden></div>
         </div>
         <div class="notif-wrap">
-          <button class="icon-btn" id="notif-btn" type="button" aria-label="Notifications" aria-haspopup="true">
+          <button class="icon-btn" id="notif-btn" type="button" aria-label="Notifications" aria-haspopup="true" aria-expanded="false" aria-controls="notif-panel">
             <span class="glyph-sq" aria-hidden="true"></span>
             <span class="badge" id="notif-badge" aria-hidden="true"></span>
           </button>
@@ -13543,7 +13554,7 @@ window.ALLY_PLAN_BY_ID = function (id) {
     el.profileOrg.textContent = S.identity.org || p.orgLabel;
     el.avatar.textContent = ((S.identity.firstName || '?')[0] + (S.identity.lastName || '?')[0]).toUpperCase();
     el.badgePlan.textContent = store.plan();
-    el.notifBadge.hidden = !urgentCall();
+    marqueNotifications();
     el.fab.hidden = !S.voiceEnabled || !store.can('voiceCommand');
     document.title = 'Espace pro — ' + name() + ' — Ally';
 
@@ -13768,6 +13779,8 @@ window.ALLY_PLAN_BY_ID = function (id) {
 
   /* ---------- Notifications ---------- */
   var notifPanel = document.getElementById('notif-panel');
+  var notifBtn = document.getElementById('notif-btn');
+  var notifWrap = notifBtn.parentNode;
 
   function renderNotifications() {
     var items = todoItems();
@@ -13776,27 +13789,54 @@ window.ALLY_PLAN_BY_ID = function (id) {
         ? items.map(function (item, index) {
             return '<button type="button" class="notif-item" data-notif="' + index + '">' +
               '<span class="todo-dot ' + item.kind + '" aria-hidden="true"></span>' +
-              '<span>' + esc(item.text) + '</span></button>';
+              '<span class="notif-text">' + esc(item.text) +
+              '<span class="notif-go">' + esc(item.action) + ' \u2192</span></span></button>';
           }).join('')
         : '<p class="notif-empty">Rien à signaler. Ally a tout traité.</p>');
 
     notifPanel.querySelectorAll('[data-notif]').forEach(function (button) {
       button.addEventListener('click', function () {
         var item = items[Number(button.getAttribute('data-notif'))];
-        notifPanel.hidden = true;
+        fermeNotifications(false);
         ui.filter = item.filter;
         setTab(item.tab);
       });
     });
   }
 
-  document.getElementById('notif-btn').addEventListener('click', function (event) {
+  /* Le panneau se fermait au clic dehors, mais rien ne le fermait au clavier :
+     Échap ne faisait rien, et le focus pouvait sortir en le laissant ouvert
+     derrière soi. Il annonce aussi son état : sans aria-expanded, la cloche
+     est un bouton qui ne dit jamais ce qu'il a ouvert. */
+  function ouvreNotifications() {
+    renderNotifications();
+    notifPanel.hidden = false;
+    notifBtn.setAttribute('aria-expanded', 'true');
+  }
+  function fermeNotifications(rendreLeFocus) {
+    if (notifPanel.hidden) return;
+    notifPanel.hidden = true;
+    notifBtn.setAttribute('aria-expanded', 'false');
+    if (rendreLeFocus) notifBtn.focus();
+  }
+
+  notifBtn.addEventListener('click', function (event) {
     event.stopPropagation();
-    if (notifPanel.hidden) { renderNotifications(); notifPanel.hidden = false; }
-    else notifPanel.hidden = true;
+    if (notifPanel.hidden) ouvreNotifications();
+    else fermeNotifications(false);
   });
   document.addEventListener('click', function (event) {
-    if (!notifPanel.hidden && !notifPanel.contains(event.target)) notifPanel.hidden = true;
+    if (!notifPanel.hidden && !notifPanel.contains(event.target)) fermeNotifications(false);
+  });
+  document.addEventListener('keydown', function (event) {
+    if (event.key === 'Escape' && !notifPanel.hidden) {
+      event.stopPropagation();
+      fermeNotifications(true);
+    }
+  });
+  /* focusout part avant que le focus n'arrive : on regarde où il atterrit. */
+  notifWrap.addEventListener('focusout', function (event) {
+    if (!event.relatedTarget || !notifWrap.contains(event.relatedTarget)) fermeNotifications(false);
   });
 
   /* ---------- Fragments ---------- */
@@ -13943,6 +13983,23 @@ window.ALLY_PLAN_BY_ID = function (id) {
       });
     }
     return items;
+  }
+
+  /* La pastille de la cloche ne regardait que les appels urgents, alors que le
+     panneau, lui, liste tout ce qui attend. Quatre brouillons à valider et un
+     rappel à programmer ne donnaient donc aucun signal : l'en-tête affirmait
+     qu'il n'y avait rien. Elle compte maintenant la même chose que le panneau,
+     et le dit à voix haute pour les lecteurs d'écran. */
+  function marqueNotifications() {
+    var n = todoItems().length;
+    el.notifBadge.hidden = !n;
+    el.notifBadge.textContent = n > 9 ? '9+' : String(n);
+    var bouton = document.getElementById('notif-btn');
+    if (bouton) {
+      bouton.setAttribute('aria-label', n
+        ? 'Notifications — ' + n + ' en attente'
+        : 'Notifications — rien à signaler');
+    }
   }
 
   /* ---- Premiers pas ----

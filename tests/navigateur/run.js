@@ -22,6 +22,7 @@ const SUITES = [
   ['rgpd.js', 'le droit d\'accès et le droit à l\'effacement'],
   ['stockage.js', 'ce qui arrive quand le navigateur refuse d\'enregistrer'],
   ['ligne.js', 'la ligne téléphonique'],
+  ['notifs.js', 'ce que la cloche annonce'],
   ['coupure.js', 'ce qui arrive quand le serveur tombe']
 ];
 
