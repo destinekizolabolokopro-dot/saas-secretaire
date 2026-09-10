@@ -185,6 +185,67 @@ const step = async (label, fn) => {
     if (!/prénom/i.test(r.message)) throw new Error('le message ne parle pas du prénom : ' + r.message);
   });
 
+  console.log('\n== Mot de passe oublié ==');
+
+  const ctxOubli = await navigateur.newContext({ viewport: { width: 1200, height: 900 } });
+  const p = await ctxOubli.newPage();
+  p.on('pageerror', (e) => bad.push('ERREUR JS : ' + e.message.split('\n')[0]));
+
+  /* Le dernier refus muet de la page. Le formulaire porte novalidate : sans
+     message, on cliquait « Envoyer », le curseur sautait dans le champ, et
+     rien ne disait pourquoi. */
+  const messageOubli = () => p.evaluate(() => {
+    const e = document.getElementById('forgot-error');
+    return e && !e.hidden ? e.textContent.trim() : '';
+  });
+  const ecranOubli = () => p.evaluate(() =>
+    !document.querySelector('[data-panel="reset"]').hidden);
+
+  await step('un champ vide est nommé au lieu de bouger le curseur', async () => {
+    await p.goto(BASE + '/login.html');
+    await p.waitForTimeout(600);
+    await p.click('#go-forgot');
+    await p.waitForTimeout(400);
+
+    await p.fill('#forgot-email', '');
+    await p.click('#forgot-form button[type=submit]');
+    await p.waitForTimeout(500);
+
+    if (await ecranOubli()) throw new Error('la demande est partie avec un champ vide');
+    const dit = await messageOubli();
+    if (!/adresse/i.test(dit)) throw new Error('message : « ' + dit + ' »');
+    if (await p.locator('#forgot-email').getAttribute('aria-invalid') !== 'true') {
+      throw new Error('le champ n\'est pas marqué en faute');
+    }
+  });
+
+  await step('une adresse malformée est nommée elle aussi', async () => {
+    await p.fill('#forgot-email', 'pas-une-adresse');
+    await p.click('#forgot-form button[type=submit]');
+    await p.waitForTimeout(500);
+    if (await ecranOubli()) throw new Error('la demande est partie sur une adresse invalide');
+    if (!/pas-une-adresse/.test(await messageOubli())) {
+      throw new Error('message : « ' + await messageOubli() + ' »');
+    }
+  });
+
+  await step('la marque s\'efface dès qu\'on corrige', async () => {
+    await p.fill('#forgot-email', 'quelquun@cabinet.fr');
+    await p.waitForTimeout(300);
+    if (await messageOubli()) throw new Error('le message reste après correction');
+    if (await p.locator('#forgot-email').getAttribute('aria-invalid') === 'true') {
+      throw new Error('le champ reste marqué en faute');
+    }
+  });
+
+  await step('et une adresse correcte passe, existante ou non', async () => {
+    await p.click('#forgot-form button[type=submit]');
+    await p.waitForTimeout(900);
+    if (!await ecranOubli()) throw new Error('une adresse valable a été refusée');
+  });
+
+  await ctxOubli.close();
+
   console.log('\n================ RÉSULTAT ================');
   console.log(checks + ' contrôles');
   console.log(bad.length ? bad.length + ' problème(s) :\n - ' + bad.join('\n - ') : 'Aucun problème.');

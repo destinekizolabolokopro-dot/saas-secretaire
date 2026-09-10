@@ -12049,6 +12049,11 @@ window.ALLY_PLAN_BY_ID = function (id) {
     if (champ) champ.addEventListener('input', function () { efface(champ, 'login-error'); });
   });
 
+  var champOubli = document.getElementById('forgot-email');
+  if (champOubli) {
+    champOubli.addEventListener('input', function () { efface(champOubli, 'forgot-error'); });
+  }
+
   /* Un bouton qui attend le réseau doit le dire, et ne pas être cliquable deux
      fois : sans ça, deux connexions partent pour un seul clic nerveux. */
   function busy(button, on, label) {
@@ -12205,7 +12210,16 @@ window.ALLY_PLAN_BY_ID = function (id) {
   document.getElementById('forgot-form').addEventListener('submit', function (event) {
     event.preventDefault();
     var email = document.getElementById('forgot-email');
-    if (!email.checkValidity() || !email.value) { email.focus(); return; }
+    /* Le seul refus muet qui restait sur cette page. Le formulaire porte
+       novalidate : sans message, on cliquait « Envoyer », le curseur sautait
+       dans le champ, et rien ne disait pourquoi. */
+    if (!email.value.trim()) {
+      return manque(email, 'forgot-error', 'Indiquez l\'adresse de votre compte.');
+    }
+    if (!email.checkValidity()) {
+      return manque(email, 'forgot-error',
+        '« ' + email.value.trim() + ' » n\'est pas une adresse email.');
+    }
 
     var button = event.target.querySelector('button[type="submit"]');
     busy(button, true, 'Envoi…');
