@@ -145,13 +145,22 @@
 }
 .icon-btn:hover { background: oklch(1 0 0 / 0.10); }
 .icon-btn:active { transform: scale(0.92); }
-.icon-btn .glyph-sq { width: 16px; height: 16px; border-radius: 4px; border: 2px solid var(--txt-3); }
-.icon-btn .glyph-mag { width: 13px; height: 13px; border-radius: 50%; border: 2px solid var(--txt-3); }
+/* Les commandes de la barre portaient des formes abstraites — un carré pour
+   les notifications, un cercle pour la recherche. Dessinées à la bordure, elles
+   ressemblaient à des images qui n'avaient pas chargé. Un trait unique, hérité
+   de la couleur du bouton, dit ce que chacune fait. */
+.icon-btn { color: var(--txt-3); }
+.icon-btn:hover { color: var(--txt-2); }
+.ico {
+  width: 18px; height: 18px; flex-shrink: 0;
+  fill: none; stroke: currentColor; stroke-width: 1.7;
+  stroke-linecap: round; stroke-linejoin: round;
+}
 /* La pastille porte un nombre : « il se passe quelque chose » ne dit pas
    combien, et un point seul oblige à ouvrir pour le savoir. */
 .icon-btn .badge {
-  position: absolute; top: -5px; right: -5px;
-  min-width: 17px; height: 17px; padding: 0 4px;
+  position: absolute; top: -3px; right: -3px;
+  min-width: 16px; height: 16px; padding: 0 4px;
   display: flex; align-items: center; justify-content: center;
   border-radius: 9px; background: var(--accent-bright);
   color: oklch(0.14 0.02 264); font-size: 10px; font-weight: 700;
@@ -215,6 +224,24 @@
 .cols > *, .stack > * { min-width: 0; }
 .section-label { font-size: 15px; font-weight: 600; margin-bottom: 14px; }
 .limit-640 { max-width: 640px; }
+/* Les écrans de réglages tenaient dans une colonne de 800 px au milieu d'une
+   zone de 1 176 : près de 400 px de noir vide à droite, qui se lisaient comme
+   un rendu manqué plutôt que comme une marge. Les cartes de réglages étant
+   courtes et indépendantes, elles se rangent sur deux colonnes dès qu'il y a
+   la place, et la page redevient un bloc au lieu d'un ruban décentré. */
+@media (min-width: 1180px) {
+  /* Deux colonnes en flux, et non une grille : une grille aligne les rangées
+     sur la carte la plus haute et creuse un trou sous les courtes. Ici chaque
+     carte se pose sous la précédente dans sa colonne. */
+  .stack.duo {
+    max-width: none; display: block;
+    columns: 2; column-gap: 20px;
+  }
+  .stack.duo > * {
+    break-inside: avoid; -webkit-column-break-inside: avoid;
+    margin-bottom: 20px;
+  }
+}
 .limit-760 { max-width: 760px; }
 .limit-800 { max-width: 800px; }
 .limit-900 { max-width: 900px; }
@@ -295,9 +322,12 @@
 .conv-head:hover { background: oklch(1 0 0 / 0.04); }
 .conv-head:active { background: oklch(1 0 0 / 0.06); }
 /* Pastille de canal : rond pour un appel, rectangle pour un email. */
-.conv-chan { width: 16px; height: 16px; flex-shrink: 0; }
-.chan-call { border-radius: 50%; border: 2px solid var(--accent-bright); }
-.chan-mail { height: 11px; border-radius: 2px; border: 2px solid var(--cyan); }
+/* Le canal se lit à son dessin, plus à sa géométrie : un combiné pour un
+   appel, une enveloppe pour un email. La couleur reste le second signal. */
+.conv-chan { display: flex; flex-shrink: 0; }
+.conv-chan .ico { width: 17px; height: 17px; stroke-width: 1.6; }
+.chan-call { color: var(--accent-bright); }
+.chan-mail { color: var(--cyan); }
 .conv-main { flex: 1; min-width: 0; }
 .conv-who {
   display: block; font-size: 14px; font-weight: 500;
@@ -309,7 +339,12 @@
 }
 .conv-right { display: flex; align-items: center; gap: 14px; flex-shrink: 0; }
 .conv-time { font-size: 12px; color: var(--txt-5); font-variant-numeric: tabular-nums; }
-.chevron { color: var(--txt-5); font-size: 13px; }
+/* Un chevron qui tourne dit « ouvert » sans changer de caractère — et sans
+   faire sauter la ligne d'un pixel au passage. */
+.chevron { display: flex; color: var(--txt-5); }
+.chevron .ico { width: 16px; height: 16px; transition: transform var(--t-med) var(--ease); }
+.conv-head[aria-expanded="true"] .chevron .ico { transform: rotate(180deg); }
+.conv-head:hover .chevron { color: var(--txt-3); }
 .conv-body { padding: 0 20px 20px 50px; }
 .conv.is-urgent { background: oklch(0.65 0.18 25 / 0.05); box-shadow: inset 2px 0 0 var(--danger); }
 .conv.is-draft { box-shadow: inset 2px 0 0 var(--accent); }
@@ -917,6 +952,9 @@
    — il sait passer à la ligne, pas la barre. */
 .topbar-actions { display: flex; align-items: center; gap: 8px; flex-wrap: nowrap; margin-left: auto; }
 .topbar-id { flex: 1 1 420px; }
+/* La phrase du jour n'a pas besoin de toute la largeur pour se lire : bornée,
+   elle laisse la barre respirer au lieu de pousser les outils à la ligne. */
+.topbar-sub { max-width: 62ch; }
 @media (max-width: 720px) { .topbar-actions { flex-wrap: wrap; justify-content: flex-start; } }
 .topbar-actions .act-link {
   background: none; border: 1px solid transparent;
@@ -935,6 +973,27 @@
   color: var(--txt-5); transform: none;
 }
 .topbar-actions .btn { font-size: 12.5px; padding: 8px 16px; }
+
+/* Le « ⋯ » et son menu. Même matière et même discipline que le panneau de
+   notifications : on ouvre, on ferme au clavier, on ferme en sortant. */
+.act-more-wrap { position: relative; }
+.act-more { width: 34px; height: 34px; }
+.act-menu {
+  position: absolute; top: calc(100% + 8px); right: 0; z-index: 70;
+  width: max-content; max-width: min(320px, 70vw);
+  background: oklch(0.17 0.02 264); border: 1px solid var(--bd-2);
+  border-radius: var(--r-md); padding: 10px;
+  box-shadow: 0 18px 40px oklch(0.08 0.02 264 / 0.55);
+}
+.act-menu-item {
+  display: flex; flex-direction: column; gap: 3px; width: 100%;
+  padding: 9px 10px; border: none; border-radius: var(--r-sm);
+  background: none; font-family: inherit; font-size: 13px; line-height: 1.45;
+  text-align: left; color: var(--txt-2); cursor: pointer; white-space: nowrap;
+}
+.act-menu-item:hover:not(:disabled) { background: oklch(1 0 0 / 0.06); color: var(--txt); }
+.act-menu-item:disabled { cursor: not-allowed; color: var(--txt-5); white-space: normal; }
+.act-menu-why { font-size: 11.5px; color: var(--txt-5); }
 
 /* ============ PIED DE BARRE LATÉRALE ============ */
 .sidebar-foot {

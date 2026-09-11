@@ -477,11 +477,29 @@ const step = async (label, fn) => {
   await step('le résumé du jour ne se dit pas envoyé', async () => {
     await p.locator('.nav-item').nth(0).click();
     await p.waitForTimeout(700);
-    await p.locator('.act-link, .btn', { hasText: 'résumé du jour' }).first().click();
+    /* Les actions secondaires vivent sous le « ⋯ » : la barre débordait quand
+       elles s'affichaient toutes en clair. */
+    await p.locator('#act-more').click();
+    await p.waitForTimeout(300);
+    await p.locator('.act-menu-item', { hasText: 'résumé du jour' }).first().click();
     await p.waitForSelector('.flash', { timeout: 5000 });
     const dit = await p.locator('.flash').first().textContent();
     if (/envoyé/i.test(dit)) throw new Error('affirme un envoi qui n\'a pas lieu : « ' + dit + ' »');
     if (!/pas encore branché|prêt/i.test(dit)) throw new Error('message : « ' + dit + ' »');
+  });
+
+  await step('le menu des actions se referme au clavier', async () => {
+    await p.locator('#act-more').click();
+    await p.waitForTimeout(300);
+    if (await p.locator('#act-menu').isHidden()) throw new Error('le menu ne s\'ouvre pas');
+    if (await p.locator('#act-more').getAttribute('aria-expanded') !== 'true') {
+      throw new Error('le bouton ne dit pas qu\'il a ouvert quelque chose');
+    }
+    await p.keyboard.press('Escape');
+    await p.waitForTimeout(300);
+    if (await p.locator('#act-menu').isVisible()) throw new Error('le menu survit à Échap');
+    const ou = await p.evaluate(() => document.activeElement && document.activeElement.id);
+    if (ou !== 'act-more') throw new Error('focus reparti sur « ' + ou + ' »');
   });
 
   await step('et les canaux d\'alerte disent lesquels fonctionnent', async () => {

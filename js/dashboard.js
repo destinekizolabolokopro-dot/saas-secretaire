@@ -290,23 +290,112 @@
     undoTicker = null;
   }
 
+  /* La barre du haut portait tout de front : le titre, sa phrase du jour, deux
+     ou trois actions en toutes lettres, la recherche et la cloche. Sur
+     « Aujourd'hui », les trois blocs demandaient 1 324 px pour 1 096
+     disponibles : la recherche et la cloche partaient seules sur une seconde
+     ligne, au milieu d'une bande vide. Ce n'était pas un choix, c'était un
+     débordement.
+
+     Les actions secondaires — toutes des exports, ou des raccourcis vers un
+     bouton déjà présent dans la page — passent sous un « ⋯ ». Reste en clair
+     ce qui compte : le geste principal. La barre tient alors sur une ligne,
+     avec de l'air autour du titre. */
+  var menuActions = { ouvert: false, bouton: null, panneau: null };
+
+  function fermeMenuActions(rendreLeFocus) {
+    if (!menuActions.panneau || menuActions.panneau.hidden) return;
+    menuActions.panneau.hidden = true;
+    menuActions.bouton.setAttribute('aria-expanded', 'false');
+    if (rendreLeFocus) menuActions.bouton.focus();
+  }
+
   function renderActions() {
     var box = document.getElementById('topbar-actions');
     var list = ACTIONS[ui.tab] || [];
-    box.innerHTML = list.map(function (a, i) {
-      var dispo = !a.quand || !!a.quand();
-      var attrs = ' data-act="' + i + '"' +
-        (dispo ? '' : ' disabled title="' + esc(a.sinon || '') + '"');
-      return a.primary
-        ? '<button type="button" class="btn btn-primary"' + attrs + '>' + esc(a.label) + '</button>'
-        : '<button type="button" class="act-link"' + attrs + '>' + esc(a.label) + '</button>';
-    }).join('');
+    var secondaires = [];
+    var principale = null;
+
+    list.forEach(function (a, i) {
+      if (a.primary && !principale) principale = { a: a, i: i };
+      else secondaires.push({ a: a, i: i });
+    });
+
+    var html = '';
+
+    if (secondaires.length) {
+      html += '<div class="act-more-wrap">' +
+        '<button type="button" class="icon-btn act-more" id="act-more"' +
+          ' aria-haspopup="true" aria-expanded="false" aria-controls="act-menu"' +
+          ' aria-label="Autres actions">' +
+          '<svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false">' +
+            '<circle cx="5" cy="12" r="1.6" fill="currentColor" stroke="none"/>' +
+            '<circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none"/>' +
+            '<circle cx="19" cy="12" r="1.6" fill="currentColor" stroke="none"/>' +
+          '</svg>' +
+        '</button>' +
+        '<div class="act-menu" id="act-menu" hidden>' +
+          '<p class="notif-title">Autres actions</p>' +
+          secondaires.map(function (item) {
+            var dispo = !item.a.quand || !!item.a.quand();
+            /* Une action sans objet garde sa place et dit pourquoi, au lieu de
+               disparaître ou de cacher sa raison dans une infobulle. */
+            return '<button type="button" class="act-menu-item" data-act="' + item.i + '"' +
+              (dispo ? '' : ' disabled') + '>' +
+              '<span>' + esc(item.a.label) + '</span>' +
+              (dispo ? '' : '<span class="act-menu-why">' + esc(item.a.sinon || '') + '</span>') +
+              '</button>';
+          }).join('') +
+        '</div>' +
+      '</div>';
+    }
+
+    if (principale) {
+      var ok = !principale.a.quand || !!principale.a.quand();
+      html += '<button type="button" class="btn btn-primary" data-act="' + principale.i + '"' +
+        (ok ? '' : ' disabled title="' + esc(principale.a.sinon || '') + '"') + '>' +
+        esc(principale.a.label) + '</button>';
+    }
+
+    box.innerHTML = html;
+
     box.querySelectorAll('[data-act]').forEach(function (button) {
       button.addEventListener('click', function () {
+        fermeMenuActions(false);
         list[Number(button.getAttribute('data-act'))].act();
       });
     });
+
+    menuActions.bouton = box.querySelector('#act-more');
+    menuActions.panneau = box.querySelector('#act-menu');
+    if (!menuActions.bouton) return;
+
+    var enveloppe = box.querySelector('.act-more-wrap');
+
+    menuActions.bouton.addEventListener('click', function (event) {
+      event.stopPropagation();
+      if (menuActions.panneau.hidden) {
+        menuActions.panneau.hidden = false;
+        menuActions.bouton.setAttribute('aria-expanded', 'true');
+      } else fermeMenuActions(false);
+    });
+    enveloppe.addEventListener('focusout', function (event) {
+      if (!event.relatedTarget || !enveloppe.contains(event.relatedTarget)) fermeMenuActions(false);
+    });
   }
+
+  document.addEventListener('click', function (event) {
+    if (menuActions.panneau && !menuActions.panneau.hidden &&
+        !menuActions.panneau.parentNode.contains(event.target)) {
+      fermeMenuActions(false);
+    }
+  });
+  document.addEventListener('keydown', function (event) {
+    if (event.key === 'Escape' && menuActions.panneau && !menuActions.panneau.hidden) {
+      event.stopPropagation();
+      fermeMenuActions(true);
+    }
+  });
 
   /* ---------- En-tête et barre latérale ---------- */
   function renderChrome() {
@@ -1071,19 +1160,36 @@
     { id: 'emails',   label: 'Emails' }
   ];
 
+  /* Les listes portaient des formes abstraites en guise d'icônes : un cercle
+     pour un appel, un rectangle pour un email, et le caractère « ▼ » pour le
+     dépliant. Vus ensemble, ils ressemblaient à des images qui n'avaient pas
+     chargé. Trois traits dessinés disent la même chose sans hésitation, et le
+     chevron tourne au lieu de changer de caractère. */
+  var ICONES = {
+    tel: '<path d="M7 3.5 9.5 3l1.6 4-2 1.4a11 11 0 0 0 5.5 5.5l1.4-2 4 1.6-.5 2.5' +
+         'a1.6 1.6 0 0 1-1.8 1.3A16.4 16.4 0 0 1 4.7 6.3 1.6 1.6 0 0 1 6 4.5z"/>',
+    mail: '<rect x="2.5" y="5" width="19" height="14" rx="2.5"/><path d="m3.5 7.5 8.5 6 8.5-6"/>',
+    chevron: '<path d="m6 9.5 6 5.5 6-5.5"/>'
+  };
+
+  function ico(nom, classe) {
+    return '<svg class="ico ' + (classe || '') + '" viewBox="0 0 24 24"' +
+      ' aria-hidden="true" focusable="false">' + ICONES[nom] + '</svg>';
+  }
+
   function callItem(c) {
     var open = ui.expanded === 'call-' + c.id;
     return '<div class="conv' + (c.kind === 'urgent' ? ' is-urgent' : '') + '">' +
       '<button type="button" class="conv-head" data-expand="call-' + c.id + '"' +
         ' aria-expanded="' + open + '" aria-controls="body-call-' + c.id + '">' +
-        '<span class="conv-chan chan-call" aria-hidden="true"></span>' +
+        '<span class="conv-chan chan-call">' + ico('tel') + '</span>' +
         '<span class="conv-main">' +
           '<span class="conv-who">' + esc(c.caller) + '</span>' +
           '<span class="conv-sub">' + esc(c.subject) + '</span>' +
         '</span>' +
         '<span class="conv-right">' + badge(c) +
           '<span class="conv-time">' + esc(c.time) + '</span>' +
-          '<span class="chevron" aria-hidden="true">' + (open ? '▲' : '▼') + '</span></span>' +
+          '<span class="chevron">' + ico('chevron') + '</span></span>' +
       '</button>' +
       '<div class="conv-body" id="body-call-' + c.id + '"' + (open ? '' : ' hidden') + '>' +
         '<div class="transcript">' +
@@ -1104,14 +1210,14 @@
     return '<div class="conv is-draft' + (mail.sending ? ' is-sending' : '') + '">' +
       '<button type="button" class="conv-head" data-expand="draft-' + mail.id + '"' +
         ' aria-expanded="' + open + '" aria-controls="body-draft-' + mail.id + '">' +
-        '<span class="conv-chan chan-mail" aria-hidden="true"></span>' +
+        '<span class="conv-chan chan-mail">' + ico('mail') + '</span>' +
         '<span class="conv-main">' +
           '<span class="conv-who">' + esc(mail.subject) + '</span>' +
           '<span class="conv-sub">À : ' + esc(mail.to) + '</span>' +
         '</span>' +
         '<span class="conv-right"><span class="tag">' + esc(mail.category) + '</span>' +
           '<span class="conv-time">' + esc(mail.time) + '</span>' +
-          '<span class="chevron" aria-hidden="true">' + (open ? '▲' : '▼') + '</span></span>' +
+          '<span class="chevron">' + ico('chevron') + '</span></span>' +
       '</button>' +
       '<div class="conv-body" id="body-draft-' + mail.id + '"' + (open ? '' : ' hidden') + '>' +
         '<div class="mail-preview">' +
@@ -1534,7 +1640,7 @@
   function accountPrefs() {
     var admin = window.ALLY_ACCOUNTS && window.ALLY_ACCOUNTS.isAdmin();
 
-    return '<div class="stack limit-800">' +
+    return '<div class="stack duo limit-800">' +
 
       '<div class="card">' +
         '<p class="card-title">Session</p>' +
@@ -1609,7 +1715,7 @@
   }
 
   function accountAlerts() {
-    return '<div class="stack limit-640">' +
+    return '<div class="stack duo limit-640">' +
       '<div class="card"><p class="card-title">Canaux d\'alerte pour les urgences</p>' +
         switchRow('notif', 'sms', 'SMS', 'Au ' + (S.identity.phone || 'numéro de transfert')) +
         switchRow('notif', 'push', 'Notification push', 'Sur cet appareil') +
