@@ -854,10 +854,26 @@ input[type="checkbox"] {
   position: relative; height: 440px;
   display: flex; align-items: center; justify-content: center;
 }
+/* Les trois messages tournaient sur le même cercle : trois étiquettes en file
+   sur un seul fil, à plat. Chacun a désormais son orbite — une dedans, une au
+   milieu, une dehors — et chaque orbite son anneau, de plus en plus pâle en
+   s'éloignant du centre. C'est ce qui fait la profondeur : le système a
+   plusieurs plans, il ne se résume plus à une ronde. */
 .orbit-ring, .orbit-ring-pulse {
-  position: absolute; width: var(--orbit-d); height: var(--orbit-d); border-radius: 50%;
+  position: absolute; border-radius: 50%;
+  width: var(--orbit-d); height: var(--orbit-d);
 }
 .orbit-ring { border: 1px solid oklch(1 0 0 / 0.13); }
+.ring-1 { width: calc(var(--orbit-d) * 0.76); height: calc(var(--orbit-d) * 0.76);
+          border-color: oklch(1 0 0 / 0.17); }
+.ring-2 { border-color: oklch(1 0 0 / 0.11); }
+.ring-3 { width: calc(var(--orbit-d) * 1.24); height: calc(var(--orbit-d) * 1.24);
+          border-color: oklch(1 0 0 / 0.07); }
+/* Chaque orbite porte son propre rayon ; le décalage se lit aussi dans la
+   taille du texte, plus discret au fond. */
+.orbit-1 .orbit-slot { transform: translate(-50%, -50%) translateX(calc(var(--orbit-r) * 0.76)); }
+.orbit-3 .orbit-slot { transform: translate(-50%, -50%) translateX(calc(var(--orbit-r) * 1.24)); }
+.orbit-3 .orbit-pill { font-size: 12.5px; opacity: .82; }
 /* Un halo large derrière le noyau : sans lui, l'orbite est un fil de fer
    posé sur du noir. Avec, elle a une source lumineuse au centre. */
 .orbit-stage::before {
@@ -867,8 +883,11 @@ input[type="checkbox"] {
 }
 .orbit-ring-pulse { border: 1px solid oklch(0.72 0.19 296 / 0.5); animation: pulse-ring 3s ease-out infinite; }
 .orbit-core {
-  position: absolute; width: 80px; height: 80px; border-radius: 50%;
+  position: absolute; width: 84px; height: 84px; border-radius: 50%;
   background: var(--grad); animation: pulse-core 2.4s ease-in-out infinite;
+  /* Une sphère pose une ombre : sans elle, elle est collée au fond. */
+  box-shadow: 0 18px 48px oklch(0.55 0.19 296 / 0.45),
+              inset 0 -6px 14px oklch(0.35 0.12 296 / 0.55);
   /* Un reflet en haut à gauche : la sphère prend la lumière au lieu d'être
      un disque de dégradé. */
   background-image: radial-gradient(circle at 32% 28%, oklch(1 0 0 / 0.45), transparent 55%),
@@ -1850,7 +1869,15 @@ input[type="checkbox"] {
    lui manquait que le droit de rétrécir. */
 .cols > *, .stack > * { min-width: 0; }
 .section-label { font-size: 15px; font-weight: 600; margin-bottom: 14px; }
-.limit-640 { max-width: 640px; }
+/* Une seule colonne de lecture pour tout l'espace pro.
+
+   Il y en avait cinq : 640 px pour les notifications, 760 pour Ally, 800 pour
+   la sécurité et les connexions, 900 pour la téléphonie, 1 000 pour le
+   support. Le bord gauche ne bougeait pas, mais le bord droit sautait de 360
+   px d'un onglet à l'autre — la page semblait respirer sans raison en passant
+   d'un écran à l'autre. Les écrans denses (aujourd'hui, conversations,
+   agenda) gardent toute la largeur ; tout le reste lit dans la même colonne. */
+.colonne { max-width: 920px; }
 /* Les écrans de réglages tenaient dans une colonne de 800 px au milieu d'une
    zone de 1 176 : près de 400 px de noir vide à droite, qui se lisaient comme
    un rendu manqué plutôt que comme une marge. Les cartes de réglages étant
@@ -1869,10 +1896,6 @@ input[type="checkbox"] {
     margin-bottom: 20px;
   }
 }
-.limit-760 { max-width: 760px; }
-.limit-800 { max-width: 800px; }
-.limit-900 { max-width: 900px; }
-.limit-1000 { max-width: 1000px; }
 
 /* Le prototype laissait un filet sous la dernière ligne des listes. */
 .row {
@@ -3347,7 +3370,9 @@ input[type="checkbox"] {
       </div>
 
       <div class="orbit-stage" aria-hidden="true">
-        <div class="orbit-ring"></div>
+        <div class="orbit-ring ring-1"></div>
+        <div class="orbit-ring ring-2"></div>
+        <div class="orbit-ring ring-3"></div>
         <div class="orbit-ring-pulse"></div>
         <div class="orbit-core"></div>
 
@@ -11567,7 +11592,7 @@ window.ALLY_PLAN_BY_ID = function (id) {
       var canListen = voice.canListen();
       var blocked = voice.listenBlockedReason();
 
-      return '<div class="stack limit-900">' +
+      return '<div class="stack colonne">' +
 
         /* ---- Statut de la ligne ---- */
         '<div class="line-card">' +
@@ -14901,7 +14926,7 @@ window.ALLY_PLAN_BY_ID = function (id) {
 
   function viewAlly() {
     var p = P();
-    return '<div class="stack limit-760">' +
+    return '<div class="stack colonne">' +
 
       '<div class="card"><p class="card-title">Niveau d\'autonomie par tâche</p>' +
         slider('calls', 'Appels') + slider('emails', 'Emails') + slider('agenda', 'Agenda') +
@@ -15175,7 +15200,7 @@ window.ALLY_PLAN_BY_ID = function (id) {
        comme tel, plutôt que présenté comme un vrai relevé d'accès. */
     var reel = journalEntries();
 
-    return '<div class="stack limit-800">' +
+    return '<div class="stack colonne">' +
       '<div class="card"><p class="card-title">Journal d\'accès aux données</p>' +
         (reel
           ? (reel.length
@@ -15227,7 +15252,7 @@ window.ALLY_PLAN_BY_ID = function (id) {
   function accountPrefs() {
     var admin = window.ALLY_ACCOUNTS && window.ALLY_ACCOUNTS.isAdmin();
 
-    return '<div class="stack duo limit-800">' +
+    return '<div class="stack duo colonne">' +
 
       '<div class="card">' +
         '<p class="card-title">Session</p>' +
@@ -15302,7 +15327,7 @@ window.ALLY_PLAN_BY_ID = function (id) {
   }
 
   function accountAlerts() {
-    return '<div class="stack duo limit-640">' +
+    return '<div class="stack duo colonne">' +
       '<div class="card"><p class="card-title">Canaux d\'alerte pour les urgences</p>' +
         switchRow('notif', 'sms', 'SMS', 'Au ' + (S.identity.phone || 'numéro de transfert')) +
         switchRow('notif', 'push', 'Notification push', 'Sur cet appareil') +
@@ -15394,7 +15419,7 @@ window.ALLY_PLAN_BY_ID = function (id) {
   ];
 
   function accountHelp() {
-    return '<div class="cols cols-12 limit-1000">' +
+    return '<div class="cols cols-12 colonne">' +
       '<div class="card chat">' +
         '<div class="chat-head">' +
           '<div><p class="card-title" style="margin-bottom:2px">Écrire à Ally</p>' +
@@ -15446,7 +15471,7 @@ window.ALLY_PLAN_BY_ID = function (id) {
   ];
 
   function accountLinks() {
-    return '<div class="stack limit-800">' +
+    return '<div class="stack colonne">' +
       '<div class="card">' +
         '<p class="card-title">Connexions</p>' +
         '<p class="note" style="margin-bottom:18px">Ally a besoin d\'accéder à votre messagerie, ' +

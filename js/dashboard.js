@@ -1314,7 +1314,7 @@
 
   function viewAlly() {
     var p = P();
-    return '<div class="stack limit-760">' +
+    return '<div class="stack colonne">' +
 
       '<div class="card"><p class="card-title">Niveau d\'autonomie par tâche</p>' +
         slider('calls', 'Appels') + slider('emails', 'Emails') + slider('agenda', 'Agenda') +
@@ -1588,7 +1588,7 @@
        comme tel, plutôt que présenté comme un vrai relevé d'accès. */
     var reel = journalEntries();
 
-    return '<div class="stack limit-800">' +
+    return '<div class="stack colonne">' +
       '<div class="card"><p class="card-title">Journal d\'accès aux données</p>' +
         (reel
           ? (reel.length
@@ -1640,7 +1640,7 @@
   function accountPrefs() {
     var admin = window.ALLY_ACCOUNTS && window.ALLY_ACCOUNTS.isAdmin();
 
-    return '<div class="stack duo limit-800">' +
+    return '<div class="stack duo colonne">' +
 
       '<div class="card">' +
         '<p class="card-title">Session</p>' +
@@ -1715,7 +1715,7 @@
   }
 
   function accountAlerts() {
-    return '<div class="stack duo limit-640">' +
+    return '<div class="stack duo colonne">' +
       '<div class="card"><p class="card-title">Canaux d\'alerte pour les urgences</p>' +
         switchRow('notif', 'sms', 'SMS', 'Au ' + (S.identity.phone || 'numéro de transfert')) +
         switchRow('notif', 'push', 'Notification push', 'Sur cet appareil') +
@@ -1807,7 +1807,7 @@
   ];
 
   function accountHelp() {
-    return '<div class="cols cols-12 limit-1000">' +
+    return '<div class="cols cols-12 colonne">' +
       '<div class="card chat">' +
         '<div class="chat-head">' +
           '<div><p class="card-title" style="margin-bottom:2px">Écrire à Ally</p>' +
@@ -1859,7 +1859,7 @@
   ];
 
   function accountLinks() {
-    return '<div class="stack limit-800">' +
+    return '<div class="stack colonne">' +
       '<div class="card">' +
         '<p class="card-title">Connexions</p>' +
         '<p class="note" style="margin-bottom:18px">Ally a besoin d\'accéder à votre messagerie, ' +

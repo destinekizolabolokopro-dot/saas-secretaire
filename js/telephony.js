@@ -220,7 +220,7 @@
       var canListen = voice.canListen();
       var blocked = voice.listenBlockedReason();
 
-      return '<div class="stack limit-900">' +
+      return '<div class="stack colonne">' +
 
         /* ---- Statut de la ligne ---- */
         '<div class="line-card">' +

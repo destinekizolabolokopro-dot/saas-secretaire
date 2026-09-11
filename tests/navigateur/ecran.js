@@ -258,6 +258,49 @@ const step = async (label, fn) => {
     }
   });
 
+  /* Et la colonne de lecture de l'espace pro.
+
+     Il y en avait cinq : 640 px pour les notifications, 760 pour Ally, 800
+     pour la sécurité et les connexions, 900 pour la téléphonie, 1 000 pour le
+     support. Le bord gauche ne bougeait pas, mais le bord droit sautait de
+     360 px d'un onglet à l'autre : la page semblait respirer sans raison. */
+  await step('les écrans de réglages lisent dans la même colonne', async () => {
+    const B = await mk({ width: 1440, height: 1000 });
+    await B.page.goto(BASE + '/dashboard.html');
+    await B.page.waitForSelector('#tabpanel');
+    await B.page.waitForTimeout(900);
+
+    const largeurs = {};
+    const mesurer = async (nom) => {
+      const l = await B.page.evaluate(() => {
+        const e = document.querySelector('#tabpanel .colonne');
+        return e ? Math.round(e.getBoundingClientRect().width) : null;
+      });
+      if (l !== null) largeurs[nom] = l;
+    };
+
+    await B.page.click('[data-tab="telephony"]');
+    await B.page.waitForTimeout(700); await mesurer('Téléphonie');
+    await B.page.click('[data-tab="ally"]');
+    await B.page.waitForTimeout(700); await mesurer('Ally');
+
+    await B.page.click('#profile-card');
+    await B.page.waitForTimeout(600);
+    for (const [section, nom] of [['privacy', 'Sécurité'], ['links', 'Connexions'], ['help', 'Support']]) {
+      await B.page.click('[data-account="' + section + '"]');
+      await B.page.waitForTimeout(700);
+      await mesurer(nom);
+    }
+    await B.ctx.close();
+
+    const noms = Object.keys(largeurs);
+    if (noms.length < 4) throw new Error('seulement ' + noms.length + ' écran(s) mesuré(s)');
+    const vues = noms.map((n) => largeurs[n]);
+    if (Math.max.apply(null, vues) !== Math.min.apply(null, vues)) {
+      throw new Error('largeurs différentes — ' + noms.map((n) => n + ' à ' + largeurs[n]).join(', '));
+    }
+  });
+
   await navigateur.close();
 
   console.log('\n================ RÉSULTAT ================');
