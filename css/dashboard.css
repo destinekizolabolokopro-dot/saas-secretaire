@@ -488,7 +488,10 @@
               0 20px 56px oklch(0.55 0.19 296 / 0.36), var(--hi-2);
 }
 .voice-fab:active { transform: scale(0.95); transition-duration: .06s; }
-.voice-fab .mic { width: 10px; height: 15px; border-radius: 5px; background: var(--on-accent); flex-shrink: 0; }
+/* Une gélule blanche tenait lieu de micro. Au format téléphone, où le
+   libellé disparaît, le bouton n'était plus qu'un rond avec une tache
+   dedans : rien ne disait à quoi il servait. */
+.voice-fab .ico { width: 19px; height: 19px; color: var(--on-accent); stroke-width: 1.8; }
 
 .voice-overlay {
   position: fixed; inset: 0; z-index: 100;
@@ -582,7 +585,7 @@
   .conv-head { flex-wrap: wrap; }
   .conv-right { width: 100%; padding-left: 30px; }
   .recap-row { flex-direction: column; gap: 4px; }
-  .voice-fab span:not(.mic) { display: none; }
+  .voice-fab span { display: none; }
   .voice-fab { padding: 16px; }
 }
 
@@ -1079,6 +1082,33 @@
   .pref-row-go { margin-left: auto; }
 }
 
+/* ============ ÉCRAN DE REFUS ============ */
+/* Un refus n'a pas de navigation : la barre latérale ne garde que la marque,
+   et le message se pose au milieu de la page au lieu de flotter dans le coin
+   d'une grande surface vide. */
+/* Pas de colonne de navigation pour une page qui n'en propose aucune : elle
+   ne laissait qu'un rail de 264 px vide à gauche du refus. La marque reste,
+   posée au-dessus du message. */
+.shell.is-locked { grid-template-columns: 1fr; }
+.shell.is-locked .sidebar,
+.shell.is-locked .topbar-tools,
+.shell.is-locked .topbar-actions { display: none; }
+.shell.is-locked .topbar { justify-content: center; text-align: center; margin-bottom: 8px; }
+.shell.is-locked .topbar-id { flex: 0 1 auto; }
+.locked {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 26px; min-height: min(60vh, 540px);
+}
+.locked .card { text-align: center; }
+.limit-520 { max-width: 520px; }
+.locked-actions {
+  display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; margin-top: 22px;
+}
+.locked-mark {
+  display: flex; align-items: center; gap: 10px;
+  font-family: var(--ff-h); font-size: 19px; font-weight: 700; color: var(--txt);
+}
+
 /* ============ PALETTE DE COMMANDES ============ */
 .palette-overlay {
   position: fixed; inset: 0; z-index: 120;
@@ -1135,7 +1165,14 @@
 }
 
 @media (max-width: 900px) {
-  .topbar-actions { order: 3; width: 100%; margin-left: 0; gap: 12px; }
+  /* Sur un téléphone, la barre se répartissait en deux lignes qui se
+     tournaient le dos : les trois commandes collées à droite, les actions
+     collées à gauche en dessous. Le titre prend toute la largeur, puis les
+     actions et les commandes partagent une seule ligne, chacune à son bout. */
+  .topbar { row-gap: 14px; }
+  .topbar-id { flex: 1 1 100%; }
+  .topbar-actions { order: 2; margin-left: 0; gap: 10px; flex-wrap: wrap; }
+  .topbar-tools { order: 3; margin-left: auto; }
   .main::before, .main::after { display: none; }
 }
 

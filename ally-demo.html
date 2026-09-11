@@ -2115,7 +2115,10 @@ input[type="checkbox"] {
               0 20px 56px oklch(0.55 0.19 296 / 0.36), var(--hi-2);
 }
 .voice-fab:active { transform: scale(0.95); transition-duration: .06s; }
-.voice-fab .mic { width: 10px; height: 15px; border-radius: 5px; background: var(--on-accent); flex-shrink: 0; }
+/* Une gélule blanche tenait lieu de micro. Au format téléphone, où le
+   libellé disparaît, le bouton n'était plus qu'un rond avec une tache
+   dedans : rien ne disait à quoi il servait. */
+.voice-fab .ico { width: 19px; height: 19px; color: var(--on-accent); stroke-width: 1.8; }
 
 .voice-overlay {
   position: fixed; inset: 0; z-index: 100;
@@ -2209,7 +2212,7 @@ input[type="checkbox"] {
   .conv-head { flex-wrap: wrap; }
   .conv-right { width: 100%; padding-left: 30px; }
   .recap-row { flex-direction: column; gap: 4px; }
-  .voice-fab span:not(.mic) { display: none; }
+  .voice-fab span { display: none; }
   .voice-fab { padding: 16px; }
 }
 
@@ -2706,6 +2709,33 @@ input[type="checkbox"] {
   .pref-row-go { margin-left: auto; }
 }
 
+/* ============ ÉCRAN DE REFUS ============ */
+/* Un refus n'a pas de navigation : la barre latérale ne garde que la marque,
+   et le message se pose au milieu de la page au lieu de flotter dans le coin
+   d'une grande surface vide. */
+/* Pas de colonne de navigation pour une page qui n'en propose aucune : elle
+   ne laissait qu'un rail de 264 px vide à gauche du refus. La marque reste,
+   posée au-dessus du message. */
+.shell.is-locked { grid-template-columns: 1fr; }
+.shell.is-locked .sidebar,
+.shell.is-locked .topbar-tools,
+.shell.is-locked .topbar-actions { display: none; }
+.shell.is-locked .topbar { justify-content: center; text-align: center; margin-bottom: 8px; }
+.shell.is-locked .topbar-id { flex: 0 1 auto; }
+.locked {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 26px; min-height: min(60vh, 540px);
+}
+.locked .card { text-align: center; }
+.limit-520 { max-width: 520px; }
+.locked-actions {
+  display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; margin-top: 22px;
+}
+.locked-mark {
+  display: flex; align-items: center; gap: 10px;
+  font-family: var(--ff-h); font-size: 19px; font-weight: 700; color: var(--txt);
+}
+
 /* ============ PALETTE DE COMMANDES ============ */
 .palette-overlay {
   position: fixed; inset: 0; z-index: 120;
@@ -2762,7 +2792,14 @@ input[type="checkbox"] {
 }
 
 @media (max-width: 900px) {
-  .topbar-actions { order: 3; width: 100%; margin-left: 0; gap: 12px; }
+  /* Sur un téléphone, la barre se répartissait en deux lignes qui se
+     tournaient le dos : les trois commandes collées à droite, les actions
+     collées à gauche en dessous. Le titre prend toute la largeur, puis les
+     actions et les commandes partagent une seule ligne, chacune à son bout. */
+  .topbar { row-gap: 14px; }
+  .topbar-id { flex: 1 1 100%; }
+  .topbar-actions { order: 2; margin-left: 0; gap: 10px; flex-wrap: wrap; }
+  .topbar-tools { order: 3; margin-left: auto; }
   .main::before, .main::after { display: none; }
 }
 
@@ -4308,7 +4345,10 @@ input[type="checkbox"] {
 </div>
 
 <button class="voice-fab" id="voice-fab" type="button" aria-haspopup="dialog">
-  <span class="mic" aria-hidden="true"></span>
+  <svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+    <rect x="9" y="2.5" width="6" height="11" rx="3"/>
+    <path d="M5.5 11a6.5 6.5 0 0 0 13 0"/><path d="M12 17.5V21"/>
+  </svg>
   <span>Parler à Ally</span>
 </button>
 
@@ -17499,14 +17539,26 @@ window.ALLY_PLAN_BY_ID = function (id) {
       el.navList.innerHTML = '';
       el.title.textContent = 'Accès refusé';
       el.sub.textContent = 'Console réservée à l\'administrateur.';
+      /* La barre latérale continuait d'afficher ses restes : un compteur à
+         zéro, un tiret en guise d'adresse, un bouton « Déconnexion » pour une
+         session qui n'existe pas, et trois liens de réglages. Un écran de refus
+         ne doit montrer que le refus. */
+      document.getElementById('adm-shell').classList.add('is-locked');
       el.panel.innerHTML =
-        '<div class="card limit-640">' +
-          '<p class="card-title">Accès réservé</p>' +
-          '<p class="note">Cette console n\'est accessible qu\'avec le compte ' +
-          'administrateur. Un compte professionnel connecté ici ne verrait rien : ' +
-          'le contrôle porte sur le rôle, pas sur l\'adresse de la page.</p>' +
-          '<a class="btn btn-primary btn-md" href="#" data-goto="login" style="margin-top:18px">' +
-          'Se connecter en administrateur</a>' +
+        '<div class="locked">' +
+          '<p class="locked-mark"><span class="logo-mark" aria-hidden="true"></span>Ally</p>' +
+          /* Le titre de la page dit déjà « Accès refusé » : le répéter en tête
+             de carte ne fait qu'occuper la place de l'explication. */
+          '<div class="card limit-520">' +
+            '<p class="note">Cette console n\'est accessible qu\'avec le compte ' +
+            'administrateur. Un compte professionnel connecté ici ne verrait rien : ' +
+            'le contrôle porte sur le rôle, pas sur l\'adresse de la page.</p>' +
+            '<div class="locked-actions">' +
+              '<a class="btn btn-primary btn-md" href="#" data-goto="login">' +
+              'Se connecter en administrateur</a>' +
+              '<a class="btn btn-ghost btn-md" href="#" data-goto="landing">Retour au site</a>' +
+            '</div>' +
+          '</div>' +
         '</div>';
       return;
     }

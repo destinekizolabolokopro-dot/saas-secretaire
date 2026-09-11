@@ -899,14 +899,26 @@
       el.navList.innerHTML = '';
       el.title.textContent = 'Accès refusé';
       el.sub.textContent = 'Console réservée à l\'administrateur.';
+      /* La barre latérale continuait d'afficher ses restes : un compteur à
+         zéro, un tiret en guise d'adresse, un bouton « Déconnexion » pour une
+         session qui n'existe pas, et trois liens de réglages. Un écran de refus
+         ne doit montrer que le refus. */
+      document.getElementById('adm-shell').classList.add('is-locked');
       el.panel.innerHTML =
-        '<div class="card limit-640">' +
-          '<p class="card-title">Accès réservé</p>' +
-          '<p class="note">Cette console n\'est accessible qu\'avec le compte ' +
-          'administrateur. Un compte professionnel connecté ici ne verrait rien : ' +
-          'le contrôle porte sur le rôle, pas sur l\'adresse de la page.</p>' +
-          '<a class="btn btn-primary btn-md" href="login.html" style="margin-top:18px">' +
-          'Se connecter en administrateur</a>' +
+        '<div class="locked">' +
+          '<p class="locked-mark"><span class="logo-mark" aria-hidden="true"></span>Ally</p>' +
+          /* Le titre de la page dit déjà « Accès refusé » : le répéter en tête
+             de carte ne fait qu'occuper la place de l'explication. */
+          '<div class="card limit-520">' +
+            '<p class="note">Cette console n\'est accessible qu\'avec le compte ' +
+            'administrateur. Un compte professionnel connecté ici ne verrait rien : ' +
+            'le contrôle porte sur le rôle, pas sur l\'adresse de la page.</p>' +
+            '<div class="locked-actions">' +
+              '<a class="btn btn-primary btn-md" href="login.html">' +
+              'Se connecter en administrateur</a>' +
+              '<a class="btn btn-ghost btn-md" href="index.html">Retour au site</a>' +
+            '</div>' +
+          '</div>' +
         '</div>';
       return;
     }
