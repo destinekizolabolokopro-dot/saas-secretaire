@@ -219,6 +219,45 @@ const step = async (label, fn) => {
     await M.ctx.close();
   });
 
+  /* Le bord gauche du site.
+
+     Il y en avait quatre : le héros commençait à 88 px du bord, les sections
+     dites « larges » à 168, les « étroites » à 218, la barre de navigation et
+     le pied de page ailleurs encore. En descendant la page, le texte se
+     décalait de section en section — jusqu'à 130 px entre le titre du héros et
+     le premier intertitre. C'est le genre de défaut qu'on ne sait pas nommer
+     en regardant, et qu'on voit dès qu'on le mesure. */
+  await step('tout le site partage un seul bord gauche', async () => {
+    const A = await mk({ width: 1440, height: 950 });
+    await A.page.goto(BASE + '/index.html');
+    await A.page.waitForTimeout(900);
+
+    const bords = await A.page.evaluate(() => {
+      const vus = {};
+      const noter = (nom, el) => {
+        if (!el) return;
+        vus[nom] = Math.round(el.getBoundingClientRect().x);
+      };
+      noter('logo', document.querySelector('.nav .logo'));
+      noter('titre du héros', document.querySelector('.hero h1'));
+      document.querySelectorAll('.section .kicker, .focus-band .kicker').forEach((k, i) => {
+        noter('intertitre ' + (i + 1), k);
+      });
+      noter('pied de page', document.querySelector('.footer-brand'));
+      return vus;
+    });
+
+    await A.ctx.close();
+
+    const valeurs = Object.keys(bords).map((k) => bords[k]);
+    const mini = Math.min.apply(null, valeurs);
+    const maxi = Math.max.apply(null, valeurs);
+    if (maxi - mini > 2) {
+      const detail = Object.keys(bords).map((k) => k + ' à ' + bords[k]).join(', ');
+      throw new Error('le bord saute de ' + (maxi - mini) + ' px — ' + detail);
+    }
+  });
+
   await navigateur.close();
 
   console.log('\n================ RÉSULTAT ================');
