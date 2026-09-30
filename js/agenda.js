@@ -12,12 +12,21 @@
      elles sont décalées sur la semaine en cours au moment où on les charge
      (voir ALLY_STORE.SAMPLE_REF). Un tableau de bord qui affiche la date d'un
      autre mois est la première chose qu'on remarque. */
+  /* Le jour se relit, il ne se fige pas.
+
+     C'était une constante calculée au chargement de la page. Or cet écran est
+     fait pour rester ouvert : un professionnel seul le laisse dans un onglet
+     du matin au soir, et parfois d'un jour sur l'autre. Passé minuit, « Auj. »
+     désignait encore la veille, la case du jour restait allumée sur hier, et
+     surtout « pose-moi un rendez-vous demain » visait le mauvais jour — un
+     rendez-vous posé la nuit atterrissait vingt-quatre heures trop tôt, sans
+     que rien ne le signale. Les vingt-huit endroits qui lisent ALLY_AGENDA.TODAY
+     obtiennent maintenant la date du moment où ils la demandent. */
   function todayISO() {
     var now = new Date();
     var m = now.getMonth() + 1, d = now.getDate();
     return now.getFullYear() + '-' + (m < 10 ? '0' : '') + m + '-' + (d < 10 ? '0' : '') + d;
   }
-  var TODAY = todayISO();
 
   var MONTHS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet',
     'août', 'septembre', 'octobre', 'novembre', 'décembre'];
@@ -47,8 +56,8 @@
 
   /* Étiquette courte : « Auj. », « Dem. », sinon « Jeu 30 ». */
   function shortLabel(iso) {
-    if (iso === TODAY) return 'Auj.';
-    if (iso === addDays(TODAY, 1)) return 'Dem.';
+    if (iso === todayISO()) return 'Auj.';
+    if (iso === addDays(todayISO(), 1)) return 'Dem.';
     var d = fromISO(iso);
     var name = DAY_WORDS[d.getDay()];
     return name.charAt(0).toUpperCase() + name.slice(1, 3) + ' ' + d.getDate();
@@ -62,7 +71,7 @@
   /* Traduit « demain », « vendredi », « le 12 » en date réelle, toujours
      vers le futur : dire « vendredi » un mardi vise le vendredi qui vient. */
   function resolveDate(word, ref) {
-    var base = ref || TODAY;
+    var base = ref || todayISO();
     if (!word) return base;
     var w = String(word).toLowerCase();
 
@@ -90,7 +99,9 @@
     return store.data().blocked.filter(function (b) { return b.date === iso; });
   }
 
-  var view = { month: TODAY.slice(0, 7), selected: TODAY };
+  /* Le mois affiché et le jour sélectionné, eux, restent où le professionnel
+     les a mis : ce sont des choix de navigation, pas la date du jour. */
+  var view = { month: todayISO().slice(0, 7), selected: todayISO() };
 
   function monthMatrix(ym) {
     var parts = ym.split('-');
@@ -105,7 +116,6 @@
   }
 
   window.ALLY_AGENDA = {
-    TODAY: TODAY,
     toISO: toISO, fromISO: fromISO, addDays: addDays,
     shortLabel: shortLabel, longLabel: longLabel, resolveDate: resolveDate,
     rdvOn: rdvOn,
@@ -124,7 +134,7 @@
         var blocks = blockedOn(iso);
         var classes = ['cal-cell'];
         if (outside) classes.push('is-outside');
-        if (iso === TODAY) classes.push('is-today');
+        if (iso === todayISO()) classes.push('is-today');
         if (iso === view.selected) classes.push('is-selected');
         if (blocks.length) classes.push('is-blocked');
 
@@ -264,7 +274,11 @@
       panel.querySelectorAll('[data-month]').forEach(function (button) {
         button.addEventListener('click', function () {
           var dir = button.getAttribute('data-month');
-          if (dir === 'today') { view.month = TODAY.slice(0, 7); view.selected = TODAY; }
+          if (dir === 'today') {
+            var jour = todayISO();
+            view.month = jour.slice(0, 7);
+            view.selected = jour;
+          }
           else {
             var parts = view.month.split('-');
             var d = new Date(Number(parts[0]), Number(parts[1]) - 1 + (dir === 'next' ? 1 : -1), 1);
@@ -279,8 +293,30 @@
         addForm.addEventListener('submit', function (event) {
           event.preventDefault();
           var client = document.getElementById('cal-client').value.trim();
-          var time = document.getElementById('cal-time').value;
-          if (!time) return;
+          var champHeure = document.getElementById('cal-time');
+          var time = champHeure.value;
+
+          /* Refus muet : vider l'heure et cliquer « Ajouter » ne faisait rien
+             et ne disait rien. */
+          if (!time) {
+            champHeure.setAttribute('aria-invalid', 'true');
+            champHeure.focus();
+            window.ALLY_UI.toast('Indiquez une heure pour ce rendez-vous.');
+            return;
+          }
+          champHeure.removeAttribute('aria-invalid');
+
+          /* Deux rendez-vous à la même heure : le serveur les refuse, le
+             navigateur les acceptait. Selon qu'une ligne était connectée ou
+             non, le même geste donnait donc deux résultats opposés — et hors
+             ligne, le créneau se retrouvait pris deux fois sans un mot. */
+          var deja = rdvOn(view.selected).filter(function (r) { return r.time === time; })[0];
+          if (deja) {
+            champHeure.setAttribute('aria-invalid', 'true');
+            champHeure.focus();
+            window.ALLY_UI.toast('À ' + time + ', ce créneau est déjà pris par ' + deja.client + '.');
+            return;
+          }
 
           var nom = client || 'Nouveau ' + store.profile().clientWord;
           var note = function () {
@@ -367,4 +403,10 @@
       view.month = iso.slice(0, 7);
     }
   };
+
+  /* TODAY se lit comme une propriété — les vingt-huit sites qui l'utilisent
+     n'ont pas à changer — mais se calcule à chaque lecture. */
+  Object.defineProperty(window.ALLY_AGENDA, 'TODAY', {
+    get: todayISO, enumerable: true
+  });
 })();

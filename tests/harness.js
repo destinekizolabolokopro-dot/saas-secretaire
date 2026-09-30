@@ -51,8 +51,12 @@ function fauxDocument() {
   };
 }
 
-/* Charge les modules du front dans un contexte partagé, dans l'ordre donné. */
-function charger(fichiers) {
+/* Charge les modules du front dans un contexte partagé, dans l'ordre donné.
+
+   `globaux` permet d'en remplacer un avant le chargement — une horloge, par
+   exemple : plusieurs défauts de ce produit ne se voient qu'à une certaine
+   heure, ou d'un jour sur l'autre, et on ne va pas attendre minuit. */
+function charger(fichiers, globaux) {
   const fenetre = {
     localStorage: fauxStockage(),
     location: { protocol: 'http:', hostname: 'localhost', search: '', pathname: '/' },
@@ -65,6 +69,7 @@ function charger(fichiers) {
   fenetre.window = fenetre;
   fenetre.document = fauxDocument();
   fenetre.self = fenetre;
+  if (globaux) Object.keys(globaux).forEach((k) => { fenetre[k] = globaux[k]; });
 
   const contexte = vm.createContext(fenetre);
 

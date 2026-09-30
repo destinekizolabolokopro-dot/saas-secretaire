@@ -293,9 +293,23 @@
     return { refresh: function () { renderVoices(voice.voices()); } };
   }
 
-  /* ---------- Message éphémère ---------- */
+  /* ---------- Message éphémère ----------
+
+     Il y en avait deux dans le produit, pour le même usage. Celui-ci, en bas
+     au centre, annoncé aux lecteurs d'écran, empilable. Et un « flash » du
+     tableau de bord, en haut à droite, violet, sans région vivante — donc
+     muet pour qui n'a pas d'yeux sur l'écran — et surtout posé toujours au
+     même pixel : deux messages coup sur coup se recouvraient exactement, le
+     premier disparaissait sans avoir été lu.
+
+     Vingt-cinq des trente-deux messages du produit passaient par le second.
+     Il n'en reste qu'un, celui-ci, et une même action ne peut plus produire
+     deux messages de deux styles à deux endroits.
+
+     `action` ajoute un bouton au message — c'est ce qui permet de rattraper
+     un envoi sans aller le chercher dans la liste. */
   var toastHost = null;
-  function toast(message, kind) {
+  function toast(message, kind, action) {
     if (!toastHost) {
       toastHost = document.createElement('div');
       toastHost.className = 'toast-host';
@@ -303,12 +317,41 @@
       toastHost.setAttribute('aria-live', 'polite');
       document.body.appendChild(toastHost);
     }
+
     var item = document.createElement('div');
-    item.className = 'toast' + (kind ? ' toast-' + kind : '');
-    item.textContent = message;
+    item.className = 'toast' + (kind ? ' toast-' + kind : '') + (action ? ' toast-action' : '');
+
+    var label = document.createElement('span');
+    label.textContent = message;
+    item.appendChild(label);
+
+    var duree = (action && action.delay) || 3200;
+    var ferme = false;
+
+    function close() {
+      if (ferme) return;
+      ferme = true;
+      item.classList.add('is-out');
+      window.setTimeout(function () {
+        if (item.parentNode) item.parentNode.removeChild(item);
+      }, 400);
+    }
+
+    if (action) {
+      var bouton = document.createElement('button');
+      bouton.type = 'button';
+      bouton.className = 'btn btn-ghost btn-sm';
+      bouton.textContent = action.label || 'Annuler';
+      bouton.addEventListener('click', function () {
+        close();
+        if (action.onClick) action.onClick();
+      });
+      item.appendChild(bouton);
+    }
+
     toastHost.appendChild(item);
-    window.setTimeout(function () { item.classList.add('is-out'); }, 3200);
-    window.setTimeout(function () { if (item.parentNode) item.parentNode.removeChild(item); }, 3600);
+    window.setTimeout(close, duree);
+    return { close: close };
   }
 
   window.ALLY_UI = {

@@ -31,6 +31,12 @@
     return d.getFullYear() + '-' + (m < 10 ? '0' : '') + m + '-' + (day < 10 ? '0' : '') + day;
   }
 
+  function horloge() {
+    var d = new Date();
+    var h = d.getHours(), m = d.getMinutes();
+    return (h < 10 ? '0' : '') + h + ':' + (m < 10 ? '0' : '') + m;
+  }
+
   function dayLabel(iso) {
     var parts = String(iso).split('-');
     var d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
@@ -71,7 +77,16 @@
     }
 
     var parAlly = state.rdv.filter(function (r) { return r.source === 'call'; }).length;
-    var prochain = state.rdv.filter(function (r) { return r.date >= today(); })[0];
+
+    /* « Prochain » ne regardait que la date. À dix-huit heures, un rendez-vous
+       de huit heures du matin était donc encore annoncé comme le suivant —
+       dix heures après l'avoir passé. On compare aussi l'heure. Le serveur
+       rend la liste triée par date puis par heure : le premier qui n'est pas
+       derrière nous est bien le prochain. */
+    var maintenant = today() + ' ' + horloge();
+    var prochain = state.rdv.filter(function (r) {
+      return (r.date + ' ' + (r.time || '00:00')) >= maintenant;
+    })[0];
 
     return '<div class="recap-row" style="margin-top:4px"><span>Rendez-vous enregistrés</span>' +
         '<span>' + state.rdv.length + '</span></div>' +

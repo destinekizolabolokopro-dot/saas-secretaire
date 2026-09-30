@@ -233,40 +233,20 @@
     flash('Export CSV téléchargé');
   }
 
-  /* Retour discret après une action, en haut à droite. */
-  function flash(text) {
-    var node = document.createElement('div');
-    node.className = 'flash';
-    node.textContent = text;
-    document.body.appendChild(node);
-    window.setTimeout(function () { node.classList.add('is-out'); }, 2200);
-    window.setTimeout(function () { node.remove(); }, 2600);
-  }
+  /* Retour discret après une action.
 
-  /* Message éphémère assorti d'un bouton : c'est le seul endroit où
-     l'annulation d'un envoi est réellement à portée de clic. */
+     C'était un second système de messages, en haut à droite, sans région
+     vivante — donc muet pour un lecteur d'écran — et posé toujours au même
+     pixel : deux messages coup sur coup se recouvraient exactement. Les
+     trente-deux messages du produit passent maintenant par le même endroit. */
+  function flash(text) { window.ALLY_UI.toast(text); }
+
+  /* Message assorti d'un bouton : c'est le seul endroit où l'annulation d'un
+     envoi est réellement à portée de clic. */
   function flashUndo(text, onUndo) {
-    var node = document.createElement('div');
-    node.className = 'flash flash-undo';
-    var label = document.createElement('span');
-    label.textContent = text;
-    var button = document.createElement('button');
-    button.type = 'button';
-    button.className = 'btn btn-ghost btn-sm';
-    button.textContent = 'Annuler';
-    node.appendChild(label);
-    node.appendChild(button);
-    document.body.appendChild(node);
-
-    var closed = false;
-    function close() {
-      if (closed) return;
-      closed = true;
-      node.classList.add('is-out');
-      window.setTimeout(function () { node.remove(); }, 400);
-    }
-    button.addEventListener('click', function () { close(); onUndo(); });
-    window.setTimeout(close, store.UNDO_MS);
+    window.ALLY_UI.toast(text, null, {
+      label: 'Annuler', onClick: onUndo, delay: store.UNDO_MS
+    });
   }
 
   /* Décompte affiché sur les brouillons en cours d'envoi. */

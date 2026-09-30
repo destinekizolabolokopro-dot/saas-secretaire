@@ -647,9 +647,11 @@ input[type="checkbox"] {
   pointer-events: none;
 }
 .toast {
+  display: flex; align-items: center; gap: 14px;
   background: oklch(0.24 0.02 264 / 0.82); border: 1px solid var(--bd-3);
   border-radius: var(--pill);
   padding: 12px 22px; font-size: 14px;
+  max-width: min(520px, calc(100vw - 32px)); text-align: left;
   box-shadow: var(--sh-3), var(--hi-2);
   backdrop-filter: var(--mat); -webkit-backdrop-filter: var(--mat);
   animation: toast-in .4s var(--ease) both;
@@ -662,6 +664,10 @@ input[type="checkbox"] {
 .toast-ok { border-color: oklch(0.7 0.14 200 / 0.5); }
 .toast-warn { border-color: oklch(0.7 0.15 25 / 0.5); }
 .toast.is-out { opacity: 0; transform: translateY(10px); }
+/* L'hôte laisse passer les clics ; seul un message qui porte un bouton les
+   intercepte, et seulement sur sa surface. */
+.toast-action { pointer-events: auto; padding-right: 10px; }
+.toast-action .btn { flex-shrink: 0; }
 
 /* ---- Blobs de fond ---- */
 .blob { position: fixed; border-radius: 50%; filter: blur(20px); pointer-events: none; z-index: 0; }
@@ -2830,17 +2836,6 @@ input[type="checkbox"] {
   .main::before, .main::after { display: none; }
 }
 
-/* Retour d'action discret. */
-.flash {
-  position: fixed; top: 22px; right: 22px; z-index: 130;
-  padding: 12px 18px; border-radius: var(--pill);
-  background: oklch(0.22 0.04 296); border: 1px solid oklch(0.72 0.19 296 / 0.45);
-  color: var(--txt); font-size: 13px;
-  box-shadow: 0 12px 30px oklch(0.08 0.02 264 / 0.5);
-  transition: opacity .35s ease, transform .35s ease;
-}
-.flash.is-out { opacity: 0; transform: translateY(-8px); }
-
 /* ============ MISE EN SERVICE ============ */
 .steps-list { display: flex; flex-direction: column; gap: 12px; }
 .serve-step {
@@ -2962,8 +2957,6 @@ input[type="checkbox"] {
 }
 .conv.is-sending { box-shadow: inset 2px 0 0 var(--yellow); }
 
-.flash-undo { display: flex; align-items: center; gap: 16px; }
-.flash-undo .btn { flex-shrink: 0; }
 
 /* ============ FORFAIT DÉPASSÉ ============ */
 .alert-over {
@@ -7133,9 +7126,23 @@ window.ALLY_PLAN_BY_ID = function (id) {
     return { refresh: function () { renderVoices(voice.voices()); } };
   }
 
-  /* ---------- Message éphémère ---------- */
+  /* ---------- Message éphémère ----------
+
+     Il y en avait deux dans le produit, pour le même usage. Celui-ci, en bas
+     au centre, annoncé aux lecteurs d'écran, empilable. Et un « flash » du
+     tableau de bord, en haut à droite, violet, sans région vivante — donc
+     muet pour qui n'a pas d'yeux sur l'écran — et surtout posé toujours au
+     même pixel : deux messages coup sur coup se recouvraient exactement, le
+     premier disparaissait sans avoir été lu.
+
+     Vingt-cinq des trente-deux messages du produit passaient par le second.
+     Il n'en reste qu'un, celui-ci, et une même action ne peut plus produire
+     deux messages de deux styles à deux endroits.
+
+     `action` ajoute un bouton au message — c'est ce qui permet de rattraper
+     un envoi sans aller le chercher dans la liste. */
   var toastHost = null;
-  function toast(message, kind) {
+  function toast(message, kind, action) {
     if (!toastHost) {
       toastHost = document.createElement('div');
       toastHost.className = 'toast-host';
@@ -7143,12 +7150,41 @@ window.ALLY_PLAN_BY_ID = function (id) {
       toastHost.setAttribute('aria-live', 'polite');
       document.body.appendChild(toastHost);
     }
+
     var item = document.createElement('div');
-    item.className = 'toast' + (kind ? ' toast-' + kind : '');
-    item.textContent = message;
+    item.className = 'toast' + (kind ? ' toast-' + kind : '') + (action ? ' toast-action' : '');
+
+    var label = document.createElement('span');
+    label.textContent = message;
+    item.appendChild(label);
+
+    var duree = (action && action.delay) || 3200;
+    var ferme = false;
+
+    function close() {
+      if (ferme) return;
+      ferme = true;
+      item.classList.add('is-out');
+      window.setTimeout(function () {
+        if (item.parentNode) item.parentNode.removeChild(item);
+      }, 400);
+    }
+
+    if (action) {
+      var bouton = document.createElement('button');
+      bouton.type = 'button';
+      bouton.className = 'btn btn-ghost btn-sm';
+      bouton.textContent = action.label || 'Annuler';
+      bouton.addEventListener('click', function () {
+        close();
+        if (action.onClick) action.onClick();
+      });
+      item.appendChild(bouton);
+    }
+
     toastHost.appendChild(item);
-    window.setTimeout(function () { item.classList.add('is-out'); }, 3200);
-    window.setTimeout(function () { if (item.parentNode) item.parentNode.removeChild(item); }, 3600);
+    window.setTimeout(close, duree);
+    return { close: close };
   }
 
   window.ALLY_UI = {
@@ -7857,12 +7893,21 @@ window.ALLY_PLAN_BY_ID = function (id) {
      elles sont décalées sur la semaine en cours au moment où on les charge
      (voir ALLY_STORE.SAMPLE_REF). Un tableau de bord qui affiche la date d'un
      autre mois est la première chose qu'on remarque. */
+  /* Le jour se relit, il ne se fige pas.
+
+     C'était une constante calculée au chargement de la page. Or cet écran est
+     fait pour rester ouvert : un professionnel seul le laisse dans un onglet
+     du matin au soir, et parfois d'un jour sur l'autre. Passé minuit, « Auj. »
+     désignait encore la veille, la case du jour restait allumée sur hier, et
+     surtout « pose-moi un rendez-vous demain » visait le mauvais jour — un
+     rendez-vous posé la nuit atterrissait vingt-quatre heures trop tôt, sans
+     que rien ne le signale. Les vingt-huit endroits qui lisent ALLY_AGENDA.TODAY
+     obtiennent maintenant la date du moment où ils la demandent. */
   function todayISO() {
     var now = new Date();
     var m = now.getMonth() + 1, d = now.getDate();
     return now.getFullYear() + '-' + (m < 10 ? '0' : '') + m + '-' + (d < 10 ? '0' : '') + d;
   }
-  var TODAY = todayISO();
 
   var MONTHS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet',
     'août', 'septembre', 'octobre', 'novembre', 'décembre'];
@@ -7892,8 +7937,8 @@ window.ALLY_PLAN_BY_ID = function (id) {
 
   /* Étiquette courte : « Auj. », « Dem. », sinon « Jeu 30 ». */
   function shortLabel(iso) {
-    if (iso === TODAY) return 'Auj.';
-    if (iso === addDays(TODAY, 1)) return 'Dem.';
+    if (iso === todayISO()) return 'Auj.';
+    if (iso === addDays(todayISO(), 1)) return 'Dem.';
     var d = fromISO(iso);
     var name = DAY_WORDS[d.getDay()];
     return name.charAt(0).toUpperCase() + name.slice(1, 3) + ' ' + d.getDate();
@@ -7907,7 +7952,7 @@ window.ALLY_PLAN_BY_ID = function (id) {
   /* Traduit « demain », « vendredi », « le 12 » en date réelle, toujours
      vers le futur : dire « vendredi » un mardi vise le vendredi qui vient. */
   function resolveDate(word, ref) {
-    var base = ref || TODAY;
+    var base = ref || todayISO();
     if (!word) return base;
     var w = String(word).toLowerCase();
 
@@ -7935,7 +7980,9 @@ window.ALLY_PLAN_BY_ID = function (id) {
     return store.data().blocked.filter(function (b) { return b.date === iso; });
   }
 
-  var view = { month: TODAY.slice(0, 7), selected: TODAY };
+  /* Le mois affiché et le jour sélectionné, eux, restent où le professionnel
+     les a mis : ce sont des choix de navigation, pas la date du jour. */
+  var view = { month: todayISO().slice(0, 7), selected: todayISO() };
 
   function monthMatrix(ym) {
     var parts = ym.split('-');
@@ -7950,7 +7997,6 @@ window.ALLY_PLAN_BY_ID = function (id) {
   }
 
   window.ALLY_AGENDA = {
-    TODAY: TODAY,
     toISO: toISO, fromISO: fromISO, addDays: addDays,
     shortLabel: shortLabel, longLabel: longLabel, resolveDate: resolveDate,
     rdvOn: rdvOn,
@@ -7969,7 +8015,7 @@ window.ALLY_PLAN_BY_ID = function (id) {
         var blocks = blockedOn(iso);
         var classes = ['cal-cell'];
         if (outside) classes.push('is-outside');
-        if (iso === TODAY) classes.push('is-today');
+        if (iso === todayISO()) classes.push('is-today');
         if (iso === view.selected) classes.push('is-selected');
         if (blocks.length) classes.push('is-blocked');
 
@@ -8109,7 +8155,11 @@ window.ALLY_PLAN_BY_ID = function (id) {
       panel.querySelectorAll('[data-month]').forEach(function (button) {
         button.addEventListener('click', function () {
           var dir = button.getAttribute('data-month');
-          if (dir === 'today') { view.month = TODAY.slice(0, 7); view.selected = TODAY; }
+          if (dir === 'today') {
+            var jour = todayISO();
+            view.month = jour.slice(0, 7);
+            view.selected = jour;
+          }
           else {
             var parts = view.month.split('-');
             var d = new Date(Number(parts[0]), Number(parts[1]) - 1 + (dir === 'next' ? 1 : -1), 1);
@@ -8124,8 +8174,30 @@ window.ALLY_PLAN_BY_ID = function (id) {
         addForm.addEventListener('submit', function (event) {
           event.preventDefault();
           var client = document.getElementById('cal-client').value.trim();
-          var time = document.getElementById('cal-time').value;
-          if (!time) return;
+          var champHeure = document.getElementById('cal-time');
+          var time = champHeure.value;
+
+          /* Refus muet : vider l'heure et cliquer « Ajouter » ne faisait rien
+             et ne disait rien. */
+          if (!time) {
+            champHeure.setAttribute('aria-invalid', 'true');
+            champHeure.focus();
+            window.ALLY_UI.toast('Indiquez une heure pour ce rendez-vous.');
+            return;
+          }
+          champHeure.removeAttribute('aria-invalid');
+
+          /* Deux rendez-vous à la même heure : le serveur les refuse, le
+             navigateur les acceptait. Selon qu'une ligne était connectée ou
+             non, le même geste donnait donc deux résultats opposés — et hors
+             ligne, le créneau se retrouvait pris deux fois sans un mot. */
+          var deja = rdvOn(view.selected).filter(function (r) { return r.time === time; })[0];
+          if (deja) {
+            champHeure.setAttribute('aria-invalid', 'true');
+            champHeure.focus();
+            window.ALLY_UI.toast('À ' + time + ', ce créneau est déjà pris par ' + deja.client + '.');
+            return;
+          }
 
           var nom = client || 'Nouveau ' + store.profile().clientWord;
           var note = function () {
@@ -8212,6 +8284,12 @@ window.ALLY_PLAN_BY_ID = function (id) {
       view.month = iso.slice(0, 7);
     }
   };
+
+  /* TODAY se lit comme une propriété — les vingt-huit sites qui l'utilisent
+     n'ont pas à changer — mais se calcule à chaque lecture. */
+  Object.defineProperty(window.ALLY_AGENDA, 'TODAY', {
+    get: todayISO, enumerable: true
+  });
 })();
 
 /* Ally — moteur de compréhension partagé.
@@ -10712,6 +10790,12 @@ window.ALLY_PLAN_BY_ID = function (id) {
     return d.getFullYear() + '-' + (m < 10 ? '0' : '') + m + '-' + (day < 10 ? '0' : '') + day;
   }
 
+  function horloge() {
+    var d = new Date();
+    var h = d.getHours(), m = d.getMinutes();
+    return (h < 10 ? '0' : '') + h + ':' + (m < 10 ? '0' : '') + m;
+  }
+
   function dayLabel(iso) {
     var parts = String(iso).split('-');
     var d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
@@ -10752,7 +10836,16 @@ window.ALLY_PLAN_BY_ID = function (id) {
     }
 
     var parAlly = state.rdv.filter(function (r) { return r.source === 'call'; }).length;
-    var prochain = state.rdv.filter(function (r) { return r.date >= today(); })[0];
+
+    /* « Prochain » ne regardait que la date. À dix-huit heures, un rendez-vous
+       de huit heures du matin était donc encore annoncé comme le suivant —
+       dix heures après l'avoir passé. On compare aussi l'heure. Le serveur
+       rend la liste triée par date puis par heure : le premier qui n'est pas
+       derrière nous est bien le prochain. */
+    var maintenant = today() + ' ' + horloge();
+    var prochain = state.rdv.filter(function (r) {
+      return (r.date + ' ' + (r.time || '00:00')) >= maintenant;
+    })[0];
 
     return '<div class="recap-row" style="margin-top:4px"><span>Rendez-vous enregistrés</span>' +
         '<span>' + state.rdv.length + '</span></div>' +
@@ -13852,40 +13945,20 @@ window.ALLY_PLAN_BY_ID = function (id) {
     flash('Export CSV téléchargé');
   }
 
-  /* Retour discret après une action, en haut à droite. */
-  function flash(text) {
-    var node = document.createElement('div');
-    node.className = 'flash';
-    node.textContent = text;
-    document.body.appendChild(node);
-    window.setTimeout(function () { node.classList.add('is-out'); }, 2200);
-    window.setTimeout(function () { node.remove(); }, 2600);
-  }
+  /* Retour discret après une action.
 
-  /* Message éphémère assorti d'un bouton : c'est le seul endroit où
-     l'annulation d'un envoi est réellement à portée de clic. */
+     C'était un second système de messages, en haut à droite, sans région
+     vivante — donc muet pour un lecteur d'écran — et posé toujours au même
+     pixel : deux messages coup sur coup se recouvraient exactement. Les
+     trente-deux messages du produit passent maintenant par le même endroit. */
+  function flash(text) { window.ALLY_UI.toast(text); }
+
+  /* Message assorti d'un bouton : c'est le seul endroit où l'annulation d'un
+     envoi est réellement à portée de clic. */
   function flashUndo(text, onUndo) {
-    var node = document.createElement('div');
-    node.className = 'flash flash-undo';
-    var label = document.createElement('span');
-    label.textContent = text;
-    var button = document.createElement('button');
-    button.type = 'button';
-    button.className = 'btn btn-ghost btn-sm';
-    button.textContent = 'Annuler';
-    node.appendChild(label);
-    node.appendChild(button);
-    document.body.appendChild(node);
-
-    var closed = false;
-    function close() {
-      if (closed) return;
-      closed = true;
-      node.classList.add('is-out');
-      window.setTimeout(function () { node.remove(); }, 400);
-    }
-    button.addEventListener('click', function () { close(); onUndo(); });
-    window.setTimeout(close, store.UNDO_MS);
+    window.ALLY_UI.toast(text, null, {
+      label: 'Annuler', onClick: onUndo, delay: store.UNDO_MS
+    });
   }
 
   /* Décompte affiché sur les brouillons en cours d'envoi. */

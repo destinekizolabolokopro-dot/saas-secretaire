@@ -73,6 +73,50 @@ const step = async (label, fn) => {
     if (!rdv.some((r) => /Testeur/.test(r.client))) throw new Error('le nom écrit n\'est pas celui saisi');
   });
 
+  /* Le serveur refuse deux rendez-vous à la même heure ; le navigateur les
+     acceptait. Selon qu'une ligne était connectée ou non, le même geste
+     donnait donc deux résultats opposés — et hors ligne, le créneau se
+     retrouvait pris deux fois sans un mot. */
+  /* Les messages s'empilent et durent trois secondes : on part d'un écran
+     net, et on lit le dernier arrivé. */
+  const netToasts = () => p.evaluate(() => {
+    document.querySelectorAll('.toast').forEach((t) => t.remove());
+  });
+  const dernierToast = () => p.evaluate(() => {
+    const l = document.querySelectorAll('.toast');
+    return l.length ? l[l.length - 1].textContent : '';
+  });
+
+  await step('le même créneau ne se donne pas deux fois', async () => {
+    await netToasts();
+    const heure = await p.inputValue('#cal-time');
+    const avant = (await donnees()).rdv.length;
+    await p.fill('#cal-client', 'M. Doublon');
+    await p.click('#cal-add button[type=submit]');
+    await p.waitForTimeout(700);
+
+    const apres = (await donnees()).rdv.length;
+    if (apres !== avant) throw new Error('créneau donné deux fois : ' + avant + ' → ' + apres);
+
+    const dit = await dernierToast();
+    if (!/déjà pris/.test(dit)) throw new Error('refus muet — message : « ' + dit + ' »');
+    if (!dit.includes(heure)) throw new Error('le message ne dit pas quelle heure : « ' + dit + ' »');
+  });
+
+  await step('une heure vide est nommée, pas ignorée', async () => {
+    await netToasts();
+    const avant = (await donnees()).rdv.length;
+    await p.fill('#cal-time', '');
+    await p.fill('#cal-client', 'M. SansHeure');
+    await p.click('#cal-add button[type=submit]');
+    await p.waitForTimeout(700);
+
+    if ((await donnees()).rdv.length !== avant) throw new Error('posé sans heure');
+    const dit = await dernierToast();
+    if (!/heure/i.test(dit)) throw new Error('message : « ' + dit + ' »');
+    await p.fill('#cal-time', '09:00');
+  });
+
   await step('et il s\'affiche', async () => {
     if (!await p.evaluate(() => document.body.innerText.includes('M. Testeur'))) {
       throw new Error('écrit en base mais absent de l\'écran');
@@ -482,8 +526,8 @@ const step = async (label, fn) => {
     await p.locator('#act-more').click();
     await p.waitForTimeout(300);
     await p.locator('.act-menu-item', { hasText: 'résumé du jour' }).first().click();
-    await p.waitForSelector('.flash', { timeout: 5000 });
-    const dit = await p.locator('.flash').first().textContent();
+    await p.waitForSelector('.toast', { timeout: 5000 });
+    const dit = await p.locator('.toast').first().textContent();
     if (/envoyé/i.test(dit)) throw new Error('affirme un envoi qui n\'a pas lieu : « ' + dit + ' »');
     if (!/pas encore branché|prêt/i.test(dit)) throw new Error('message : « ' + dit + ' »');
   });
@@ -511,6 +555,67 @@ const step = async (label, fn) => {
     if (!/pas encore actifs/.test(texte)) {
       throw new Error('trois interrupteurs sans effet sont présentés comme des canaux qui marchent');
     }
+  });
+
+  console.log('\n== Les messages éphémères ==');
+
+  /* Il y en avait deux systèmes pour le même usage : celui-ci, en bas au
+     centre, annoncé aux lecteurs d'écran et empilable ; et un « flash » en
+     haut à droite, sans région vivante — donc muet pour qui n'a pas d'yeux
+     sur l'écran — et posé toujours au même pixel : deux messages coup sur
+     coup se recouvraient exactement, le premier partait sans avoir été lu. */
+  await step('deux messages de suite ne se recouvrent pas', async () => {
+    await p.evaluate(() => {
+      document.querySelectorAll('.toast').forEach((t) => t.remove());
+      window.ALLY_UI.toast('Premier message');
+      window.ALLY_UI.toast('Second message');
+    });
+    await p.waitForTimeout(500);
+
+    const boites = await p.evaluate(() =>
+      Array.prototype.map.call(document.querySelectorAll('.toast'), (t) => {
+        const r = t.getBoundingClientRect();
+        return { texte: t.textContent, top: Math.round(r.top), bas: Math.round(r.bottom) };
+      }));
+
+    if (boites.length !== 2) throw new Error(boites.length + ' message(s) affiché(s) sur deux');
+    const [a, b] = boites;
+    if (a.bas > b.top && b.bas > a.top) {
+      throw new Error('les deux messages se superposent : ' + JSON.stringify(boites));
+    }
+  });
+
+  await step('et ils sont annoncés à voix haute', async () => {
+    const zone = await p.evaluate(() => {
+      const t = document.querySelector('.toast');
+      if (!t) return null;
+      const h = t.closest('[aria-live]');
+      return h ? { live: h.getAttribute('aria-live'), role: h.getAttribute('role') } : null;
+    });
+    if (!zone) throw new Error('aucune région vivante autour des messages');
+    if (zone.live !== 'polite') throw new Error('aria-live : ' + zone.live);
+  });
+
+  await step('le produit n\'a plus qu\'un seul système de messages', async () => {
+    await p.evaluate(() => {
+      document.querySelectorAll('.toast').forEach((t) => t.remove());
+    });
+    /* On déclenche un message par le chemin du tableau de bord — celui qui
+       passait autrefois par l'autre système — et on vérifie qu'il atterrit
+       dans le même hôte que les autres. */
+    await p.locator('.nav-item').nth(0).click();
+    await p.waitForTimeout(600);
+    await p.locator('#act-more').click();
+    await p.waitForTimeout(300);
+    await p.locator('.act-menu-item', { hasText: 'résumé du jour' }).first().click();
+    await p.waitForTimeout(600);
+
+    const compte = await p.evaluate(() => ({
+      toasts: document.querySelectorAll('.toast-host .toast').length,
+      flashs: document.querySelectorAll('.flash').length
+    }));
+    if (compte.flashs) throw new Error('un message est passé par l\'ancien système');
+    if (!compte.toasts) throw new Error('aucun message dans l\'hôte commun');
   });
 
   console.log('\n== Ce qui est écrit reste écrit ==');

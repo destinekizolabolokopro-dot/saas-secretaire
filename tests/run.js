@@ -15,6 +15,7 @@ const path = require('node:path');
 const suites = [
   ['voix', 'tests/voix.js'],
   ['cerveau', 'tests/cerveau.js'],
+  ['horloge', 'tests/horloge.js'],
   ['plateforme', 'tests/plateforme.js'],
   ['serveur', 'server/test.js']
 ];

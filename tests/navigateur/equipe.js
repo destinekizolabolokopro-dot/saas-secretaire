@@ -242,8 +242,8 @@ const post = (route, payload) =>
     await p.waitForTimeout(300);
     await p.click('[data-plan="cabinet"]');
 
-    await p.waitForSelector('.flash', { timeout: 8000 });
-    const toast = await p.locator('.flash').first().textContent();
+    await p.waitForSelector('.toast', { timeout: 8000 });
+    const toast = await p.locator('.toast').first().textContent();
     if (!/Retirez|refus/i.test(toast)) throw new Error('message affiché : « ' + toast + ' »');
 
     const seats = await p.evaluate(async () => {

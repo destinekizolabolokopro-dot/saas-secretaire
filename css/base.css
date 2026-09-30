@@ -520,9 +520,11 @@ input[type="checkbox"] {
   pointer-events: none;
 }
 .toast {
+  display: flex; align-items: center; gap: 14px;
   background: oklch(0.24 0.02 264 / 0.82); border: 1px solid var(--bd-3);
   border-radius: var(--pill);
   padding: 12px 22px; font-size: 14px;
+  max-width: min(520px, calc(100vw - 32px)); text-align: left;
   box-shadow: var(--sh-3), var(--hi-2);
   backdrop-filter: var(--mat); -webkit-backdrop-filter: var(--mat);
   animation: toast-in .4s var(--ease) both;
@@ -535,6 +537,10 @@ input[type="checkbox"] {
 .toast-ok { border-color: oklch(0.7 0.14 200 / 0.5); }
 .toast-warn { border-color: oklch(0.7 0.15 25 / 0.5); }
 .toast.is-out { opacity: 0; transform: translateY(10px); }
+/* L'hôte laisse passer les clics ; seul un message qui porte un bouton les
+   intercepte, et seulement sur sa surface. */
+.toast-action { pointer-events: auto; padding-right: 10px; }
+.toast-action .btn { flex-shrink: 0; }
 
 /* ---- Blobs de fond ---- */
 .blob { position: fixed; border-radius: 50%; filter: blur(20px); pointer-events: none; z-index: 0; }
