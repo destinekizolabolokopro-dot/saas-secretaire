@@ -18,7 +18,9 @@ const TYPES = {
   '.html': 'text/html; charset=utf-8',
   '.css': 'text/css; charset=utf-8',
   '.js': 'text/javascript; charset=utf-8',
-  '.json': 'application/json; charset=utf-8',
+  /* Pas de .json : le front n'en charge aucun — les exports sont fabriqués
+     dans le navigateur — et le laisser passer servait package.json, puis
+     n'importe quelle sauvegarde oubliée à côté des pages. */
   '.svg': 'image/svg+xml',
   '.woff2': 'font/woff2',
   '.png': 'image/png',
@@ -26,7 +28,7 @@ const TYPES = {
 };
 
 /* Dossiers que le serveur n'expose jamais, même si un fichier y existe. */
-const HIDDEN = ['server', 'node_modules', '.git'];
+const HIDDEN = ['server', 'node_modules', '.git', 'tests', '.github'];
 
 /* En-têtes posés sur chaque page.
 
@@ -84,8 +86,20 @@ function serve(req, res, pathname) {
     return true;
   }
 
-  const first = path.relative(ROOT, target).split(path.sep)[0];
-  if (HIDDEN.includes(first)) {
+  const parts = path.relative(ROOT, target).split(path.sep);
+  if (HIDDEN.includes(parts[0])) {
+    res.writeHead(404).end('Introuvable');
+    return true;
+  }
+
+  /* Aucun fichier caché, à aucune profondeur.
+
+     Ce module servait tout ce qu'il trouvait, avec un type générique en
+     dernier recours. Un « .env » posé à côté des pages — c'est exactement là
+     qu'on le pose — partait donc en clair à qui en demandait l'adresse : clé
+     de chiffrement, mot de passe de l'administrateur, clé d'API du
+     fournisseur d'emails. */
+  if (parts.some((p) => p.startsWith('.'))) {
     res.writeHead(404).end('Introuvable');
     return true;
   }
@@ -95,8 +109,16 @@ function serve(req, res, pathname) {
   catch (e) { return false; }
   if (!stat.isFile()) return false;
 
+  /* Et seulement les types qu'un site a besoin de servir. Le repli générique
+     faisait sortir n'importe quel fichier du dépôt — package.json, un
+     Dockerfile, une sauvegarde oubliée. Ce qui n'est pas une page, un style,
+     un script, une police ou une image n'a rien à faire sur le web. */
   const extension = path.extname(target).toLowerCase();
-  const type = TYPES[extension] || 'application/octet-stream';
+  const type = TYPES[extension];
+  if (!type) {
+    res.writeHead(404).end('Introuvable');
+    return true;
+  }
 
   /* Les pages servies par l'API la déclarent. Sans ce marqueur, le front ne
      tente aucune requête : sur un hébergeur statique, sonder /api/health

@@ -18,6 +18,7 @@ const auth = require('./lib/auth');
 const repo = require('./lib/repo');
 const H = require('./lib/http');
 const statics = require('./lib/static');
+const mailer = require('./lib/mailer');
 const { verifySignature, encrypt, decrypt } = require('./lib/crypto');
 
 const PORT = Number(process.env.PORT || 8787);
@@ -39,6 +40,34 @@ const PUBLIC = new Set([
   'GET /api/me'
 ]);
 
+/* Ce qu'on fait d'un code une fois émis.
+
+   Trois chemins, un seul endroit. Quand un fournisseur d'emails est branché,
+   le code part et ne revient jamais dans la réponse HTTP — un code qui
+   transite par la page est un code public. Sans fournisseur, hors production,
+   il s'affiche à l'écran : c'est ce qui fait tourner la démonstration, et le
+   serveur refuse de démarrer ainsi en production. Si l'envoi échoue, on le
+   dit à l'appelant : l'inscription, elle, a bien eu lieu — on ne détruit pas
+   un compte parce que Brevo a hoqueté. */
+const CODE_MINUTES = 10;
+
+async function remettreCode(email, kind, code) {
+  if (code === null || code === undefined) return { envoye: false };
+
+  const envoi = await mailer.envoyerCode(email, kind, code, CODE_MINUTES);
+  if (envoi.ok) return { envoye: true };
+
+  if (envoi.mode === 'aucun') {
+    /* Aucun fournisseur : mode démonstration. La production ne passe jamais
+       par ici — le démarrage l'interdit. */
+    return { envoye: false, devCode: process.env.NODE_ENV === 'production' ? undefined : code };
+  }
+
+  console.error('[ally] envoi du code impossible :', envoi.error);
+  store.record('mail-failed', { kind });
+  return { envoye: false, panne: true };
+}
+
 /* ------------------------------------------------------------------ Routes */
 
 const routes = {
@@ -54,14 +83,28 @@ const routes = {
     const result = auth.signup(ctx.body);
     if (!result.ok) return H.fail(ctx.res, 400, result.error);
 
+    /* Vérification désactivée : le compte est actif tout de suite, et la
+       session s'ouvre dans la foulée. C'est un choix de lancement assumé — on
+       le pose dans l'environnement, pas dans le code. */
+    if (!mailer.verificationRequise()) {
+      const ouvert = auth.verifyDirect(result.user.id);
+      if (ouvert.ok) {
+        const session = auth.openSession(ouvert.user);
+        H.setSession(ctx.res, session.token, auth.SESSION_MS / 1000);
+        return H.json(ctx.res, 201, {
+          userId: result.user.id, cabinetId: result.cabinet.id, verified: true
+        });
+      }
+    }
+
     const code = auth.issueCode(result.user.id, 'verify');
-    /* En production ce code part par email et ne revient jamais dans la
-       réponse. Il n'est exposé qu'en développement, pour pouvoir dérouler le
-       parcours sans boîte mail. */
+    const remis = await remettreCode(result.user.email, 'verify', code);
     H.json(ctx.res, 201, {
       userId: result.user.id,
       cabinetId: result.cabinet.id,
-      devCode: process.env.NODE_ENV === 'production' ? undefined : code
+      envoye: remis.envoye,
+      panne: remis.panne || undefined,
+      devCode: remis.devCode
     });
   },
 
@@ -75,9 +118,12 @@ const routes = {
 
     const user = store.load().users.find((u) => u.id === ctx.body.userId);
     const code = user && !user.verified ? auth.issueCode(user.id, 'verify') : null;
+    const remis = await remettreCode(user && user.email, 'verify', code);
     H.json(ctx.res, 200, {
       ok: true,
-      devCode: process.env.NODE_ENV === 'production' ? undefined : code
+      envoye: remis.envoye,
+      panne: remis.panne || undefined,
+      devCode: remis.devCode
     });
   },
 
@@ -103,10 +149,12 @@ const routes = {
     const result = auth.login(ctx.body.email, ctx.body.password);
     if (!result.ok && result.error === 'unverified') {
       const code = auth.issueCode(result.user.id, 'verify');
+      const remis = await remettreCode(result.user.email, 'verify', code);
       return H.json(ctx.res, 403, {
         error: 'unverified',
         userId: result.user.id,
-        devCode: process.env.NODE_ENV === 'production' ? undefined : code
+        envoye: remis.envoye,
+        devCode: remis.devCode
       });
     }
     if (!result.ok) return H.fail(ctx.res, 401, result.error);
@@ -137,11 +185,13 @@ const routes = {
     if (!limit.ok) return H.fail(ctx.res, 429, 'Trop de demandes. Réessayez plus tard.');
 
     const result = auth.requestReset(ctx.body.email);
+    const remis = await remettreCode(result.email, 'reset', result.code);
     /* Réponse volontairement identique, que le compte existe ou non. */
     H.json(ctx.res, 200, {
       ok: true,
       userId: result.userId,
-      devCode: process.env.NODE_ENV === 'production' ? undefined : result.code
+      envoye: remis.envoye,
+      devCode: remis.devCode
     });
   },
 
@@ -530,6 +580,93 @@ const routes = {
     H.json(ctx.res, 200, { events: repo.admin.events(100) });
   },
 
+  /* La fiche d'un cabinet : qui en fait partie, depuis quand, combien de
+     sessions ouvertes, quels volumes. Toujours pas une ligne de contenu —
+     c'est la même règle que pour la liste, et elle ne souffre pas d'exception
+     parce qu'on a ouvert une fiche. */
+  'GET /api/admin/cabinets/:id': async (ctx) => {
+    if (ctx.session.role !== 'admin') return H.fail(ctx.res, 403, 'Accès réservé.');
+    const fiche = auth.cabinetFile(ctx.params.id);
+    if (!fiche) return H.fail(ctx.res, 404, 'Introuvable.');
+    H.json(ctx.res, 200, fiche);
+  },
+
+  /* Suspendre, c'est la porte fermée à clé — celle qu'on rouvre. Entre
+     « laisser travailler » et « tout détruire », il n'y avait rien. */
+  'POST /api/admin/cabinets/:id/suspend': async (ctx) => {
+    if (ctx.session.role !== 'admin') return H.fail(ctx.res, 403, 'Accès réservé.');
+    const result = auth.suspendCabinet(ctx.params.id, ctx.body.motif);
+    if (!result.ok) return H.fail(ctx.res, result.status || 409, result.error);
+    H.json(ctx.res, 200, { ok: true, sessionsFermees: result.sessionsFermees });
+  },
+
+  'POST /api/admin/cabinets/:id/reactivate': async (ctx) => {
+    if (ctx.session.role !== 'admin') return H.fail(ctx.res, 403, 'Accès réservé.');
+    const result = auth.reactivateCabinet(ctx.params.id);
+    if (!result.ok) return H.fail(ctx.res, result.status || 409, result.error);
+    H.json(ctx.res, 200, { ok: true });
+  },
+
+  /* La formule du cabinet, vue de la plateforme : c'est elle qui ouvre les
+     places de collaborateur, et c'est elle qu'on ajuste quand un client
+     change d'offre au téléphone plutôt que dans l'écran. */
+  'POST /api/admin/cabinets/:id/plan': async (ctx) => {
+    if (ctx.session.role !== 'admin') return H.fail(ctx.res, 403, 'Accès réservé.');
+
+    const db = store.load();
+    const cabinet = db.cabinets.find((c) => c.id === ctx.params.id);
+    if (!cabinet) return H.fail(ctx.res, 404, 'Introuvable.');
+
+    const plan = String(ctx.body.plan || '');
+    if (!Object.prototype.hasOwnProperty.call(auth.SEATS, plan)) {
+      return H.fail(ctx.res, 400, 'Formule inconnue.');
+    }
+    const famille = db.users.filter((u) => u.cabinetId === cabinet.id).length;
+    if (auth.SEATS[plan] < famille) {
+      return H.fail(ctx.res, 409, 'Cette formule ne comprend que ' + auth.SEATS[plan]
+        + ' utilisateur(s), et le cabinet en compte ' + famille + '.');
+    }
+
+    cabinet.plan = plan;
+    store.record('plan-changed-by-admin', { cabinetId: cabinet.id, vers: plan });
+    store.save();
+    H.json(ctx.res, 200, { ok: true, plan, seats: auth.SEATS[plan] });
+  },
+
+  /* Confirmation manuelle : le cas d'assistance le plus courant, celui où
+     l'email n'est jamais arrivé. Sans cette route, la seule issue était de
+     recréer le compte — donc de perdre sa configuration. */
+  'POST /api/admin/users/:id/verify': async (ctx) => {
+    if (ctx.session.role !== 'admin') return H.fail(ctx.res, 403, 'Accès réservé.');
+    const cible = auth.findById(ctx.params.id);
+    if (!cible) return H.fail(ctx.res, 404, 'Introuvable.');
+    if (cible.verified) return H.fail(ctx.res, 409, 'Cette adresse est déjà confirmée.');
+
+    const result = auth.verifyDirect(cible.id);
+    if (!result.ok) return H.fail(ctx.res, 400, result.error);
+    store.record('verified-by-admin', { userId: cible.id });
+    store.save();
+    H.json(ctx.res, 200, { ok: true });
+  },
+
+  /* Suppression d'un cabinet par la plateforme : tout part, d'un coup. C'est
+     ce qu'exige le droit à l'effacement quand la demande arrive par courrier
+     plutôt que par l'écran du client. */
+  'POST /api/admin/cabinets/:id/delete': async (ctx) => {
+    if (ctx.session.role !== 'admin') return H.fail(ctx.res, 403, 'Accès réservé.');
+
+    const db = store.load();
+    const cabinet = db.cabinets.find((c) => c.id === ctx.params.id);
+    if (!cabinet) return H.fail(ctx.res, 404, 'Introuvable.');
+    /* On ne se supprime pas soi-même par mégarde en balayant la liste. */
+    if (cabinet.id === ctx.session.cabinetId) {
+      return H.fail(ctx.res, 409, 'C\'est le cabinet de votre propre session.');
+    }
+
+    const compte = auth.deleteCabinet(cabinet.id);
+    H.json(ctx.res, 200, { ok: true, supprime: compte });
+  },
+
   /* ------------------------------------------------------------ Webhooks */
 
   /* Point d'entrée public : sans vérification de signature, n'importe qui
@@ -682,6 +819,18 @@ function flushOutbox() {
 const PURGE_TICK = 24 * 60 * 60 * 1000;
 
 if (require.main === module) {
+  /* Ce que le serveur refuse de faire.
+
+     Mettre en ligne un parcours d'inscription qui exige un code que rien
+     n'envoie, c'est accepter des comptes mort-nés : la personne s'inscrit,
+     attend un email qui n'existe pas, et n'entre jamais. Le serveur préfère
+     ne pas démarrer et dire quoi renseigner. */
+  const courrier = mailer.etat();
+  if (courrier.fatal) {
+    console.error('[ally] démarrage refusé — ' + courrier.message);
+    process.exit(1);
+  }
+
   const admin = auth.ensureAdmin();
   const purged = auth.purgeExpired();
   setInterval(flushOutbox, OUTBOX_TICK).unref();
@@ -690,12 +839,18 @@ if (require.main === module) {
     console.log('[ally] API à l\'écoute sur http://localhost:' + PORT);
     console.log('[ally] données : ' + store.FILE);
     if (purged) console.log('[ally] conservation : ' + purged + ' enregistrement(s) effacé(s)');
+    console.log('[ally] courrier : ' + courrier.message);
     if (admin.ok) {
       console.log('[ally] administrateur : ' + admin.user.email
         + (admin.created ? ' (créé)' : ' (déjà présent)'));
     } else if (admin.reason !== 'absent') {
       console.log('[ally] administrateur non configuré — ' + admin.reason
         + ' (ALLY_ADMIN_EMAIL / ALLY_ADMIN_PASSWORD)');
+    } else if (process.env.NODE_ENV === 'production') {
+      /* En production, personne ne peut voir la plateforme : ce n'est pas une
+         panne, mais ça ne s'invente pas plus tard sans accès à la machine. */
+      console.log('[ally] aucun administrateur — renseignez ALLY_ADMIN_EMAIL '
+        + 'et ALLY_ADMIN_PASSWORD pour ouvrir la console');
     }
   });
 }

@@ -309,6 +309,78 @@ function deleteCabinet(cabinetId) {
   return compte;
 }
 
+/* ------------------------------------------------- Suspension d'un cabinet
+
+   Il n'y en avait aucune. Un cabinet qui ne paie plus, ou qu'on ne veut plus
+   servir, restait connecté pour toujours : la seule sortie était la
+   suppression, c'est-à-dire la destruction de ses données. Entre « tout » et
+   « rien », il manquait la porte fermée à clé — celle qu'on rouvre.
+
+   Suspendre coupe l'accès de tout le cabinet, pas d'une personne : c'est le
+   cabinet qui est client. Les sessions ouvertes se ferment tout de suite,
+   sinon celui qui est déjà connecté continuerait de travailler jusqu'à
+   l'expiration de son jeton. */
+function suspendCabinet(cabinetId, motif) {
+  const base = store.load();
+  const cabinet = base.cabinets.find((c) => c.id === cabinetId);
+  if (!cabinet) return { ok: false, error: 'Introuvable.', status: 404 };
+  if (cabinet.suspended) return { ok: false, error: 'Ce cabinet est déjà suspendu.' };
+
+  cabinet.suspended = { at: Date.now(), motif: String(motif || '').slice(0, 200) || null };
+  const fermees = base.sessions.filter((s) => s.cabinetId === cabinetId).length;
+  base.sessions = base.sessions.filter((s) => s.cabinetId !== cabinetId);
+
+  store.record('cabinet-suspended', { cabinetId });
+  store.save();
+  return { ok: true, sessionsFermees: fermees };
+}
+
+function reactivateCabinet(cabinetId) {
+  const base = store.load();
+  const cabinet = base.cabinets.find((c) => c.id === cabinetId);
+  if (!cabinet) return { ok: false, error: 'Introuvable.', status: 404 };
+  if (!cabinet.suspended) return { ok: false, error: 'Ce cabinet n\'est pas suspendu.' };
+
+  delete cabinet.suspended;
+  store.record('cabinet-reactivated', { cabinetId });
+  store.save();
+  return { ok: true };
+}
+
+/* La fiche d'un cabinet, telle que la plateforme a le droit de la voir.
+
+   Des volumes, des statuts, des dates — et pas une ligne de contenu. Un
+   administrateur capable de lire les transcriptions d'un cabinet d'avocats
+   est un risque, pas une fonction : c'est la même règle que pour la liste. */
+function cabinetFile(cabinetId) {
+  const base = store.load();
+  const cabinet = base.cabinets.find((c) => c.id === cabinetId);
+  if (!cabinet) return null;
+
+  const { config, ...sansConfig } = cabinet;
+  const membres = base.users
+    .filter((u) => u.cabinetId === cabinetId)
+    .sort((a, b) => a.createdAt - b.createdAt)
+    .map((u) => ({
+      id: u.id, email: u.email, role: u.role, owner: !!u.owner,
+      verified: !!u.verified, createdAt: u.createdAt,
+      enAttente: !u.verified && !u.pass
+    }));
+
+  return {
+    cabinet: sansConfig,
+    configuree: !!config,
+    places: seatsOf(cabinet),
+    membres,
+    sessions: base.sessions.filter((s) => s.cabinetId === cabinetId && s.expiresAt > Date.now()).length,
+    volumes: {
+      appels: base.calls.filter((c) => c.cabinetId === cabinetId).length,
+      messages: base.messages.filter((m) => m.cabinetId === cabinetId).length,
+      rendezVous: base.rdv.filter((r) => r.cabinetId === cabinetId).length
+    }
+  };
+}
+
 /* Ménage : les enregistrements plus vieux que la durée choisie par le cabinet
    s'effacent d'eux-mêmes. Conserver « au cas où » est exactement ce que le
    RGPD interdit, et c'est aussi ce qui transforme une fuite en catastrophe. */
@@ -381,6 +453,20 @@ function verifyEmail(userId, value) {
   return { ok: true, user };
 }
 
+/* Confirmation sans code : quand la plateforme tourne en mode « open », il n'y
+   a pas d'email à vérifier et le compte est actif dès sa création. C'est un
+   choix de lancement — on le pose dans l'environnement du serveur, et le
+   journal garde la trace que la confirmation n'a pas été prouvée. */
+function verifyDirect(userId) {
+  const user = store.load().users.find((u) => u.id === userId);
+  if (!user) return { ok: false, error: 'Introuvable.' };
+  user.verified = true;
+  user.code = null;
+  store.record('verified-open', { userId });
+  store.save();
+  return { ok: true, user };
+}
+
 /* ------------------------------------------------------------------ Session */
 
 /* Les sessions expirées ne partaient qu'au moment où l'on présentait leur
@@ -436,6 +522,17 @@ function login(email, password) {
   }
   if (!user.verified) return { ok: false, error: 'unverified', user };
 
+  /* Un cabinet suspendu ne se connecte plus — c'est la seule façon d'arrêter
+     un service qu'on ne facture plus, ou qu'on ne veut plus fournir. Le motif
+     n'est pas dit à l'écran de connexion : il regarde la plateforme et le
+     responsable, pas quiconque tape une adresse. */
+  const cabinet = store.load().cabinets.find((c) => c.id === user.cabinetId);
+  if (cabinet && cabinet.suspended) {
+    store.record('login-suspended', { userId: user.id, cabinetId: cabinet.id });
+    store.save();
+    return { ok: false, error: 'Ce compte est suspendu. Contactez le support.' };
+  }
+
   return { ok: true, user, session: openSession(user) };
 }
 
@@ -469,7 +566,9 @@ function requestReset(email) {
   /* Réponse identique dans les deux cas. Le code n'est émis que si le compte
      existe, mais l'appelant ne peut pas faire la différence. */
   if (!user) return { ok: true, code: null };
-  return { ok: true, code: issueCode(user.id, 'reset'), userId: user.id };
+  /* L'adresse revient à l'appelant pour qu'il poste le code — elle ne sort
+     jamais dans la réponse HTTP, qui reste identique compte ou pas. */
+  return { ok: true, code: issueCode(user.id, 'reset'), userId: user.id, email: user.email };
 }
 
 function resetPassword(userId, value, password) {
@@ -493,9 +592,10 @@ function resetPassword(userId, value, password) {
 
 module.exports = {
   signup, issueCode, verifyEmail, ensureAdmin,
-  invite, acceptInvite, removeMember, isOwner, seatsOf, setPlan, SEATS,
+  invite, acceptInvite, removeMember, isOwner, seatsOf, setPlan, verifyDirect, SEATS,
   login, logout, sessionFrom, openSession,
   requestReset, resetPassword,
   findUser, findById, pruneSessions, deleteCabinet, purgeExpired,
+  suspendCabinet, reactivateCabinet, cabinetFile,
   DEFAULT_RETENTION_DAYS, SESSION_MS
 };

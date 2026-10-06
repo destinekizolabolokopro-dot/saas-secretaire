@@ -1,0 +1,55 @@
+# Ally — ce qui tourne à chaque poussée.
+#
+# Deux étages. Les tests sans navigateur passent partout en quelques secondes :
+# le moteur d'intentions, la prononciation, l'horloge, l'arithmétique des
+# formules, et le serveur en entier — cloisonnement des cabinets compris.
+#
+# Les tests d'interface demandent un vrai Chromium ; ils tournent dans le même
+# travail, après, parce qu'un cloisonnement cassé doit se voir avant une
+# couleur de bouton.
+
+name: Tests
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+
+jobs:
+  verifier:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Tests sans navigateur
+        run: node tests/run.js
+
+      - name: Installer Chromium
+        run: |
+          npm install --no-save playwright@1.49.1
+          npx playwright install --with-deps chromium
+
+      - name: Servir le site
+        run: |
+          python3 -m http.server 8123 &
+          sleep 2
+          curl -sf http://127.0.0.1:8123/dashboard.html > /dev/null
+
+      - name: Tests au navigateur
+        env:
+          ALLY_PLAYWRIGHT: ${{ github.workspace }}/node_modules/playwright
+        run: |
+          CHROME=$(node -e "console.log(require('playwright').chromium.executablePath())")
+          ALLY_CHROMIUM="$CHROME" node tests/navigateur/run.js
+
+      - name: La démonstration autonome est à jour
+        run: |
+          node build-demo.js
+          git diff --exit-code -- ally-demo.html ally-artifact.html \
+            || (echo "::error::ally-demo.html n'a pas été régénéré après une modification du front. Lancez « node build-demo.js » et committez." && exit 1)

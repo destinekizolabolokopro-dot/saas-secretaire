@@ -17,7 +17,14 @@
 
   var api = window.ALLY_API;
 
-  var state = { stats: null, cabinets: [], events: [], error: null, busy: false, timer: null };
+  var state = {
+    stats: null, cabinets: [], events: [], error: null, busy: false, timer: null,
+    /* Le cabinet dont la fiche est ouverte, et ce que le serveur en dit. */
+    ouvert: null, fiche: null, ficheErreur: null, ficheBusy: false,
+    /* Message de la dernière action — un refus du serveur ne doit pas se
+       perdre dans une boîte du navigateur. */
+    dit: null
+  };
 
   function esc(v) {
     return String(v === undefined || v === null ? '' : v)
@@ -52,11 +59,13 @@
         '<div>' +
           '<p class="card-title" style="margin-bottom:4px">La plateforme réelle' +
             '<span class="live-badge is-on">serveur</span></p>' +
-          '<p class="note">Tout le reste de cette console lit l\'annuaire de ' +
-            'démonstration du navigateur. Ces chiffres-ci viennent du serveur : ' +
-            'ce sont les comptes qui existent vraiment.</p>' +
+          '<p class="note">Les cabinets qui existent vraiment, et ce qu\'on peut ' +
+            'leur faire : ouvrir une ligne, ajuster une formule, couper un accès, ' +
+            'confirmer une adresse bloquée, tout effacer. Le reste de cette console ' +
+            'lit l\'annuaire de démonstration du navigateur.</p>' +
         '</div>' +
       '</div>' +
+      (state.dit ? '<p class="alert-warn" style="margin-top:4px">' + esc(state.dit) + '</p>' : '') +
       body() +
     '</div>';
   }
@@ -87,34 +96,129 @@
       '<p class="stat-foot">' + esc(foot) + '</p></div>';
   }
 
+  /* La liste n'en montrait que huit, sans moyen d'en voir un de près : on
+     savait qu'un cabinet existait, pas ce qui lui arrivait. Chaque ligne
+     s'ouvre maintenant sur sa fiche. */
   function cabinets() {
     if (!state.cabinets.length) {
       return '<div class="empty" style="margin-top:16px">Aucun cabinet inscrit sur ce ' +
         'serveur pour l\'instant.</div>';
     }
-    return '<div class="live-list" style="margin-top:16px">' +
-      state.cabinets.slice().reverse().slice(0, 8).map(function (c) {
+
+    return '<p class="card-title" style="margin-top:22px">Cabinets</p>' +
+      '<div class="live-list">' +
+      state.cabinets.slice().reverse().map(function (c) {
+        var ouvert = state.ouvert === c.id;
+        return '<div class="conv' + (c.suspended ? ' is-urgent' : '') + '">' +
+          '<button type="button" class="conv-head" data-cabinet="' + esc(c.id) + '"' +
+            ' aria-expanded="' + ouvert + '">' +
+            '<span class="conv-main">' +
+              '<span class="conv-who">' + esc(c.org || 'Cabinet') + '</span>' +
+              '<span class="conv-sub">' + esc(c.members) + ' membre' + (c.members > 1 ? 's' : '') +
+                ' · ' + esc(c.calls) + ' appel' + (c.calls > 1 ? 's' : '') +
+                ' · ' + esc(c.messages) + ' email' + (c.messages > 1 ? 's' : '') +
+                ' · inscrit le ' + window.ALLY_DATE(c.createdAt) + '</span>' +
+            '</span>' +
+            '<span class="conv-right">' +
+              (c.suspended
+                ? '<span class="badge-status badge-urgent">Suspendu</span>'
+                : '') +
+              '<span class="badge-status ' + (c.line && c.line.numero ? 'badge-ok' : 'badge-pending') + '">' +
+                esc(c.line && c.line.numero ? c.line.numero : 'Sans ligne') + '</span>' +
+              '<span class="tag">' + esc(c.plan || 'cabinet') + '</span>' +
+            '</span>' +
+          '</button>' +
+          (ouvert ? '<div class="conv-body">' + fiche(c) + '</div>' : '') +
+        '</div>';
+      }).join('') + '</div>';
+  }
+
+  /* La fiche : ce que le serveur sait, et les gestes qui engagent. */
+  function fiche(c) {
+    if (state.ficheErreur) return '<p class="lock-note">' + esc(state.ficheErreur) + '</p>';
+    if (!state.fiche || state.fiche.cabinet.id !== c.id) {
+      return '<div class="empty">Lecture de la fiche…</div>';
+    }
+
+    var f = state.fiche;
+    var suspendu = !!f.cabinet.suspended;
+
+    return '<div class="tri-row"><span>Métier</span><span>' + esc(f.cabinet.trade) +
+        '</span><span>' + (f.configuree ? 'configuré' : 'questionnaire non terminé') + '</span></div>' +
+      '<div class="tri-row"><span>Sessions ouvertes</span><span>' + esc(f.sessions) +
+        '</span><span>' + esc(f.volumes.rendezVous) + ' rendez-vous</span></div>' +
+
+      '<p class="sub-label" style="margin-top:18px">Membres</p>' +
+      '<div class="live-list">' + f.membres.map(function (m) {
         return '<div class="row">' +
           '<div class="row-main">' +
-            '<p class="row-name">' + esc(c.org || 'Cabinet') + '</p>' +
-            '<p class="row-meta">' + esc(c.members) + ' membre' + (c.members > 1 ? 's' : '') +
-              ' · ' + esc(c.calls) + ' appel' + (c.calls > 1 ? 's' : '') +
-              ' · ' + esc(c.messages) + ' email' + (c.messages > 1 ? 's' : '') + '</p>' +
+            '<p class="row-name">' + esc(m.email) + '</p>' +
+            '<p class="row-meta">' + (m.owner ? 'Responsable' : 'Collaborateur') +
+              (m.role === 'admin' ? ' · plateforme' : '') + '</p>' +
           '</div>' +
           '<div class="row-side">' +
-            /* La ligne attribuée, ou le bouton pour l'attribuer : c'est le
-               geste qui met un cabinet en service, il doit être à portée. */
-            (c.line && c.line.numero
-              ? '<span class="badge-status badge-ok">' + esc(c.line.numero) + '</span>'
-              : '<button type="button" class="btn btn-ghost btn-sm" data-line="' +
-                esc(c.id) + '">Attribuer un numéro</button>') +
-            '<span class="row-meta">' + window.ALLY_DATE(c.createdAt) + '</span>' +
+            (m.verified
+              ? '<span class="badge-status badge-ok">Confirmé</span>'
+              : '<span class="badge-status badge-pending">' +
+                (m.enAttente ? 'Invitation en attente' : 'Adresse non confirmée') + '</span>') +
+            (m.verified ? ''
+              : '<button type="button" class="btn btn-ghost btn-sm" data-verifier="' +
+                esc(m.id) + '">Confirmer à la main</button>') +
           '</div>' +
         '</div>';
       }).join('') + '</div>' +
-      '<p class="note" style="margin-top:12px">Le numéro attribué ici est celui sur ' +
-        'lequel Ally décroche pour ce cabinet. C\'est lui qui apparaît dans ses codes ' +
-        'de renvoi : tant qu\'il n\'est pas posé, le professionnel n\'a rien à composer.</p>';
+
+      '<p class="sub-label" style="margin-top:18px">Formule — ' + esc(f.places) +
+        ' place' + (f.places > 1 ? 's' : '') + '</p>' +
+      '<div class="choice-row" role="group" aria-label="Formule du cabinet">' +
+        ['permanence', 'cabinet', 'expert'].map(function (id) {
+          return '<button type="button" class="choice" data-formule="' + id + '"' +
+            ' aria-pressed="' + (f.cabinet.plan === id) + '">' + id + '</button>';
+        }).join('') +
+      '</div>' +
+
+      '<p class="sub-label" style="margin-top:18px">Ligne téléphonique</p>' +
+      '<div class="block-form">' +
+        '<label class="sr-only" for="plat-numero">Numéro attribué</label>' +
+        '<input class="field" id="plat-numero" type="tel" placeholder="0X XX XX XX XX"' +
+          ' value="' + esc(f.cabinet.line && f.cabinet.line.numero ? f.cabinet.line.numero : '') + '">' +
+        '<label class="sr-only" for="plat-operateur">Opérateur</label>' +
+        '<input class="field" id="plat-operateur" placeholder="Opérateur"' +
+          ' style="max-width:180px" value="' +
+          esc(f.cabinet.line && f.cabinet.line.operateur ? f.cabinet.line.operateur : '') + '">' +
+        '<button type="button" class="btn btn-primary btn-sm" data-poser>Attribuer</button>' +
+        (f.cabinet.line ? '<button type="button" class="btn btn-ghost btn-sm" data-liberer>' +
+          'Libérer</button>' : '') +
+      '</div>' +
+      '<p class="note" style="margin-top:10px">C\'est le numéro sur lequel Ally décroche ' +
+        'pour ce cabinet, et celui qui apparaît dans ses codes de renvoi. Tant qu\'il ' +
+        'n\'est pas posé, le professionnel n\'a rien à composer.</p>' +
+
+      '<p class="sub-label" style="margin-top:18px">Accès</p>' +
+      (suspendu
+        ? '<p class="note" style="margin-bottom:12px">Suspendu le ' +
+            window.ALLY_DATE(f.cabinet.suspended.at) +
+            (f.cabinet.suspended.motif ? ' — ' + esc(f.cabinet.suspended.motif) : '') +
+            '. Personne de ce cabinet ne peut se connecter.</p>' +
+          '<div class="voice-try"><button type="button" class="btn btn-primary btn-md" ' +
+            'data-rouvrir>Rouvrir l\'accès</button></div>'
+        : '<div class="block-form">' +
+            '<label class="sr-only" for="plat-motif">Motif</label>' +
+            '<input class="field" id="plat-motif" placeholder="Motif — impayé, demande du client…">' +
+            '<button type="button" class="btn btn-ghost btn-sm" data-suspendre>' +
+              'Suspendre l\'accès</button>' +
+          '</div>' +
+          '<p class="note" style="margin-top:10px">La suspension coupe l\'accès de tout ' +
+            'le cabinet et ferme ses sessions ouvertes. Elle se rouvre.</p>') +
+
+      '<p class="sub-label" style="margin-top:18px">Effacement</p>' +
+      '<div class="voice-try">' +
+        '<button type="button" class="btn btn-danger btn-md" data-effacer>' +
+          'Supprimer ce cabinet</button>' +
+      '</div>' +
+      '<p class="note" style="margin-top:10px">Comptes, appels, emails, rendez-vous : tout ' +
+        'part, sans corbeille. C\'est ce qu\'exige le droit à l\'effacement quand la ' +
+        'demande arrive par courrier plutôt que par l\'écran du client.</p>';
   }
 
   /* Le journal ne porte que des identifiants. Un identifiant de cabinet, on
@@ -148,7 +252,31 @@
      qui redessinerait — le serveur serait interrogé en boucle serrée. */
   function signature() {
     return (state.error || '') + '|' + JSON.stringify(state.stats) + '|' +
-      state.cabinets.length + '|' + (state.events[0] ? state.events[0].at : '');
+      state.cabinets.length + '|' + (state.events[0] ? state.events[0].at : '') + '|' +
+      (state.ouvert || '') + '|' + JSON.stringify(state.fiche) + '|' +
+      (state.ficheErreur || '') + '|' + (state.dit || '');
+  }
+
+  /* Lecture d'une fiche. Elle ne passe pas par le rafraîchissement périodique :
+     on la demande quand on ouvre, et après chaque geste qui la change. */
+  function lireFiche(cabinetId, rerender) {
+    state.ficheBusy = true;
+    state.ficheErreur = null;
+    api.adminCabinet(cabinetId).then(function (res) {
+      state.ficheBusy = false;
+      if (!res.ok) {
+        state.fiche = null;
+        state.ficheErreur = (res.body && res.body.error) || 'Fiche illisible.';
+      } else {
+        state.fiche = res.body;
+      }
+      if (rerender) rerender();
+    }).catch(function () {
+      state.ficheBusy = false;
+      state.fiche = null;
+      state.ficheErreur = 'Serveur injoignable.';
+      if (rerender) rerender();
+    });
   }
 
   function refresh(rerender) {
@@ -189,29 +317,137 @@
     var host = panel.querySelector('[data-platform]');
     if (!host) return;
 
-    host.querySelectorAll('[data-line]').forEach(function (bouton) {
-      bouton.addEventListener('click', function () {
-        var cabinetId = bouton.getAttribute('data-line');
-        var numero = window.prompt('Numéro sur lequel Ally décroche pour ce cabinet '
-          + '(format 0X XX XX XX XX) :');
-        if (!numero) return;
+    var id = state.ouvert;
 
-        bouton.disabled = true;
-        api.assignLine(cabinetId, numero).then(function (res) {
-          bouton.disabled = false;
-          if (!res.ok) {
-            window.alert((res.body && res.body.error) || 'Attribution refusée.');
-            return;
-          }
-          state.stats = null;
-          refresh(rerender);
+    /* Un geste, et ce que le serveur en dit. Les refus passaient par
+       window.alert — une boîte du navigateur, étrangère au produit, que
+       certains contextes bloquent purement et simplement : le clic ne faisait
+       alors rien du tout. */
+    function agir(promesse, bouton, libelleEnCours) {
+      var libelle = bouton ? bouton.textContent : '';
+      if (bouton) { bouton.disabled = true; bouton.textContent = libelleEnCours || 'En cours…'; }
+      state.dit = null;
+
+      return promesse.then(function (res) {
+        if (!res.ok) {
+          state.dit = (res.body && res.body.error) || 'Le serveur a refusé ce geste.';
+          if (bouton) { bouton.disabled = false; bouton.textContent = libelle; }
           if (rerender) rerender();
-        }).catch(function () {
-          bouton.disabled = false;
-          window.alert('Serveur injoignable.');
-        });
+          return false;
+        }
+        /* La liste et la fiche changent toutes les deux : on relit les deux. */
+        state.stats = null;
+        refresh(rerender);
+        if (state.ouvert) lireFiche(state.ouvert, rerender);
+        else if (rerender) rerender();
+        return true;
+      }).catch(function () {
+        state.dit = 'Serveur injoignable — rien n\'a été fait.';
+        if (bouton) { bouton.disabled = false; bouton.textContent = libelle; }
+        if (rerender) rerender();
+        return false;
+      });
+    }
+
+    /* Deux temps avant ce qui coupe ou détruit — le geste déjà employé
+       partout ailleurs dans le produit. */
+    function deuxTemps(bouton, libelleArme, faire) {
+      if (!bouton) return;
+      var libelle = bouton.textContent;
+      var minuteur = null;
+
+      function desarmer() {
+        window.clearTimeout(minuteur);
+        bouton.removeAttribute('data-armed');
+        bouton.textContent = libelle;
+      }
+
+      bouton.addEventListener('click', function () {
+        if (!bouton.getAttribute('data-armed')) {
+          bouton.setAttribute('data-armed', '1');
+          bouton.textContent = libelleArme;
+          minuteur = window.setTimeout(desarmer, 5000);
+          return;
+        }
+        window.clearTimeout(minuteur);
+        faire();
+      });
+    }
+
+    host.querySelectorAll('[data-cabinet]').forEach(function (bouton) {
+      bouton.addEventListener('click', function () {
+        var cible = bouton.getAttribute('data-cabinet');
+        state.dit = null;
+        if (state.ouvert === cible) {
+          state.ouvert = null;
+          state.fiche = null;
+          if (rerender) rerender();
+          return;
+        }
+        state.ouvert = cible;
+        state.fiche = null;
+        state.ficheErreur = null;
+        if (rerender) rerender();
+        lireFiche(cible, rerender);
       });
     });
+
+    host.querySelectorAll('[data-verifier]').forEach(function (bouton) {
+      bouton.addEventListener('click', function () {
+        agir(api.adminVerify(bouton.getAttribute('data-verifier')), bouton, 'Confirmation…');
+      });
+    });
+
+    host.querySelectorAll('[data-formule]').forEach(function (bouton) {
+      bouton.addEventListener('click', function () {
+        agir(api.adminPlan(id, bouton.getAttribute('data-formule')), bouton, '…');
+      });
+    });
+
+    var poser = host.querySelector('[data-poser]');
+    if (poser) {
+      poser.addEventListener('click', function () {
+        var numero = host.querySelector('#plat-numero').value.trim();
+        var operateur = host.querySelector('#plat-operateur').value.trim();
+        if (!numero) {
+          state.dit = 'Indiquez le numéro sur lequel Ally doit décrocher.';
+          if (rerender) rerender();
+          return;
+        }
+        agir(api.assignLine(id, numero, operateur), poser, 'Attribution…');
+      });
+    }
+
+    deuxTemps(host.querySelector('[data-liberer]'),
+      'Confirmer — ce cabinet n\'aura plus de ligne',
+      function () { agir(api.assignLine(id, null), null); });
+
+    deuxTemps(host.querySelector('[data-suspendre]'),
+      'Confirmer — personne de ce cabinet ne pourra plus se connecter',
+      function () {
+        var champ = host.querySelector('#plat-motif');
+        agir(api.adminSuspend(id, champ ? champ.value.trim() : ''), null);
+      });
+
+    var rouvrir = host.querySelector('[data-rouvrir]');
+    if (rouvrir) {
+      rouvrir.addEventListener('click', function () {
+        agir(api.adminReactivate(id), rouvrir, 'Réouverture…');
+      });
+    }
+
+    deuxTemps(host.querySelector('[data-effacer]'),
+      'Confirmer la suppression définitive',
+      function () {
+        var parti = id;
+        agir(api.adminDelete(parti), null).then(function (ok) {
+          if (!ok) return;
+          state.ouvert = null;
+          state.fiche = null;
+          state.dit = 'Cabinet supprimé — comptes, appels, emails et rendez-vous compris.';
+          if (rerender) rerender();
+        });
+      });
 
     /* Un seul minuteur : sans ce remplacement, changer d'onglet dix fois en
        laisserait dix qui interrogent le serveur en parallèle. */

@@ -1,0 +1,18 @@
+{
+  "name": "ally",
+  "version": "0.7.0",
+  "private": true,
+  "description": "Ally — assistant IA pour professionnels seuls : répond au téléphone, rédige les emails, tient l'agenda.",
+  "license": "UNLICENSED",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node server/index.js",
+    "demo": "node build-demo.js",
+    "test": "node tests/run.js",
+    "test:navigateur": "node tests/navigateur/run.js",
+    "cle": "node -e \"console.log(require('node:crypto').randomBytes(32).toString('hex'))\""
+  },
+  "dependencies": {}
+}

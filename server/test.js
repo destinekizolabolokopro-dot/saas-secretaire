@@ -1056,6 +1056,304 @@ async function newCabinet(email, org) {
     assert.ok(!JSON.stringify(res.body).includes('server/'), 'un chemin interne a fuité');
   });
 
+  console.log('\n== Ce que le service de fichiers refuse de donner ==');
+
+  /* Il servait tout ce qu'il trouvait, avec un type générique en dernier
+     recours. Un « .env » posé à côté des pages — c'est exactement là qu'on le
+     pose — partait donc en clair à qui en demandait l'adresse : clé de
+     chiffrement, mot de passe de l'administrateur, clé d'API du fournisseur
+     d'emails. */
+  await test('aucun fichier caché ne sort, à aucune profondeur', async () => {
+    const fsp = require('node:fs');
+    const racine = require('node:path').resolve(__dirname, '..');
+    const piege = require('node:path').join(racine, '.env');
+    const existait = fsp.existsSync(piege);
+    if (!existait) fsp.writeFileSync(piege, 'ALLY_SECRET_KEY=secret-a-ne-pas-donner\n');
+
+    try {
+      const r = await fetch(base + '/.env');
+      assert.strictEqual(r.status, 404, 'le fichier de secrets est servi');
+      const corps = await r.text();
+      assert.ok(!/secret-a-ne-pas-donner/.test(corps), 'la clé est partie dans la réponse');
+    } finally {
+      if (!existait) fsp.unlinkSync(piege);
+    }
+  });
+
+  await test('ni les fichiers qui ne sont pas des pages', async () => {
+    /* package.json, Dockerfile, une sauvegarde oubliée : rien de tout cela
+       n'a à sortir d'un dossier servi sur le web. */
+    const r = await fetch(base + '/package.json');
+    assert.strictEqual(r.status, 404, 'package.json est servi');
+
+    /* Les pages, elles, sortent toujours. */
+    const page = await fetch(base + '/login.html');
+    assert.strictEqual(page.status, 200, 'les pages ne sont plus servies');
+  });
+
+  await test('ni le code du serveur, ni les tests', async () => {
+    for (const chemin of ['/server/lib/crypto.js', '/server/index.js', '/tests/harness.js']) {
+      const r = await fetch(base + chemin);
+      assert.strictEqual(r.status, 404, chemin + ' est servi');
+    }
+  });
+
+  console.log('\n== La console de la plateforme ==');
+
+  /* Une vraie session d'administrateur, ouverte comme le ferait un humain :
+     le compte vient de l'environnement, puis on se connecte. */
+  let adminCookie = null;
+  let adminCabinetId = null;
+
+  await test('l\'administrateur ouvre sa session comme tout le monde', async () => {
+    process.env.ALLY_ADMIN_EMAIL = 'patron@ally.fr';
+    process.env.ALLY_ADMIN_PASSWORD = 'MotDePasseTresLong2026';
+    const compte = auth.ensureAdmin();
+    assert.ok(compte.ok, 'administrateur non configuré');
+
+    H.resetRateLimits();
+    const entree = await call('POST', '/api/auth/login', {
+      body: { email: 'patron@ally.fr', password: 'MotDePasseTresLong2026' }
+    });
+    assert.strictEqual(entree.status, 200, 'connexion refusée à l\'administrateur');
+    assert.strictEqual(entree.body.role, 'admin');
+    adminCookie = 'ally_session=' + entree.token;
+    adminCabinetId = entree.body.cabinetId;
+
+    const stats = await call('GET', '/api/admin/stats', { cookie: adminCookie });
+    assert.strictEqual(stats.status, 200, 'la console lui est refusée');
+  });
+
+  /* Il manquait tout ce qui permet de faire tourner un service : suspendre un
+     cabinet qui ne paie plus, rouvrir, ajuster une formule, confirmer une
+     adresse dont l'email n'est jamais arrivé. Entre « laisser travailler » et
+     « tout détruire », il n'y avait rien. */
+  const P = {};
+
+  await test('seul un administrateur voit la plateforme', async () => {
+    P.cab = await newCabinet('client@cabinet-plateforme.fr', 'Cabinet Plateforme');
+    for (const route of [
+      'GET /api/admin/cabinets/' + P.cab.cabinetId,
+      'POST /api/admin/cabinets/' + P.cab.cabinetId + '/suspend',
+      'POST /api/admin/cabinets/' + P.cab.cabinetId + '/plan',
+      'POST /api/admin/users/' + P.cab.userId + '/verify'
+    ]) {
+      const [methode, chemin] = route.split(' ');
+      const r = await call(methode, chemin,
+        methode === 'GET' ? { cookie: P.cab.cookie } : { cookie: P.cab.cookie, body: {} });
+      assert.strictEqual(r.status, 403, route + ' est ouverte à un client');
+    }
+  });
+
+  await test('la fiche d\'un cabinet montre ses membres, et aucun contenu', async () => {
+    const r = await call('GET', '/api/admin/cabinets/' + P.cab.cabinetId, { cookie: adminCookie });
+    assert.strictEqual(r.status, 200);
+    assert.strictEqual(r.body.membres.length, 1);
+    assert.strictEqual(r.body.membres[0].email, 'client@cabinet-plateforme.fr');
+    assert.strictEqual(r.body.membres[0].owner, true);
+
+    /* La règle qui ne souffre pas d'exception : des volumes, jamais le fond.
+       La configuration chiffrée du cabinet ne sort pas non plus — la fiche dit
+       seulement si elle existe. */
+    const brut = JSON.stringify(r.body);
+    assert.ok(!/transcript|resume|summary|preview|corps/i.test(brut),
+      'la fiche laisse filtrer du contenu : ' + brut.slice(0, 200));
+    assert.strictEqual(r.body.cabinet.config, undefined,
+      'la configuration chiffrée du cabinet est renvoyée');
+    assert.strictEqual(typeof r.body.configuree, 'boolean');
+    assert.ok(typeof r.body.volumes.appels === 'number');
+    /* Ni empreinte de mot de passe ni jeton de session dans les membres. */
+    assert.ok(!/\bpass\b|token/i.test(brut), 'un secret est passé dans la fiche');
+  });
+
+  await test('suspendre coupe l\'accès, et ferme les sessions ouvertes', async () => {
+    const avant = await call('GET', '/api/me', { cookie: P.cab.cookie });
+    assert.strictEqual(avant.body.authenticated, true, 'la session n\'était pas ouverte');
+
+    const sus = await call('POST', '/api/admin/cabinets/' + P.cab.cabinetId + '/suspend', {
+      cookie: adminCookie, body: { motif: 'Impayé' }
+    });
+    assert.strictEqual(sus.status, 200);
+    assert.strictEqual(sus.body.sessionsFermees, 1, 'la session ouverte a survécu');
+
+    const apres = await call('GET', '/api/me', { cookie: P.cab.cookie });
+    assert.strictEqual(apres.body.authenticated, false, 'il travaille encore après suspension');
+
+    H.resetRateLimits();
+    const essai = await call('POST', '/api/auth/login', {
+      body: { email: 'client@cabinet-plateforme.fr', password: 'MotDePasse42!' }
+    });
+    assert.strictEqual(essai.status, 401, 'un cabinet suspendu se reconnecte');
+    assert.ok(/suspendu/i.test(essai.body.error), 'message : ' + essai.body.error);
+  });
+
+  await test('et rouvrir le laisse revenir', async () => {
+    const re = await call('POST', '/api/admin/cabinets/' + P.cab.cabinetId + '/reactivate', {
+      cookie: adminCookie, body: {}
+    });
+    assert.strictEqual(re.status, 200);
+
+    H.resetRateLimits();
+    const entree = await call('POST', '/api/auth/login', {
+      body: { email: 'client@cabinet-plateforme.fr', password: 'MotDePasse42!' }
+    });
+    assert.strictEqual(entree.status, 200, 'il reste dehors après réouverture');
+    P.cab.cookie = 'ally_session=' + entree.token;
+  });
+
+  await test('la plateforme ajuste une formule, dans les limites du cabinet', async () => {
+    const monte = await call('POST', '/api/admin/cabinets/' + P.cab.cabinetId + '/plan', {
+      cookie: adminCookie, body: { plan: 'expert' }
+    });
+    assert.strictEqual(monte.status, 200);
+    assert.strictEqual(monte.body.seats, 5);
+
+    const inventee = await call('POST', '/api/admin/cabinets/' + P.cab.cabinetId + '/plan', {
+      cookie: adminCookie, body: { plan: 'gratuit-a-vie' }
+    });
+    assert.strictEqual(inventee.status, 400);
+
+    const moi = await call('GET', '/api/me', { cookie: P.cab.cookie });
+    assert.strictEqual(moi.body.seats, 5, 'le client ne voit pas sa nouvelle formule');
+  });
+
+  await test('une adresse bloquée se confirme à la main', async () => {
+    H.resetRateLimits();
+    const bloque = await call('POST', '/api/auth/signup', {
+      body: { email: 'perdu@cabinet-perdu.fr', password: 'MotDePasse42!', org: 'Perdu' }
+    });
+    assert.strictEqual(bloque.status, 201);
+
+    const ok = await call('POST', '/api/admin/users/' + bloque.body.userId + '/verify', {
+      cookie: adminCookie, body: {}
+    });
+    assert.strictEqual(ok.status, 200);
+
+    H.resetRateLimits();
+    const entree = await call('POST', '/api/auth/login', {
+      body: { email: 'perdu@cabinet-perdu.fr', password: 'MotDePasse42!' }
+    });
+    assert.strictEqual(entree.status, 200, 'le compte reste bloqué après confirmation');
+
+    /* Deux fois, non : c'est le signe qu'on s'est trompé de fiche. */
+    const encore = await call('POST', '/api/admin/users/' + bloque.body.userId + '/verify', {
+      cookie: adminCookie, body: {}
+    });
+    assert.strictEqual(encore.status, 409);
+  });
+
+  await test('supprimer un cabinet emporte tout, sauf le sien', async () => {
+    const sien = await call('POST', '/api/admin/cabinets/' + adminCabinetId + '/delete', {
+      cookie: adminCookie, body: {}
+    });
+    assert.strictEqual(sien.status, 409, 'l\'administrateur a pu se supprimer lui-même');
+
+    const parti = await call('POST', '/api/admin/cabinets/' + P.cab.cabinetId + '/delete', {
+      cookie: adminCookie, body: {}
+    });
+    assert.strictEqual(parti.status, 200);
+    assert.ok(!auth.findUser('client@cabinet-plateforme.fr'), 'le compte existe encore');
+    assert.ok(!store.load().cabinets.some((c) => c.id === P.cab.cabinetId));
+  });
+
+  console.log('\n== Le courrier, et ce qu\'il bloque ==');
+
+  /* Le défaut qui empêchait toute mise en ligne : en production, le code de
+     vérification cessait d'être renvoyé dans la réponse — c'est la bonne
+     décision — mais rien ne le postait. L'inscription créait donc un compte
+     que personne ne pouvait jamais confirmer. */
+  await test('la production refuse un parcours dont le code ne part nulle part', async () => {
+    const mailer = require('./lib/mailer');
+    const avant = { env: process.env.NODE_ENV, mode: process.env.ALLY_VERIFY_MODE };
+    process.env.NODE_ENV = 'production';
+    delete process.env.ALLY_VERIFY_MODE;
+    delete process.env.BREVO_API_KEY;
+    delete process.env.SMTP_URL;
+
+    const etat = mailer.etat();
+    assert.strictEqual(etat.fatal, true, 'le serveur accepterait de démarrer ainsi');
+    assert.ok(/jamais être confirmés/.test(etat.message), 'message : ' + etat.message);
+
+    /* Et il démarre dès qu'on tranche : soit un fournisseur, soit pas de
+       vérification du tout. */
+    process.env.ALLY_VERIFY_MODE = 'open';
+    assert.strictEqual(mailer.etat().fatal, undefined);
+    assert.strictEqual(mailer.verificationRequise(), false);
+
+    process.env.ALLY_VERIFY_MODE = 'email';
+    process.env.BREVO_API_KEY = 'cle-de-test';
+    process.env.ALLY_MAIL_FROM = 'ally@exemple.fr';
+    const avecBrevo = mailer.etat();
+    assert.strictEqual(avecBrevo.ok, true, avecBrevo.message);
+    assert.strictEqual(avecBrevo.envoi, 'brevo');
+
+    /* Un fournisseur sans adresse d'expédition ne part jamais : autant le
+       dire au démarrage plutôt qu'au premier inscrit. */
+    delete process.env.ALLY_MAIL_FROM;
+    assert.strictEqual(mailer.etat().fatal, true);
+
+    delete process.env.BREVO_API_KEY;
+    if (avant.env === undefined) delete process.env.NODE_ENV; else process.env.NODE_ENV = avant.env;
+    if (avant.mode === undefined) delete process.env.ALLY_VERIFY_MODE;
+    else process.env.ALLY_VERIFY_MODE = avant.mode;
+  });
+
+  await test('sans vérification, l\'inscription ouvre la session tout de suite', async () => {
+    process.env.ALLY_VERIFY_MODE = 'open';
+    H.resetRateLimits();
+
+    const res = await call('POST', '/api/auth/signup', {
+      body: { email: 'direct@cabinet-ouvert.fr', password: 'MotDePasse42!', org: 'Ouvert' }
+    });
+    assert.strictEqual(res.status, 201);
+    assert.strictEqual(res.body.verified, true, 'le compte attend encore un code');
+    assert.ok(!res.body.devCode, 'un code a été émis alors qu\'il n\'en faut pas');
+
+    /* La session est ouverte : on entre sans repasser par la connexion. */
+    assert.ok(res.token, 'aucune session ouverte');
+    const moi = await call('GET', '/api/me', { cookie: 'ally_session=' + res.token });
+    assert.strictEqual(moi.body.authenticated, true);
+
+    const user = auth.findUser('direct@cabinet-ouvert.fr');
+    assert.strictEqual(user.verified, true);
+    assert.strictEqual(user.code, null, 'un code dort encore sur le compte');
+
+    delete process.env.ALLY_VERIFY_MODE;
+  });
+
+  await test('un fournisseur injoignable ne rend pas le code à la page', async () => {
+    /* Si l'envoi échoue, le code ne doit surtout pas repartir dans la réponse
+       — ce serait rouvrir la porte qu'on vient de fermer. On le dit en panne,
+       et le compte existe : il se débloque avec « renvoyer le code ». */
+    process.env.SMTP_URL = 'smtp://127.0.0.1:1';
+    process.env.ALLY_MAIL_FROM = 'ally@exemple.fr';
+    H.resetRateLimits();
+
+    const res = await call('POST', '/api/auth/signup', {
+      body: { email: 'panne@cabinet-panne.fr', password: 'MotDePasse42!', org: 'Panne' }
+    });
+    assert.strictEqual(res.status, 201);
+    assert.ok(!res.body.devCode, 'le code est reparti dans la réponse');
+    assert.strictEqual(res.body.envoye, false);
+    assert.strictEqual(res.body.panne, true,
+      'la panne d\'envoi est passée sous silence — réponse : ' + JSON.stringify(res.body));
+    assert.ok(auth.findUser('panne@cabinet-panne.fr'), 'le compte a été perdu avec l\'email');
+
+    delete process.env.SMTP_URL;
+    delete process.env.ALLY_MAIL_FROM;
+  });
+
+  await test('la lettre porte le code, et rien d\'autre', async () => {
+    const { lettre } = require('./lib/mailer');
+    const l = lettre('verify', '123456', 10);
+    assert.ok(l.text.includes('123456'));
+    assert.ok(l.html.includes('123456'));
+    assert.ok(/10 minutes/.test(l.text), 'la durée de validité n\'est pas dite');
+    /* Pas de pixel de suivi ni de lien sortant sur un email transactionnel. */
+    assert.ok(!/<img/i.test(l.html), 'la lettre contient une image');
+    assert.ok(!/<a /i.test(l.html), 'la lettre contient un lien');
+  });
+
   console.log('\n== Journal ==');
 
   await test('les événements sensibles sont tracés', () => {

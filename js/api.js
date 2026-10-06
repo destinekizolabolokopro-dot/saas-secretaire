@@ -159,6 +159,28 @@
         { numero: numero, operateur: operateur });
     },
 
+    /* Ce qu'il faut pour faire tourner un service, et qui n'existait pas :
+       ouvrir la fiche d'un cabinet, couper son accès, le rouvrir, ajuster sa
+       formule, confirmer une adresse bloquée, ou tout effacer. */
+    adminCabinet: function (cabinetId) {
+      return request('GET', '/admin/cabinets/' + cabinetId);
+    },
+    adminSuspend: function (cabinetId, motif) {
+      return request('POST', '/admin/cabinets/' + cabinetId + '/suspend', { motif: motif });
+    },
+    adminReactivate: function (cabinetId) {
+      return request('POST', '/admin/cabinets/' + cabinetId + '/reactivate', {});
+    },
+    adminPlan: function (cabinetId, plan) {
+      return request('POST', '/admin/cabinets/' + cabinetId + '/plan', { plan: plan });
+    },
+    adminVerify: function (userId) {
+      return request('POST', '/admin/users/' + userId + '/verify', {});
+    },
+    adminDelete: function (cabinetId) {
+      return request('POST', '/admin/cabinets/' + cabinetId + '/delete', {});
+    },
+
     /* Mémorise la session ouverte, pour que l'interface s'y réfère. */
     remember: function (body) {
       state.cabinetId = body.cabinetId || state.cabinetId;

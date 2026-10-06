@@ -321,5 +321,28 @@
     }
   };
 
+  /* Sommes-nous dans la maquette, ou dans le produit ?
+
+     Sans serveur, les comptes vivent dans le navigateur. C'est exactement ce
+     qu'il faut pour montrer le produit — et c'est un piège le jour où ces
+     pages sont déposées sur un hébergement statique : l'inscription aurait
+     l'air de marcher, et chaque visiteur se créerait un compte que lui seul
+     verrait, sur sa propre machine, sans que rien ne le dise.
+
+     On ne devine pas l'intention : on regarde l'adresse. Un fichier ouvert
+     par double-clic ou une machine locale, c'est la démonstration. Un vrai
+     domaine sans serveur derrière, c'est une erreur de déploiement, et le
+     produit doit le dire au lieu de faire semblant. */
+  function surMachineLocale() {
+    var h = window.location.hostname;
+    return window.location.protocol === 'file:'
+      || h === 'localhost' || h === '127.0.0.1' || h === '::1' || h === '';
+  }
+
+  GATE.modeDemo = function () { return local() && surMachineLocale(); };
+
+  /* Déposé en ligne sans serveur : ni inscription ni connexion réelles. */
+  GATE.sansServeurEnLigne = function () { return local() && !surMachineLocale(); };
+
   window.ALLY_GATE = GATE;
 })();

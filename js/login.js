@@ -89,8 +89,25 @@
   }
 
   /* ---------- Écran de connexion ---------- */
-  document.getElementById('demo-admin').textContent =
-    accounts.ADMIN.email + ' · ' + accounts.ADMIN.password;
+
+  /* Les accès de démonstration ne s'affichent que là où ils ont un sens : un
+     fichier ouvert par double-clic, ou une machine locale. Publier un mot de
+     passe d'administrateur sur un domaine en ligne, même pour une maquette,
+     n'est pas une démonstration — c'est une porte ouverte. */
+  var boiteDemo = document.querySelector('.demo-keys');
+  if (gate.modeDemo()) {
+    document.getElementById('demo-admin').textContent =
+      accounts.ADMIN.email + ' · ' + accounts.ADMIN.password;
+  } else if (boiteDemo) {
+    boiteDemo.innerHTML = gate.sansServeurEnLigne()
+      ? '<p class="demo-keys-title">Pas de serveur derrière cette page</p>' +
+        '<p class="note">Ces pages sont en ligne, mais aucune API ne leur répond : ' +
+        'un compte créé ici resterait dans ce navigateur, visible de personne ' +
+        'd\'autre. Lancez <code>node server/index.js</code> et servez le site ' +
+        'depuis lui pour que les comptes existent vraiment.</p>'
+      : '';
+    if (!gate.sansServeurEnLigne()) boiteDemo.hidden = true;
+  }
 
   UI.revealToggle(document.getElementById('login-password'));
 
@@ -109,6 +126,7 @@
     var demo = document.querySelector('.demo-keys');
     if (!demo) return;
     if (!online) return;
+    demo.hidden = false;
     demo.innerHTML =
       '<p class="demo-keys-title">Ligne connectée</p>' +
       '<p class="note">Ce navigateur parle au serveur d\'Ally : les comptes, les '

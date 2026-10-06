@@ -3,3 +3,10 @@
 # n'a sa place dans un dépôt.
 server/data/
 *.tmp
+
+# La configuration du serveur : clé de chiffrement, mot de passe de
+# l'administrateur, clés d'API. Le modèle .env.example, lui, est versionné.
+.env
+.env.*
+!.env.example
+node_modules/

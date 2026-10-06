@@ -46,6 +46,7 @@ node tests/navigateur/run.js       # les douze suites d'un coup
 | `notifs.js` | La cloche : la pastille compte ce que le panneau contient, et ce qui s'ouvre se ferme aussi au clavier |
 | `equipe.js` | Le cabinet à plusieurs, sur un vrai serveur : la formule choisie ouvre réellement les places, inviter et retirer engagent |
 | `console.js` | Les deux gestes de la console qui coupent l'accès d'un client : suspendre et supprimer demandent deux clics, aucune boîte du navigateur, et l'annuaire est relu après coup |
+| `console-reelle.js` | Faire tourner le service sur un vrai serveur : ouvrir une ligne, ajuster une formule, suspendre, rouvrir, confirmer une adresse bloquée, tout effacer — chaque geste relu auprès de l'API |
 | `coupure.js` | Un serveur qui devient injoignable en cours de session : les réglages sont retentés, le retard est annoncé, l'avertissement se retire tout seul au retour |
 
 Le fichier `ally-demo.html` s'ouvre par simple double-clic : il contient tout
@@ -422,7 +423,7 @@ l'ensemble** :
 
 ```bash
 node server/index.js       # http://localhost:8787 — API et maquette
-node server/test.js        # 77 contrôles
+node server/test.js        # 92 contrôles
 ```
 
 ### Le compte devient réel
@@ -617,11 +618,20 @@ Ce qui suit n'est pas une liste de souhaits : ce sont des points qui rendent
 une mise en ligne fautive tant qu'ils ne sont pas traités. Ils ne se voient
 pas dans l'interface, c'est bien le problème.
 
-**Retirer les accès de démonstration.** La page de connexion affiche deux
-comptes avec leur mot de passe, dont un administrateur. C'est ce qui rend la
-maquette essayable en dix secondes, et c'est une porte grande ouverte le jour
-où elle est servie sur un domaine public. Le bloc `.demo-keys` de
-`login.html`, et les comptes correspondants dans `js/accounts.js`.
+**~~Retirer les accès de démonstration.~~** *Fait.* Ils ne s'affichent plus que
+là où ils ont un sens : un fichier ouvert par double-clic, ou une machine
+locale. Sur un domaine en ligne sans serveur, la page dit à la place qu'aucune
+API ne lui répond — et qu'un compte créé là resterait dans ce navigateur.
+
+**~~Brancher l'envoi des emails.~~** *Fait.* Brevo ou SMTP, sans dépendance, et
+le serveur **refuse de démarrer** en production s'il doit exiger un code que
+rien n'envoie. `ALLY_VERIFY_MODE=open` ouvre l'autre chemin : pas de
+confirmation, le compte est actif dès l'inscription.
+
+**~~Pouvoir faire tourner le service.~~** *Fait.* La console de plateforme agit
+désormais sur le vrai serveur : ouvrir la fiche d'un cabinet, lui attribuer un
+numéro, ajuster sa formule, confirmer une adresse bloquée, suspendre son accès,
+le rouvrir, tout effacer. Voir [DEPLOIEMENT.md](DEPLOIEMENT.md).
 
 **Écrire les mentions légales.** Un site marchand français les doit
 (article 6-III de la LCEN) : dénomination et forme juridique, capital, adresse
@@ -635,6 +645,11 @@ transcription d'appels, conservation, sous-traitants.
 Le pied de page ne renvoie vers aucune de ces pages **parce qu'elles n'existent
 pas** — un lien mort vaut moins qu'un lien absent. Les trois colonnes sont
 prêtes à en accueillir une quatrième.
+
+**Ouvrir les comptes tiers.** Retell et un numéro français (sans quoi aucun
+appel n'arrive), Brevo ou un relais SMTP, Stripe pour encaisser, Google ou
+Microsoft pour l'agenda. Les points d'entrée sont écrits et testés ; les
+intégrations demandent des comptes qui ne s'ouvrent pas depuis un éditeur.
 
 **Trancher sur l'énumération à l'inscription.** La connexion ne dit plus si
 un compte existe — le même refus dans les deux cas. L'inscription, elle,

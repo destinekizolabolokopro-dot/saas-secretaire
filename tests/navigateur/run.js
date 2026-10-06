@@ -25,6 +25,7 @@ const SUITES = [
   ['notifs.js', 'ce que la cloche annonce'],
   ['equipe.js', 'le cabinet à plusieurs'],
   ['console.js', 'ce qui coupe l\'accès de quelqu\'un'],
+  ['console-reelle.js', 'faire tourner le service, sur un vrai serveur'],
   ['coupure.js', 'ce qui arrive quand le serveur tombe']
 ];
 
